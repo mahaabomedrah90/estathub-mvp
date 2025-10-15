@@ -1,0 +1,131 @@
+{
+  "project": "MVP Development",
+  "tasks": [
+    {
+      "key": "FE-01",
+      "title": "Investor Dashboard UI",
+      "description": "Create the main investor dashboard page displaying listed tokenized properties with KPIs and monthly yield.",
+      "acceptance_criteria": [
+        "Display property cards (title, yield, tokens available).",
+        "Fetch data from backend /api/properties.",
+        "Use responsive Tailwind layout."
+      ],
+      "labels": ["frontend", "react", "UI/UX"],
+      "priority": "High",
+      "status": "Analysis & Planning"
+    },
+    {
+      "key": "FE-02",
+      "title": "Investor Property Details Page",
+      "description": "Build a property details page showing complete investment information, expected returns, and buy options.",
+      "acceptance_criteria": [
+        "Dynamic route /property/:id",
+        "Show token price, ROI, and ownership breakdown.",
+        "Implement buy modal (dummy function)."
+      ],
+      "labels": ["frontend", "react"],
+      "priority": "Medium",
+      "status": "Development"
+    },
+    {
+      "key": "BE-01",
+      "title": "Express API Setup",
+      "description": "Initialize Node.js backend using Express, CORS, and Morgan. Create a basic /api/properties endpoint returning mock data.",
+      "acceptance_criteria": [
+        "Server runs on port 5000.",
+        "GET /api/health returns {ok: true}.",
+        "GET /api/properties returns mock list."
+      ],
+      "labels": ["backend", "express", "api"],
+      "priority": "High",
+      "status": "Development"
+    },
+    {
+      "key": "BE-02",
+      "title": "Database and Models (Future)",
+      "description": "Prepare data model for properties and investors to integrate later with PostgreSQL or blockchain ledger.",
+      "acceptance_criteria": [
+        "Define Property and Investor model skeletons.",
+        "Add future-ready structure for ORM or smart contract calls."
+      ],
+      "labels": ["backend", "data-model"],
+      "priority": "Low",
+      "status": "Integration"
+    },
+    {
+      "key": "INT-01",
+      "title": "Plane ↔ GitHub Integration",
+      "description": "Integrate Plane with GitHub to sync commits, pull requests, and branch names with Plane issues.",
+      "acceptance_criteria": [
+        "Enable GitHub integration in Plane workspace settings.",
+        "Confirm commits with issue keys appear in Plane activity."
+      ],
+      "labels": ["integration", "management"],
+      "priority": "High",
+      "status": "Integration"
+    },
+    {
+      "key": "INT-02",
+      "title": "Connect Frontend to Backend",
+      "description": "Ensure React frontend communicates with Express backend locally via .env configuration.",
+      "acceptance_criteria": [
+        "API requests point to VITE_API_BASE.",
+        "Data from backend appears on dashboard."
+      ],
+      "labels": ["integration", "frontend-backend"],
+      "priority": "High",
+      "status": "Integration"
+    },
+    {
+      "key": "OPS-01",
+      "title": "GitHub Actions CI Setup",
+      "description": "Configure GitHub Actions workflow to install dependencies, build frontend, and test backend on push.",
+      "acceptance_criteria": [
+        "Create .github/workflows/ci.yml.",
+        "Frontend build passes successfully.",
+        "Backend dependencies install correctly."
+      ],
+      "labels": ["devops", "ci"],
+      "priority": "Medium",
+      "status": "Integration"
+    },
+    {
+      "key": "OPS-02",
+      "title": "Setup Local Dev Environment",
+      "description": "Document and script the local setup process for all developers using dev-setup.sh and setup_guide.md.",
+      "acceptance_criteria": [
+        "Run script installs all dependencies.",
+        "Developers can run frontend and backend locally."
+      ],
+      "labels": ["devops", "setup"],
+      "priority": "Medium",
+      "status": "Analysis & Planning"
+    },
+    {
+      "key": "QA-01",
+      "title": "API Testing",
+      "description": "Test all backend API routes manually via Postman or cURL for correctness and error handling.",
+      "acceptance_criteria": [
+        "All endpoints return 200 OK.",
+        "Invalid requests return 4xx errors.",
+        "Document results in QA report."
+      ],
+      "labels": ["qa", "backend"],
+      "priority": "Medium",
+      "status": "Testing"
+    },
+    {
+      "key": "QA-02",
+      "title": "Frontend Smoke Test",
+      "description": "Run a quick UI test for investor dashboard ensuring pages load and data is displayed correctly.",
+      "acceptance_criteria": [
+        "Dashboard loads without console errors.",
+        "Property cards render correctly.",
+        "Data updates dynamically."
+      ],
+      "labels": ["qa", "frontend"],
+      "priority": "Low",
+      "status": "Testing"
+    }
+  ]
+}
