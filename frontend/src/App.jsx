@@ -13,6 +13,8 @@ export default function App() {
   return (
     <div style={{ maxWidth: 960, margin: '32px auto', fontFamily: 'Arial, sans-serif' }}>
       <h1>Estathub MVP</h1>
+      <h1>Property Details MVP</h1>
+
       <p>Investor Transparency Dashboard (MVP)</p>
 
       <ul>
