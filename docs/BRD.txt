@@ -1,0 +1,290 @@
+Business Requirements Document (BRD)
+1. Executive Summary
+Estathub is a tokenized real estate platform aimed at enabling easy, compliant, and fast investment in Saudi real estate. The MVP allows property owners to tokenize their assets, and investors to purchase fractional ownership through a blockchain-powered, user-friendly interface. The platform will be built using Cursor AI for rapid MVP development, hosted on AWS, with smart contracts deployed on a private Hyperledger Fabric network.
+2. Goals and Objectives
+- Allow property owners to list and tokenize real estate
+- Let investors buy digital shares (tokens) using local payment gateways
+- Ensure secure, private blockchain transactions
+- Provide monthly ROI based on rental income
+- Support regulatory compliance with Saudi standards (REGA, Ejar, etc.)
+3. Scope (MVP)
+- Manual onboarding of the first 3 properties
+- Generation of token shares per property on Hyperledger Fabric
+- Hosting on AWS using EC2, S3, Lambda, and Cognito
+- User portal for investment and management (React + Tailwind)
+- Admin portal to verify listings and manage earnings distribution
+- Integration with payment gateway (PayTabs or HyperPay)
+- Issuance of digital certificates for investors
+4. Stakeholders
+- Property Owners
+- Individual Investors
+- Estathub Admin
+- Saudi Real Estate Regulatory Bodies (future integration)
+- Payment Provider Partners
+5. Functional Requirements
+- Property Listing: Upload details & documents
+- Tokenization Engine: Generate tokens on blockchain
+- Purchase Flow: User selects property, amount, pays via local methods
+- Digital Wallet: Store token ownership info (internal custodial)
+- ROI Distribution: Monthly calculation and transfer to investor wallet
+- Admin Panel: Approve properties, monitor sales, manage payouts
+6. Non-Functional Requirements
+- Security: JWT, HTTPS, encrypted smart contract interaction
+- Performance: Fast transaction confirmation and dashboard updates
+- Scalability: Cloud-native, modular architecture
+- Legal Compliance: Designed to align with REGA and financial regulators
+7. Integration Points
+- Blockchain: Hyperledger Fabric (private)
+- Wallet Layer: Internal custodial wallet
+- Payment Gateway: PayTabs or HyperPay (Apple Pay / Mada)
+- Optional Integration: Ejar API, REGA asset verification APIs
+8. Future Considerations
+- Secondary Token Market inside platform
+- Smart Contract automation for ROI
+- Integration with Saudi Digital Identity for secure KYC
+- Integration with REGA Sandbox for experimental real-estate tech
+
+Document Title: Business & High-Level Technical Design Document for Tokenized Real Estate Platform
+ 
+🌟 Project Name: RealEstateX
+Version: 1.0
+Prepared By: Maha Abomedrah
+Date: 11/10/2025
+ 
+✍️ 1. Executive Summary
+RealEstateX is an innovative, blockchain-powered real estate investment platform tailored for the Saudi market. It enables property owners to tokenize income-generating properties (e.g., hotels, apartments) and allow micro-investors to own fractions via digital tokens. The goal is to simplify and digitize property ownership, investment, and revenue sharing within a compliant, fast, and transparent ecosystem.
+ 
+📆 2. Business Requirements Document (BRD)
+2.1. Objectives
+•	Enable real estate tokenization through blockchain.
+•	Simplify the property investment process (“own in 120 seconds”).
+•	Ensure compliance with Saudi regulatory standards.
+•	Provide transparent and automatic monthly profit sharing.
+•	Use a private, government-friendly blockchain (Hyperledger).
+2.2. Target Users
+•	Property Owners: Seeking to tokenize properties and get funded.
+•	Investors: Individuals looking for fractional ownership and monthly returns.
+•	Government & Legal Authorities: Oversight and compliance.
+2.3. Key Features
+•	Token creation engine.
+•	Smart contract-based ownership registry.
+•	Monthly profit distribution automation.
+•	Investor dashboard and wallet.
+•	Integration with payment gateways (Apple Pay, STC Pay).
+•	Admin panel to onboard/verify property owners.
+2.4. Value Proposition
+•	First mover in compliant tokenized real estate in Saudi.
+•	Reduces property funding time from 120 days to minutes.
+•	Encourages inclusion of middle-income investors.
+ 
+📊 3. Market Analysis
+•	Inspired by platforms like Brickken (France), Stake (UAE).
+•	Major gap in Saudi for compliant tokenized platforms.
+•	Demand rising for income-generating digital real estate assets.
+•	Blockchain adoption is gaining traction under Vision 2030.
+ 
+🛠️ 4. High-Level Solution Architecture (HLD)
+4.1. Tech Stack
+Layer	Technology
+Frontend	React / Next.js
+Backend	Node.js / NestJS
+Blockchain	Hyperledger Fabric (private)
+Database	PostgreSQL
+Payment	Apple Pay, STC Pay Integration
+Identity	National ID (via Nafath)
+Hosting	Local private cloud (STC Cloud / Government-Approved Host) but as beginning will use AWS 
+4.2. Core Components
+1.	Tokenization Engine
+o	Generates token supply per asset.
+o	Assigns ownership and fractional value.
+2.	Smart Contract Layer (Chaincode)
+o	Controls token distribution.
+o	Validates profit allocation.
+o	Logs immutable transactions.
+3.	Admin Panel
+o	Property onboarding
+o	KYC verification
+o	Earnings input
+4.	Investor Portal
+o	View holdings
+o	Receive dividends
+o	Buy/sell tokens
+5.	Wallet System
+o	Internal ledger + connection to Hyperledger
+o	For future: add regulated off-ramps to banks
+6.	Compliance & Audit Layer
+o	Generates reports
+o	Monitors transactions
+ 
+🔧 5. Integration Plan (Phase 1)
+•	MVP includes:
+o	Basic tokenization
+o	Manual earning input by owner
+o	Monthly distribution simulation
+o	Frontend wallet + admin panel
+•	Excludes:
+o	External exchange listing
+o	Government API integration (Phase 2)
+ 
+💼 6. Future Considerations (Phase 2+)
+•	Full Nafath integration for ownership verification.
+•	Smart contract triggers based on bank deposits.
+•	Government-backed ledger access.
+•	NFT title deeds stored on-chain.
+ 
+✅ 7. Next Steps
+•	Finalize BRD & HLD.
+•	Start Cursor development.
+•	Build MVP in 30-45 days.
+•	Select 3 pilot properties.
+•	Begin private investor demo.
+ 
+Tokenized Real Estate Platform – Full Business and Technical Workflow
+🧭 Full Workflow for the Tokenized Real Estate Investment Platform (Estathub)
+
+This document describes the complete investment journey for a Saudi real estate asset on the Estathub platform – 
+from onboarding the property to allowing fractional investment via tokenization using a private blockchain network.
+
+🎯 Beneficiary Roles
+
+• Property Owner: Person who owns the real estate and wants to tokenize it.
+• Investor: Individual user who wants to buy shares in the property.
+• Estathub Platform: The marketplace and technical engine.
+• Blockchain Layer: Based on Hyperledger Fabric.
+• Wallet Layer: Handles investor token holding and earnings.
+
+🔁 Detailed Workflow Steps
+1. Property Registration & Tokenization (by Property Owner)
+
+- Owner submits a request to list a property.
+- Uploads include: Ownership certificate and income proof (e.g., lease contract).
+- Platform verifies documents (manual or via Real Estate Authority).
+- System calculates:
+  * Market Value
+  * Token Count = Property Value ÷ Token Price (e.g., 10,000,000 ÷ 1,000 = 10,000 tokens)
+- A Smart Contract is generated with:
+  * Property details, each token’s share, and profit distribution rules.
+- The smart contract is deployed to the private Hyperledger Fabric network.
+
+2. Property Listing on UI (Automatic)
+
+- Property appears on the "Investment Opportunities" page.
+- Each property has a card view with:
+  * Project Name, Total Value, Token Price, Monthly Return, Token Count Remaining, Blockchain Info.
+- Each card links to smart contract and wallet layer.
+
+3. Token Purchase Process (by Investor)
+
+- Investor registers on the platform.
+- Selects property and number of tokens.
+- Payment made through Apple Pay / Visa / Mada using a payment gateway like PayTabs.
+- After payment:
+  * A wallet is created (temporary or permanent).
+  * Tokens are issued via blockchain to investor's wallet.
+  * Dashboard shows “You own X tokens”.
+  * A Token Certificate is issued.
+
+4. Monthly Return Distribution (by Platform + Owner)
+
+- Owner transfers rental income monthly.
+- Platform distributes earnings based on token share.
+- Returns are added to each investor’s wallet.
+- Investors can:
+  * Withdraw to a local bank.
+  * Re-invest in other properties.
+
+5. Exit Scenario (Future)
+
+- Investors can sell tokens:
+  * In a secondary market within the platform.
+  * Back to the property owner (Buyback Option).
+
+⚙️ Technical Architecture
+
+| Component        | Technology                     | Purpose |
+|------------------|--------------------------------|---------|
+| Frontend         | React + Tailwind               | UI Layer |
+| Backend          | Python FastAPI / Node.js       | APIs and Logic |
+| Blockchain Layer | Hyperledger Fabric (Private)   | Asset registration and tracking |
+| Smart Contracts  | Chaincode (HLF)                | Token management |
+| Wallet Layer     | Internal Custody Wallet        | Token ownership |
+| Payment Gateway  | PayTabs / HyperPay             | Payment collection |
+| Admin Panel      | Supabase Studio or Custom UI   | Admin management |
+
+🧩 MVP Execution Phases
+
+| Phase | Description |
+|-------|-------------|
+| 1. Property Onboarding | Manual entry of 1st property with agreement |
+| 2. Token UI Design     | Display token ownership and purchase interface |
+| 3. Wallet Integration  | Internal wallet setup with Hyperledger |
+| 4. Certificate Issuance| UUID-based ownership proof |
+| 5. Return Distribution | Manual or smart contract driven |
+
+✅ Key Features for Regulatory Approval
+
+- Hyperledger private network ensures full control.
+- No use of crypto or external tokens.
+- Local payment gateway (Apple Pay / Mada / Visa).
+- Seamless wallet experience (embedded, no downloads).
+- Full smart registration of tokenized shares.
+- Ready for Real Estate Authority integration.
+
+   
+ 
+
+ 
+🧩 Business Model for the Real Estate Asset Tokenization Project
+This model reflects the updated version based on the current landscape of the Saudi real estate market and the actual needs of investors.
+ 
+👥 Customer Segments
+•	Young men and women aged 25 to 45 with medium to high income.
+•	Small to medium-sized real estate developers seeking funding.
+•	Investment funds aiming to liquidate their property shares.
+ 
+🎯 Value Propositions
+•	Enabling digital investment in income-generating real estate.
+•	Periodic financial distributions (rental yields).
+•	Simple exit mechanisms via an internal secondary market.
+•	Real-time transparency dashboard to track asset performance.
+ 
+📡 Channels
+•	A simple mobile application.
+•	A web platform.
+•	Digital marketing campaigns through TikTok, Instagram, and X (Twitter).
+ 
+💬 Customer Relationships
+•	Direct support (via Chatbot or WhatsApp).
+•	Periodic performance updates.
+•	Real-time transparency interface.
+ 
+💰 Revenue Streams
+•	Token offering (subscription) fees.
+•	Internal resale commissions.
+•	Asset tokenization service fees.
+•	Portfolio management fees.
+ 
+🔧 Key Activities
+•	Tokenizing real estate assets.
+•	Operating the internal marketplace.
+•	Managing and distributing rental yields.
+•	Investor support and engagement.
+ 
+🔑 Key Resources
+•	Technology platform (blockchain + web/mobile).
+•	Integration with Nafath and the digital land registry (السجل العقاري العيني).
+•	Licensed financial operator.
+•	Operational partnerships (asset operators, developers).
+ 
+🤝 Key Partners
+•	Real estate developers.
+•	Property management companies.
+•	Regulatory bodies such as REGA and the Real Estate Authority.
+•	Licensed financial operator (regulated by SAMA or CMA).
+ 
+💸 Cost Structure
+•	Platform development and maintenance.
+•	Technical and regulatory integrations.
+•	Customer support and platform operations.
+•	Digital marketing and acquisition campaigns.
+
