@@ -81,7 +81,7 @@
       "title": "GitHub Actions CI Setup",
       "description": "Configure GitHub Actions workflow to install dependencies, build frontend, and test backend on push.",
       "acceptance_criteria": [
-        "Create .github/workflows/ci.yml.",
+        "Create .github/workflows/plane_sync.yml.",
         "Frontend build passes successfully.",
         "Backend dependencies install correctly."
       ],
