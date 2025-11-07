@@ -7,6 +7,7 @@ import Opportunities from './pages/Opportunities.jsx'
 import PropertyDetail from './pages/PropertyDetail.jsx'
 import Portfolio from './pages/Portfolio.jsx'
 import Login from './pages/Login.jsx'
+import BlockchainExplorer from './pages/BlockchainExplorer.jsx'
 import './index.css'
 
 const router = createBrowserRouter([
@@ -18,6 +19,7 @@ const router = createBrowserRouter([
       { path: 'opportunities', element: <Opportunities /> },
       { path: 'properties/:id', element: <PropertyDetail /> },
       { path: 'wallet', element: <Portfolio /> },
+      { path: 'blockchain', element: <BlockchainExplorer /> },
       { path: 'login', element: <Login /> },
       // Admin page will be added later when wired
     ],

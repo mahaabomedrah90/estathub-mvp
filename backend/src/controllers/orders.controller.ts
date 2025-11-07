@@ -1,8 +1,9 @@
 import { Router, Request, Response, NextFunction } from 'express'
-import { OrderStatus, TransactionType } from '@prisma/client'
+import { $Enums } from '@prisma/client'
 import jwt from 'jsonwebtoken'
 import crypto from 'node:crypto'
 import prisma from '../lib/prisma'
+import { isFabricEnabled, submitMintTokens } from '../lib/fabric'
 export const ordersRouter = Router()
 
 function auth(required = true) {
@@ -34,7 +35,7 @@ ordersRouter.post('/api/orders', auth(true), async (req: Request & { user?: any 
     if (prop.remainingTokens < qty) return res.status(400).json({ error: 'insufficient_tokens' })
 
     const amount = (prop.tokenPrice || 0) * qty
-    const order = await prisma.order.create({ data: { userId, propertyId: pid, tokens: qty, amount, status: OrderStatus.PENDING } })
+    const order = await prisma.order.create({ data: { userId, propertyId: pid, tokens: qty, amount, status: $Enums.OrderStatus.PENDING } })
     return res.status(201).json({ id: order.id, amount: order.amount, status: order.status })
   } catch (e) {
     return res.status(500).json({ error: 'order_create_failed' })
@@ -49,7 +50,7 @@ ordersRouter.post('/api/payments/confirm', auth(true), async (req: Request & { u
 
     const order = await prisma.order.findUnique({ where: { id: oid }, include: { property: true } })
     if (!order) return res.status(404).json({ error: 'order_not_found' })
-    if (order.status === OrderStatus.ISSUED) return res.json({ ok: true })
+    if (order.status === $Enums.OrderStatus.ISSUED) return res.json({ ok: true })
 
     await prisma.$transaction(async tx => {
       // Calculate payment amount
@@ -66,13 +67,20 @@ ordersRouter.post('/api/payments/confirm', auth(true), async (req: Request & { u
       }
 
       // Mark order paid and debit wallet with a transaction record
-      await tx.order.update({ where: { id: oid }, data: { status: OrderStatus.PAID } })
+      await tx.order.update({ where: { id: oid }, data: { status: $Enums.OrderStatus.PAID } })
       await tx.wallet.update({ where: { id: wallet.id }, data: { cashBalance: { decrement: amount } } })
       await tx.transaction.create({
-        data: { userId: order.userId, type: TransactionType.WITHDRAWAL, amount, ref: String(oid) },
+        data: { userId: order.userId, type: $Enums.TransactionType.WITHDRAWAL, amount, ref: String(oid) },
       })
 
-      // Issue tokens: decrement property supply and credit holding
+      // If Fabric is enabled, mint on-chain and capture txId
+      let blockchainTxId: string | undefined
+      if (isFabricEnabled()) {
+        const out = await submitMintTokens({ propertyId: order.propertyId, userId: order.userId, tokens: order.tokens })
+        blockchainTxId = out.txId
+      }
+
+      // Issue tokens off-chain: decrement property supply and credit holding
       await tx.property.update({ where: { id: order.propertyId }, data: { remainingTokens: { decrement: order.tokens } } })
       await tx.holding.upsert({
         where: { userId_propertyId: { userId: order.userId, propertyId: order.propertyId } },
@@ -80,10 +88,24 @@ ordersRouter.post('/api/payments/confirm', auth(true), async (req: Request & { u
         create: { userId: order.userId, propertyId: order.propertyId, tokens: order.tokens },
       })
 
+      // Record on-chain mint as a Transaction if txId present
+      if (blockchainTxId) {
+        await tx.transaction.create({
+          data: ({
+            userId: order.userId,
+            type: $Enums.TransactionType.TOKEN_MINT,
+            amount: 0,
+            ref: String(oid),
+            blockchainTxId,
+            note: 'Order minted on-chain',
+          }) as any,
+        })
+      }
+
       // Certificate and finalize
       const code = crypto.randomUUID()
-      await tx.certificate.create({ data: { code, userId: order.userId, propertyId: order.propertyId, orderId: order.id } })
-      await tx.order.update({ where: { id: oid }, data: { status: OrderStatus.ISSUED } })
+      await tx.certificate.create({ data: ({ code, userId: order.userId, propertyId: order.propertyId, orderId: order.id, blockchainTxId }) as any })
+      await tx.order.update({ where: { id: oid }, data: { status: $Enums.OrderStatus.ISSUED } })
     })
 
     return res.json({ ok: true })

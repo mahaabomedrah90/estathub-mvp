@@ -1,0 +1,23 @@
+{
+  "name": "estathub-chaincode",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Estathub real-estate tokenization chaincode (TypeScript)",
+  "main": "dist/index.js",
+  "scripts": {
+    "build": "tsc -p .",
+    "clean": "rimraf dist",
+    "lint": "eslint src --ext .ts",
+    "start": "fabric-chaincode-node start"
+  },
+  "dependencies": {
+"fabric-contract-api": "^2.4.0",
+"fabric-shim": "^2.4.0"
+  },
+  "devDependencies": {
+    "@types/node": "^20.12.12",
+    "eslint": "^8.57.0",
+    "rimraf": "^5.0.5",
+    "typescript": "^5.4.5"
+  }
+}

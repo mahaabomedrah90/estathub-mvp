@@ -55,6 +55,7 @@ model Property {
   remainingTokens Int
   monthlyYield    Float
   status          PropertyStatus @default(DRAFT)
+  blockchainTxId  String?
   orders          Order[]
   holdings        Holding[]
   payouts         Payout[]
@@ -117,6 +118,7 @@ model Certificate {
   userId     Int
   propertyId Int
   orderId    Int      @unique
+  blockchainTxId String?
   createdAt  DateTime @default(now())
 
   user     User     @relation(fields: [userId], references: [id])
@@ -150,9 +152,27 @@ model Transaction {
   amount    Float
   ref       String?
   note      String?
+  blockchainTxId String?
   createdAt DateTime        @default(now())
 
   user User @relation(fields: [userId], references: [id])
+}
+
+enum OnChainEventType {
+  TOKEN_MINT
+  TOKEN_TRANSFER
+  DISTRIBUTION
+}
+
+model OnChainEvent {
+  id          Int              @id @default(autoincrement())
+  txId        String           @unique
+  type        OnChainEventType
+  userId      Int?
+  propertyId  Int?
+  orderId     Int?
+  payload     Json?
+  createdAt   DateTime         @default(now())
 }
 
 model BankLink {

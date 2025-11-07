@@ -2,7 +2,8 @@ import { Router, Request, Response } from 'express'
 import prisma from '../lib/prisma'
 import { auth } from '../middleware/auth'
 import { requireRole } from '../middleware/roles'
-import { Role } from '@prisma/client'
+import { $Enums, Role } from '@prisma/client'
+import { isFabricEnabled, submitMintTokens } from '../lib/fabric'
 
 export const tokenRouter = Router()
 
@@ -27,19 +28,43 @@ tokenRouter.post('/api/tokens/mint', auth(true), requireRole([Role.ADMIN, Role.O
     if (!prop) return res.status(404).json({ error: 'property_not_found' })
     if (prop.remainingTokens < qty) return res.status(400).json({ error: 'insufficient_remaining_tokens' })
 
-    const result = await prisma.$transaction(async tx => {
+    let txId: string | undefined
+    console.log('🔗 Fabric enabled:', isFabricEnabled())
+    if (isFabricEnabled()) {
+      try {
+        console.log('🪙 Calling Fabric submitMintTokens...', { propertyId: pid, userId: targetUser.id, tokens: qty })
+        const out = await submitMintTokens({ propertyId: pid, userId: targetUser.id, tokens: qty })
+        txId = out.txId
+        console.log('✅ Fabric mint successful, txId:', txId)
+      } catch (fabricError: any) {
+        console.error('❌ Fabric mint failed:', fabricError.message || fabricError)
+        // Continue without blockchain - save to DB only
+      }
+    }
+
+    await prisma.$transaction(async tx => {
       await tx.property.update({ where: { id: pid }, data: { remainingTokens: { decrement: qty } } })
-      const holding = await tx.holding.upsert({
+      await tx.holding.upsert({
         where: { userId_propertyId: { userId: targetUser!.id, propertyId: pid } },
         update: { tokens: { increment: qty } },
         create: { userId: targetUser!.id, propertyId: pid, tokens: qty },
       })
-      return holding
+      // Record on-chain reference if available
+      await tx.transaction.create({
+        data: ({
+          userId: targetUser!.id,
+          type: $Enums.TransactionType.TOKEN_MINT,
+          amount: 0,
+          note: 'Admin/Owner mint',
+          blockchainTxId: txId,
+        }) as any,
+      })
     })
 
-    return res.json({ ok: true, message: 'tokens_minted', data: { propertyId: pid, userId: targetUser.id, tokens: qty } })
-  } catch (e) {
-    return res.status(500).json({ error: 'mint_failed' })
+    return res.json({ ok: true, message: 'tokens_minted', data: { propertyId: pid, userId: targetUser.id, tokens: qty, blockchainTxId: txId } })
+  } catch (e: any) {
+    console.error('❌ Token mint error:', e.message || e)
+    return res.status(500).json({ error: 'mint_failed', details: e.message })
   }
 })
 

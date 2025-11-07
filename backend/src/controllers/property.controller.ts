@@ -1,5 +1,6 @@
 import { Router, Request, Response } from 'express'
 import prisma from '../lib/prisma'
+import { submitInitProperty } from '../lib/fabric'
 
 export const propertyRouter = Router()
 
@@ -30,15 +31,45 @@ propertyRouter.post('/api/properties', async (req: Request, res: Response) => {
 
     const created = await prisma.property.create({
       data: {
-        title: String(name),
-        totalValue: Number(totalValue ?? 0),
-        tokenPrice: Number(tokenPrice ?? 0),
-        totalTokens: Number(totalTokens),
-        remainingTokens: Number(remainingTokens ?? totalTokens ?? 0),
+        title: name,
+        totalValue,
+        tokenPrice,
+        totalTokens,
+        remainingTokens: remainingTokens ?? totalTokens,
+        monthlyYield: 0, // TODO: accept from request if needed
       },
     })
 
-    return res.status(201).json({
+    // Initialize property on blockchain if Fabric is enabled
+    if (process.env.USE_FABRIC === 'true') {
+      try {
+        const { txId } = await submitInitProperty({ 
+          propertyId: created.id, 
+          totalTokens: created.totalTokens 
+        })
+        
+        // Update property with blockchain transaction ID
+        await prisma.property.update({
+          where: { id: created.id },
+          data: { blockchainTxId: txId }
+        })
+        
+        // Record on-chain event
+        await prisma.onChainEvent.create({
+          data: {
+            txId,
+            type: 'TOKEN_MINT',
+            propertyId: created.id,
+            payload: { totalTokens: created.totalTokens }
+          }
+        })
+      } catch (err) {
+        console.error('Failed to init property on blockchain:', err)
+        return res.status(500).json({ error: 'failed_to_init_property_on_chain', detail: String(err) })
+      }
+    }
+
+    res.status(201).json({
       id: created.id,
       name: created.title,
       totalValue: created.totalValue,

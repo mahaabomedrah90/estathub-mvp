@@ -58,7 +58,8 @@ app.post('/api/properties/:id/mint', auth(true), requireRole([Role.ADMIN, Role.O
     res.status(500).json({ error: 'failed to mint' })
   }
 })
-}
+
+ 
 
 function auth(required = false) {
   return (req, res, next) => {
