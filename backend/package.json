@@ -1,35 +1,48 @@
 {
-  "name": "estathub-backend",
+  "name": "estathub-chaincode",
+  "version": "1.0.0",
   "private": true,
-  "version": "0.0.1",
-  "type": "module",
+  "description": "Estathub real-estate tokenization chaincode (TypeScript)",
+  "main": "dist/index.js",
   "scripts": {
-    "dev": "nodemon src/index.js",
-    "start": "node src/index.js",
-    "prisma:seed": "node prisma/seed.js",
+    "clean": "rimraf dist",
+    "build": "tsc -p .",
+    "prestart": "npm run build",
     "dev:ts": "tsx watch src/index.ts",
-    "start:ts": "tsx src/index.ts"
+    "start:ts": "tsx src/index.ts",
+    "start": "node dist/index.js"
+  },
+  "files": [
+    "dist",
+    "package.json"
+  ],
+  "engines": {
+    "node": ">=16 <21"
   },
   "dependencies": {
-    "@prisma/client": "^6.17.1",
+    "@prisma/client": "^6.18.0",
+    "bcryptjs": "^3.0.3",
     "cors": "^2.8.5",
-    "dotenv": "^16.4.0",
-    "express": "^4.18.2",
+    "dotenv": "^17.2.3",
+    "express": "^5.1.0",
+    "fabric-ca-client": "^2.2.20",
+    "fabric-contract-api": "^2.4.0",
+    "fabric-network": "^2.2.20",
+    "fabric-shim": "^2.4.0",
     "jsonwebtoken": "^9.0.2",
-    "morgan": "^1.10.0",
-    "prisma": "^6.17.1"
+    "morgan": "^1.10.1",
+    "prisma": "^6.18.0"
   },
   "devDependencies": {
+    "@types/bcryptjs": "^2.4.6",
     "@types/cors": "^2.8.19",
-    "@types/express": "^5.0.3",
+    "@types/express": "^5.0.5",
     "@types/jsonwebtoken": "^9.0.10",
     "@types/morgan": "^1.9.10",
-    "@types/node": "^24.9.1",
-    "nodemon": "^3.0.0",
+    "@types/node": "^20.12.12",
+    "eslint": "^8.57.0",
+    "rimraf": "^5.0.5",
     "tsx": "^4.20.6",
-    "typescript": "^5.9.3"
-  },
-  "prisma": {
-    "seed": "node prisma/seed.js"
+    "typescript": "^5.4.5"
   }
 }

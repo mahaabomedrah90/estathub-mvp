@@ -1,0 +1,12 @@
+Phase 3 — Hyperledger Fabric Integration
+Objective:
+Transform Estathub-MVP from a database-only simulation into a real on-chain tokenization platform, where every property token, minting event, and wallet transfer is immutably recorded on a private Hyperledger Fabric network. Step 3.1 — Set Up a Local Fabric Development Network
+Goal:
+Deploy a minimal private blockchain network (Fabric test environment) to simulate on-chain operations locally.
+Step 3.2 — Develop the Custom Chaincode (Smart Contract)
+Goal:
+Model tokenized real-estate logic directly on the blockchain. Step 3.3 — Integrate Fabric Gateway with the Backend Step 3.4 — Record Blockchain Transaction References
+Goal:
+Maintain auditability by linking every on-chain transaction ID (txId) to your database. Step 3.5 — Switch Wallet Balance to On-Chain Source
+Goal:
+Use Fabric as the source of truth for holdings and balances.

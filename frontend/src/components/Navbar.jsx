@@ -17,9 +17,9 @@ export default function Navbar() {
               <NavLink to="/" className={linkClass} end>Home</NavLink>
               <NavLink to="/opportunities" className={linkClass}>Opportunities</NavLink>
               <NavLink to="/wallet" className={linkClass}>My Wallet</NavLink>
+              <NavLink to="/blockchain" className={linkClass}>⛓️ Blockchain</NavLink>
               <NavLink to="/admin" className={linkClass}>Admin</NavLink>
-            </div>
-          </div>
+            </div>          </div>
           <div className="flex items-center space-x-2">
             {getToken() ? (
               <button
