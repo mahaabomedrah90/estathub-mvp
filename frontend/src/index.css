@@ -1,11 +1,15 @@
 @import "tailwindcss";
 
-
-
 /* Base styles */
 :root {
-  --bg: 255 255 255;
+  --bg: 249 250 251;
   --fg: 17 24 39;
+  --primary: 16 185 129;
+  --primary-dark: 5 150 105;
+}
+
+html {
+  scroll-behavior: smooth;
 }
 
 html, body, #root {
@@ -15,4 +19,47 @@ html, body, #root {
 body {
   background-color: rgb(var(--bg));
   color: rgb(var(--fg));
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* Custom scrollbar */
+::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+
+::-webkit-scrollbar-track {
+  background: #f1f1f1;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #888;
+  border-radius: 5px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #555;
+}
+
+/* Focus styles */
+*:focus-visible {
+  outline: 2px solid rgb(var(--primary));
+  outline-offset: 2px;
+}
+
+/* Animations */
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animate-fade-in {
+  animation: fadeIn 0.3s ease-out;
 }
