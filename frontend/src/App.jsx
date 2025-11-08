@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react'
-import Portfolio from './pages/Portfolio'
+import Portfolio from './pages/investor/Portfolio'
 
 export default function App() {
   const [properties, setProperties] = useState([])
