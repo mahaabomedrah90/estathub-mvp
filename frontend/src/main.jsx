@@ -20,7 +20,7 @@ import MyDeeds from './pages/Investor/MyDeeds.jsx'
 // Owner Pages
 import OwnerDashboard from './pages/owner/OwnerDashboard.jsx'
 import OwnerProperties from './pages/owner/OwnerProperties.jsx'
-import OwnerNewProperty from './pages/owner/OwnerNewProperty.jsx'
+import PropertySubmissionWizard from './pages/owner/PropertySubmissionWizard.jsx'
 import OwnerInvestors from './pages/admin/AdminInvestors.jsx'
 // Admin Pages
 import AdminOverview from './pages/admin/AdminOverview.jsx'
@@ -100,7 +100,7 @@ const router = createBrowserRouter([
  { index: true, element: <Navigate to="/owner/dashboard" replace /> },
  { path: 'dashboard', element: <OwnerDashboard /> },
  { path: 'properties', element: <OwnerProperties /> },
- { path: 'properties/new', element: <OwnerNewProperty /> },
+ { path: 'properties/new', element: <PropertySubmissionWizard /> },
  { path: 'investors', element: <OwnerInvestors /> },
 
 ],  
@@ -129,10 +129,8 @@ const router = createBrowserRouter([
 if (document.getElementById('root')) {
   console.log('✅ Root element found, mounting full app...')
   ReactDOM.createRoot(document.getElementById('root')).render(
-    <React.StrictMode>
-      <RouterProvider router={router} />
-    </React.StrictMode>
-  )
+  <RouterProvider router={router} />
+)
 } else {
   console.error('❌ Root element not found!')
 }

@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { FileText, Send, CheckCircle, AlertCircle, Users, TrendingUp, PieChart } from 'lucide-react'
+import { FileText, Send, CheckCircle, AlertCircle, Users, TrendingUp, PieChart, Eye, X, ExternalLink, Download } from 'lucide-react'
 import { fetchJson, authHeader } from '../../lib/api'
 
 export default function IssueDeeds() {
@@ -13,6 +13,8 @@ export default function IssueDeeds() {
   const [issuing, setIssuing] = useState(false)
   const [results, setResults] = useState([])
   const [existingDeeds, setExistingDeeds] = useState(new Map()) // Changed to Map to store deed details
+  const [viewingProperty, setViewingProperty] = useState(null) // For property details modal
+  const [viewingInvestor, setViewingInvestor] = useState(null) // For investor details modal
 
   // Calculate token status for a property
   const getTokenStatus = (property) => {
@@ -290,17 +292,29 @@ export default function IssueDeeds() {
           title={property.status !== 'APPROVED' ? 'Only approved properties can issue deeds' : ''}
         >
           <div className="flex items-start justify-between">
-            <div>
-              <h3 className="font-semibold text-gray-900">{property.name}</h3>
+            <div className="flex-1">
+              <h3 className="font-semibold text-gray-900">{property.title || property.name}</h3>
               <p className="text-sm text-gray-600">{property.location}</p>
             </div>
-            <span className={`px-2 py-1 text-xs font-semibold rounded-full ${
-              property.status === 'APPROVED' ? 'bg-green-100 text-green-800' :
-              property.status === 'PENDING' ? 'bg-yellow-100 text-yellow-800' :
-              'bg-red-100 text-red-800'
-            }`}>
-              {property.status}
-            </span>
+            <div className="flex items-center gap-2">
+              <button
+                onClick={(e) => {
+                  e.stopPropagation()
+                  setViewingProperty(property)
+                }}
+                className="p-2 hover:bg-blue-100 rounded-lg transition-colors"
+                title="View property details"
+              >
+                <Eye className="w-4 h-4 text-blue-600" />
+              </button>
+              <span className={`px-2 py-1 text-xs font-semibold rounded-full ${
+                property.status === 'APPROVED' ? 'bg-green-100 text-green-800' :
+                property.status === 'PENDING' ? 'bg-yellow-100 text-yellow-800' :
+                'bg-red-100 text-red-800'
+              }`}>
+                {property.status}
+              </span>
+            </div>
           </div>
           <p className="text-xs text-gray-500 mt-2">
             {property.totalTokens - property.remainingTokens} / {property.totalTokens} tokens sold
@@ -349,7 +363,7 @@ export default function IssueDeeds() {
                     fullyIssued ? 'border-green-300 bg-green-50' : 'border-gray-200'
                   }`}
                 >
-                  <div>
+                  <div className="flex-1">
                     <div className="flex items-center gap-2">
                       <p className="font-medium text-gray-900">{investor.userName}</p>
                       {fullyIssued && (
@@ -373,19 +387,28 @@ export default function IssueDeeds() {
                       )}
                     </p>
                   </div>
-                  <button
-                    onClick={() => issueSingleDeed(investor.userId, selectedProperty.id, investor.userName)}
-                    disabled={issuing || fullyIssued}
-                    className={`px-4 py-2 text-sm rounded-lg ${
-                      fullyIssued
-                        ? 'bg-gray-400 text-white cursor-not-allowed'
-                        : needsIssuance
-                        ? 'bg-orange-600 text-white hover:bg-orange-700'
-                        : 'bg-green-600 text-white hover:bg-green-700 disabled:bg-gray-400'
-                    }`}
-                  >
-                    {fullyIssued ? 'Fully Issued' : needsIssuance ? `Issue ${pendingTokens} Token${pendingTokens > 1 ? 's' : ''}` : 'Issue Deed'}
-                  </button>
+                  <div className="flex items-center gap-2">
+                    <button
+                      onClick={() => setViewingInvestor({ ...investor, userDeedInfo, selectedProperty })}
+                      className="p-2 hover:bg-blue-100 rounded-lg transition-colors"
+                      title="View investor details"
+                    >
+                      <Eye className="w-4 h-4 text-blue-600" />
+                    </button>
+                    <button
+                      onClick={() => issueSingleDeed(investor.userId, selectedProperty.id, investor.userName)}
+                      disabled={issuing || fullyIssued}
+                      className={`px-4 py-2 text-sm rounded-lg ${
+                        fullyIssued
+                          ? 'bg-gray-400 text-white cursor-not-allowed'
+                          : needsIssuance
+                          ? 'bg-orange-600 text-white hover:bg-orange-700'
+                          : 'bg-green-600 text-white hover:bg-green-700 disabled:bg-gray-400'
+                      }`}
+                    >
+                      {fullyIssued ? 'Fully Issued' : needsIssuance ? `Issue ${pendingTokens} Token${pendingTokens > 1 ? 's' : ''}` : 'Issue Deed'}
+                    </button>
+                  </div>
                 </div>
               )
               })}
@@ -439,6 +462,436 @@ export default function IssueDeeds() {
                 </div>
               )
             })}
+          </div>
+        </div>
+      )}
+
+      {/* Property Details Modal */}
+      {viewingProperty && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-lg max-w-4xl w-full max-h-[90vh] overflow-y-auto">
+            {/* Modal Header */}
+            <div className="sticky top-0 bg-white border-b border-gray-200 px-6 py-4 flex items-center justify-between">
+              <h2 className="text-2xl font-bold text-gray-900">Property Details</h2>
+              <button
+                onClick={() => setViewingProperty(null)}
+                className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+              >
+                <X size={24} />
+              </button>
+            </div>
+
+            {/* Modal Content */}
+            <div className="p-6 space-y-6">
+              {/* Basic Information */}
+              <div>
+                <h3 className="text-lg font-semibold text-gray-900 mb-3">Basic Information</h3>
+                <div className="grid grid-cols-2 gap-4 bg-gray-50 p-4 rounded-lg">
+                  <div>
+                    <p className="text-sm text-gray-600">Property Name</p>
+                    <p className="font-medium">{viewingProperty.title || viewingProperty.name}</p>
+                  </div>
+                  <div>
+                    <p className="text-sm text-gray-600">Location</p>
+                    <p className="font-medium">{viewingProperty.location}</p>
+                  </div>
+                  <div>
+                    <p className="text-sm text-gray-600">City</p>
+                    <p className="font-medium">{viewingProperty.city || 'N/A'}</p>
+                  </div>
+                  <div>
+                    <p className="text-sm text-gray-600">District</p>
+                    <p className="font-medium">{viewingProperty.district || 'N/A'}</p>
+                  </div>
+                  <div>
+                    <p className="text-sm text-gray-600">Status</p>
+                    <span className={`inline-block px-2 py-1 text-xs font-semibold rounded-full ${
+                      viewingProperty.status === 'APPROVED' ? 'bg-green-100 text-green-800' :
+                      viewingProperty.status === 'PENDING' ? 'bg-yellow-100 text-yellow-800' :
+                      'bg-red-100 text-red-800'
+                    }`}>
+                      {viewingProperty.status}
+                    </span>
+                  </div>
+                  <div>
+                    <p className="text-sm text-gray-600">Property Type</p>
+                    <p className="font-medium">{viewingProperty.propertyTypeDetailed || 'N/A'}</p>
+                  </div>
+                </div>
+              </div>
+
+              {/* Technical Details */}
+              <div>
+                <h3 className="text-lg font-semibold text-gray-900 mb-3">Technical Specification</h3>
+                <div className="grid grid-cols-3 gap-4 bg-gray-50 p-4 rounded-lg">
+                  <div>
+                    <p className="text-sm text-gray-600">Land Area</p>
+                    <p className="font-medium">{viewingProperty.landArea ? `${viewingProperty.landArea} m²` : 'N/A'}</p>
+                  </div>
+                  <div>
+                    <p className="text-sm text-gray-600">Built Area</p>
+                    <p className="font-medium">{viewingProperty.builtArea ? `${viewingProperty.builtArea} m²` : 'N/A'}</p>
+                  </div>
+                  <div>
+                    <p className="text-sm text-gray-600">Building Age</p>
+                    <p className="font-medium">{viewingProperty.buildingAge ? `${viewingProperty.buildingAge} years` : 'N/A'}</p>
+                  </div>
+                  <div>
+                    <p className="text-sm text-gray-600">Floors</p>
+                    <p className="font-medium">{viewingProperty.floorsCount || 'N/A'}</p>
+                  </div>
+                  <div>
+                    <p className="text-sm text-gray-600">Units</p>
+                    <p className="font-medium">{viewingProperty.unitsCount || 'N/A'}</p>
+                  </div>
+                  <div>
+                    <p className="text-sm text-gray-600">Condition</p>
+                    <p className="font-medium">{viewingProperty.propertyCondition || 'N/A'}</p>
+                  </div>
+                </div>
+              </div>
+
+              {/* Financial Information */}
+              <div>
+                <h3 className="text-lg font-semibold text-gray-900 mb-3">Financial & Tokenization</h3>
+                <div className="grid grid-cols-2 gap-4 bg-gray-50 p-4 rounded-lg">
+                  <div>
+                    <p className="text-sm text-gray-600">Market Value</p>
+                    <p className="font-medium text-lg">{viewingProperty.marketValue ? `${viewingProperty.marketValue.toLocaleString()} SAR` : `${viewingProperty.totalValue?.toLocaleString()} SAR`}</p>
+                  </div>
+                  <div>
+                    <p className="text-sm text-gray-600">Expected ROI</p>
+                    <p className="font-medium text-lg">{viewingProperty.expectedROI}%</p>
+                  </div>
+                  <div>
+                    <p className="text-sm text-gray-600">Total Tokens</p>
+                    <p className="font-medium">{viewingProperty.totalTokens.toLocaleString()}</p>
+                  </div>
+                  <div>
+                    <p className="text-sm text-gray-600">Token Price</p>
+                    <p className="font-medium">{viewingProperty.tokenPrice} SAR</p>
+                  </div>
+                  <div>
+                    <p className="text-sm text-gray-600">Tokens Sold</p>
+                    <p className="font-medium">{(viewingProperty.totalTokens - viewingProperty.remainingTokens).toLocaleString()}</p>
+                  </div>
+                  <div>
+                    <p className="text-sm text-gray-600">Owner Retained</p>
+                    <p className="font-medium">{viewingProperty.ownerRetainedPercentage || 0}%</p>
+                  </div>
+                </div>
+              </div>
+
+              {/* Owner Information */}
+              <div>
+                <h3 className="text-lg font-semibold text-gray-900 mb-3">Owner Information</h3>
+                <div className="grid grid-cols-2 gap-4 bg-gray-50 p-4 rounded-lg">
+                  <div>
+                    <p className="text-sm text-gray-600">Owner Name</p>
+                    <p className="font-medium">{viewingProperty.ownerName || 'N/A'}</p>
+                  </div>
+                  <div>
+                    <p className="text-sm text-gray-600">Owner Type</p>
+                    <p className="font-medium">{viewingProperty.ownerType || 'N/A'}</p>
+                  </div>
+                  <div>
+                    <p className="text-sm text-gray-600">National ID / CR</p>
+                    <p className="font-medium">{viewingProperty.nationalIdOrCR || 'N/A'}</p>
+                  </div>
+                  <div>
+                    <p className="text-sm text-gray-600">Phone</p>
+                    <p className="font-medium">{viewingProperty.ownerPhone || 'N/A'}</p>
+                  </div>
+                  <div>
+                    <p className="text-sm text-gray-600">Email</p>
+                    <p className="font-medium">{viewingProperty.ownerEmail || 'N/A'}</p>
+                  </div>
+                  <div>
+                    <p className="text-sm text-gray-600">IBAN</p>
+                    <p className="font-medium font-mono text-sm">{viewingProperty.ownerIban || 'N/A'}</p>
+                  </div>
+                </div>
+              </div>
+
+              {/* Legal Documents */}
+              <div>
+                <h3 className="text-lg font-semibold text-gray-900 mb-3">Legal Documents</h3>
+                <div className="grid grid-cols-2 gap-3">
+                  {viewingProperty.deedDocumentUrl && (
+                    <a
+                      href={`${import.meta.env.VITE_API_BASE}${viewingProperty.deedDocumentUrl}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="flex items-center gap-2 p-3 bg-blue-50 border border-blue-200 rounded-lg hover:bg-blue-100 transition-colors"
+                    >
+                      <FileText className="w-5 h-5 text-blue-600" />
+                      <span className="text-sm font-medium text-blue-900">Property Deed</span>
+                      <ExternalLink className="w-4 h-4 text-blue-600 ml-auto" />
+                    </a>
+                  )}
+                  {viewingProperty.sitePlanDocumentUrl && (
+                    <a
+                      href={`${import.meta.env.VITE_API_BASE}${viewingProperty.sitePlanDocumentUrl}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="flex items-center gap-2 p-3 bg-blue-50 border border-blue-200 rounded-lg hover:bg-blue-100 transition-colors"
+                    >
+                      <FileText className="w-5 h-5 text-blue-600" />
+                      <span className="text-sm font-medium text-blue-900">Site Plan</span>
+                      <ExternalLink className="w-4 h-4 text-blue-600 ml-auto" />
+                    </a>
+                  )}
+                  {viewingProperty.buildingPermitUrl && (
+                    <a
+                      href={`${import.meta.env.VITE_API_BASE}${viewingProperty.buildingPermitUrl}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="flex items-center gap-2 p-3 bg-blue-50 border border-blue-200 rounded-lg hover:bg-blue-100 transition-colors"
+                    >
+                      <FileText className="w-5 h-5 text-blue-600" />
+                      <span className="text-sm font-medium text-blue-900">Building Permit</span>
+                      <ExternalLink className="w-4 h-4 text-blue-600 ml-auto" />
+                    </a>
+                  )}
+                  {viewingProperty.valuationReportUrl && (
+                    <a
+                      href={`${import.meta.env.VITE_API_BASE}${viewingProperty.valuationReportUrl}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="flex items-center gap-2 p-3 bg-blue-50 border border-blue-200 rounded-lg hover:bg-blue-100 transition-colors"
+                    >
+                      <FileText className="w-5 h-5 text-blue-600" />
+                      <span className="text-sm font-medium text-blue-900">Valuation Report</span>
+                      <ExternalLink className="w-4 h-4 text-blue-600 ml-auto" />
+                    </a>
+                  )}
+                  {viewingProperty.ownerIdDocumentUrl && (
+                    <a
+                      href={`${import.meta.env.VITE_API_BASE}${viewingProperty.ownerIdDocumentUrl}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="flex items-center gap-2 p-3 bg-blue-50 border border-blue-200 rounded-lg hover:bg-blue-100 transition-colors"
+                    >
+                      <FileText className="w-5 h-5 text-blue-600" />
+                      <span className="text-sm font-medium text-blue-900">Owner ID</span>
+                      <ExternalLink className="w-4 h-4 text-blue-600 ml-auto" />
+                    </a>
+                  )}
+                </div>
+              </div>
+
+              {/* Property Images */}
+              {viewingProperty.mainImagesUrls && viewingProperty.mainImagesUrls.length > 0 && (
+                <div>
+                  <h3 className="text-lg font-semibold text-gray-900 mb-3">Property Images</h3>
+                  <div className="grid grid-cols-3 gap-3">
+                    {viewingProperty.mainImagesUrls.map((url, index) => (
+                      <img
+                        key={index}
+                        src={`${import.meta.env.VITE_API_BASE}${url}`}
+                        alt={`Property ${index + 1}`}
+                        className="w-full h-40 object-cover rounded-lg border border-gray-200"
+                      />
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Description */}
+              {viewingProperty.propertyDescription && (
+                <div>
+                  <h3 className="text-lg font-semibold text-gray-900 mb-3">Description</h3>
+                  <p className="text-gray-700 bg-gray-50 p-4 rounded-lg">
+                    {viewingProperty.propertyDescription || viewingProperty.description}
+                  </p>
+                </div>
+              )}
+            </div>
+
+            {/* Modal Footer */}
+            <div className="sticky bottom-0 bg-gray-50 border-t border-gray-200 px-6 py-4 flex justify-end">
+              <button
+                onClick={() => setViewingProperty(null)}
+                className="px-6 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-colors"
+              >
+                Close
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Investor Details Modal */}
+      {viewingInvestor && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-lg max-w-3xl w-full max-h-[90vh] overflow-y-auto">
+            {/* Modal Header */}
+            <div className="sticky top-0 bg-white border-b border-gray-200 px-6 py-4 flex items-center justify-between">
+              <h2 className="text-2xl font-bold text-gray-900">Investor Details</h2>
+              <button
+                onClick={() => setViewingInvestor(null)}
+                className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+              >
+                <X size={24} />
+              </button>
+            </div>
+
+            {/* Modal Content */}
+            <div className="p-6 space-y-6">
+              {/* Investor Information */}
+              <div>
+                <h3 className="text-lg font-semibold text-gray-900 mb-3">Investor Information</h3>
+                <div className="grid grid-cols-2 gap-4 bg-gray-50 p-4 rounded-lg">
+                  <div>
+                    <p className="text-sm text-gray-600">Name</p>
+                    <p className="font-medium">{viewingInvestor.userName}</p>
+                  </div>
+                  <div>
+                    <p className="text-sm text-gray-600">Email</p>
+                    <p className="font-medium">{viewingInvestor.userEmail || 'N/A'}</p>
+                  </div>
+                  <div>
+                    <p className="text-sm text-gray-600">User ID</p>
+                    <p className="font-medium font-mono text-sm">{viewingInvestor.userId}</p>
+                  </div>
+                  <div>
+                    <p className="text-sm text-gray-600">Investment Date</p>
+                    <p className="font-medium">{viewingInvestor.purchasedAt ? new Date(viewingInvestor.purchasedAt).toLocaleDateString() : 'N/A'}</p>
+                  </div>
+                </div>
+              </div>
+
+              {/* Property Investment Details */}
+              <div>
+                <h3 className="text-lg font-semibold text-gray-900 mb-3">Investment in: {viewingInvestor.selectedProperty?.title || viewingInvestor.selectedProperty?.name}</h3>
+                <div className="grid grid-cols-3 gap-4 bg-blue-50 p-4 rounded-lg border border-blue-200">
+                  <div>
+                    <p className="text-sm text-gray-600">Tokens Owned</p>
+                    <p className="font-bold text-2xl text-blue-900">{viewingInvestor.tokens}</p>
+                  </div>
+                  <div>
+                    <p className="text-sm text-gray-600">Ownership %</p>
+                    <p className="font-bold text-2xl text-blue-900">
+                      {((viewingInvestor.tokens / viewingInvestor.selectedProperty.totalTokens) * 100).toFixed(2)}%
+                    </p>
+                  </div>
+                  <div>
+                    <p className="text-sm text-gray-600">Investment Value</p>
+                    <p className="font-bold text-2xl text-blue-900">
+                      {(viewingInvestor.tokens * viewingInvestor.selectedProperty.tokenPrice).toLocaleString()} SAR
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              {/* Deed Issuance Status */}
+              <div>
+                <h3 className="text-lg font-semibold text-gray-900 mb-3">Deed Issuance Status</h3>
+                {viewingInvestor.userDeedInfo && viewingInvestor.userDeedInfo.deeds.length > 0 ? (
+                  <div className="space-y-3">
+                    <div className="bg-green-50 p-4 rounded-lg border border-green-200">
+                      <div className="flex items-center justify-between mb-3">
+                        <p className="text-sm font-medium text-green-900">
+                          {viewingInvestor.userDeedInfo.totalIssuedTokens} tokens issued in {viewingInvestor.userDeedInfo.deeds.length} deed{viewingInvestor.userDeedInfo.deeds.length > 1 ? 's' : ''}
+                        </p>
+                        {viewingInvestor.tokens > viewingInvestor.userDeedInfo.totalIssuedTokens && (
+                          <span className="px-3 py-1 bg-orange-100 text-orange-800 text-xs font-semibold rounded-full">
+                            {viewingInvestor.tokens - viewingInvestor.userDeedInfo.totalIssuedTokens} Pending
+                          </span>
+                        )}
+                      </div>
+                      {/* List of issued deeds */}
+                      <div className="space-y-2">
+                        {viewingInvestor.userDeedInfo.deeds.map((deed, index) => (
+                          <div key={index} className="bg-white p-3 rounded border border-green-300">
+                            <div className="flex items-center justify-between">
+                              <div>
+                                <p className="font-mono text-sm font-semibold text-gray-900">{deed.deedNumber}</p>
+                                <p className="text-xs text-gray-600">{deed.ownedTokens} token{deed.ownedTokens > 1 ? 's' : ''}</p>
+                              </div>
+                              <span className={`px-2 py-1 text-xs font-semibold rounded-full ${
+                                deed.status === 'ISSUED' ? 'bg-green-100 text-green-800' :
+                                deed.status === 'PENDING' ? 'bg-yellow-100 text-yellow-800' :
+                                'bg-gray-100 text-gray-800'
+                              }`}>
+                                {deed.status}
+                              </span>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="bg-orange-50 p-4 rounded-lg border border-orange-200">
+                    <div className="flex items-center gap-3">
+                      <AlertCircle className="w-6 h-6 text-orange-600" />
+                      <div>
+                        <p className="font-medium text-orange-900">No deeds issued yet</p>
+                        <p className="text-sm text-orange-700">
+                          {viewingInvestor.tokens} token{viewingInvestor.tokens > 1 ? 's' : ''} pending deed issuance
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {/* Transaction Summary */}
+              <div>
+                <h3 className="text-lg font-semibold text-gray-900 mb-3">Transaction Summary</h3>
+                <div className="bg-gray-50 p-4 rounded-lg space-y-2">
+                  <div className="flex justify-between items-center">
+                    <span className="text-gray-600">Token Price:</span>
+                    <span className="font-semibold">{viewingInvestor.selectedProperty.tokenPrice} SAR</span>
+                  </div>
+                  <div className="flex justify-between items-center">
+                    <span className="text-gray-600">Tokens Purchased:</span>
+                    <span className="font-semibold">{viewingInvestor.tokens}</span>
+                  </div>
+                  <div className="flex justify-between items-center pt-2 border-t border-gray-300">
+                    <span className="text-gray-900 font-medium">Total Investment:</span>
+                    <span className="font-bold text-lg">
+                      {(viewingInvestor.tokens * viewingInvestor.selectedProperty.tokenPrice).toLocaleString()} SAR
+                    </span>
+                  </div>
+                  <div className="flex justify-between items-center">
+                    <span className="text-gray-600">Expected Annual ROI:</span>
+                    <span className="font-semibold text-green-600">
+                      {viewingInvestor.selectedProperty.expectedROI}%
+                    </span>
+                  </div>
+                  <div className="flex justify-between items-center">
+                    <span className="text-gray-600">Estimated Annual Return:</span>
+                    <span className="font-semibold text-green-600">
+                      {((viewingInvestor.tokens * viewingInvestor.selectedProperty.tokenPrice * viewingInvestor.selectedProperty.expectedROI) / 100).toLocaleString()} SAR
+                    </span>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Modal Footer */}
+            <div className="sticky bottom-0 bg-gray-50 border-t border-gray-200 px-6 py-4 flex justify-between items-center">
+              <button
+                onClick={() => setViewingInvestor(null)}
+                className="px-6 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-colors"
+              >
+                Close
+              </button>
+              {viewingInvestor.tokens > (viewingInvestor.userDeedInfo?.totalIssuedTokens || 0) && (
+                <button
+                  onClick={() => {
+                    issueSingleDeed(viewingInvestor.userId, viewingInvestor.selectedProperty.id, viewingInvestor.userName)
+                    setViewingInvestor(null)
+                  }}
+                  disabled={issuing}
+                  className="px-6 py-2 bg-orange-600 text-white rounded-lg hover:bg-orange-700 disabled:bg-gray-400 transition-colors"
+                >
+                  Issue Deed for Pending Tokens
+                </button>
+              )}
+            </div>
           </div>
         </div>
       )}

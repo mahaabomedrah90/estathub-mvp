@@ -157,7 +157,11 @@ export default function PropertyDetail() {
             <div className="flex items-center gap-4 text-sm text-gray-600">
               <div className="flex items-center gap-2">
                 <MapPin size={18} />
-                <span>Riyadh, Saudi Arabia</span>
+<span>
+  {property.location || [property.city, property.district, property.municipality]
+    .filter(Boolean)
+    .join(', ') || 'Location not specified'}
+</span>
               </div>
               <div className="flex items-center gap-2">
                 <Shield size={16} />
@@ -233,9 +237,9 @@ export default function PropertyDetail() {
           <div className="bg-white border border-gray-200 rounded-xl p-6">
             <h2 className="text-xl font-semibold text-gray-900 mb-4">About This Property</h2>
             <p className="text-gray-600 leading-relaxed">
-              This premium real estate property has been tokenized on the blockchain, allowing fractional ownership 
-              and investment opportunities. Each token represents a share of the property, entitling holders to 
-              proportional rental income distributions on a monthly basis.
+             {property.propertyDescription || property.description || (
+ 'This premium real estate property has been tokenized on the blockchain, allowing fractional ownership and investment opportunities. Each token represents a share of the property, entitling holders to proportional rental income distributions on a monthly basis.'
+ )}
             </p>
           </div>
 

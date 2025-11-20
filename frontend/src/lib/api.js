@@ -340,3 +340,117 @@ export function updatePermissions(role, permissions) {
 export function updateNavigationVisibility(role, disabledItems) {
   localStorage.setItem(`disabled_nav_${role}`, JSON.stringify(disabledItems))
 }
+
+// ============================================================================
+// PROPERTY SUBMISSION CONSTANTS & HELPERS
+// ============================================================================
+
+export const OwnershipType = {
+  SINGLE_OWNER: 'SINGLE_OWNER',
+  SHARED: 'SHARED',
+  CORPORATE: 'CORPORATE',
+  USUFRUCT: 'USUFRUCT',
+  ELECTRONIC_DEED: 'ELECTRONIC_DEED',
+  PAPER_DEED: 'PAPER_DEED'
+}
+
+export const PropertyType = {
+  RESIDENTIAL_VILLA: 'residentialVilla',
+  RESIDENTIAL_APARTMENT: 'residentialApartment',
+  RESIDENTIAL_COMPOUND: 'residentialCompound',
+  COMMERCIAL_OFFICE: 'commercialOffice',
+  COMMERCIAL_RETAIL: 'commercialRetail',
+  COMMERCIAL_WAREHOUSE: 'commercialWarehouse',
+  MIXED_USE: 'mixedUse',
+  LAND_RESIDENTIAL: 'landResidential',
+  LAND_COMMERCIAL: 'landCommercial',
+  AGRICULTURAL: 'agricultural',
+  INDUSTRIAL: 'industrial'
+}
+
+export const PropertyCondition = {
+  NEW: 'NEW',
+  USED: 'USED',
+  RENOVATED: 'RENOVATED',
+  UNDER_CONSTRUCTION: 'UNDER_CONSTRUCTION'
+}
+
+export const PayoutSchedule = {
+  MONTHLY: 'MONTHLY',
+  QUARTERLY: 'QUARTERLY',
+  ANNUAL: 'ANNUAL'
+}
+
+export const OwnerType = {
+  INDIVIDUAL: 'INDIVIDUAL',
+  COMPANY: 'COMPANY'
+}
+
+export const PropertyTypeLabels = {
+  [PropertyType.RESIDENTIAL_VILLA]: 'Residential Villa / فيلا سكنية',
+  [PropertyType.RESIDENTIAL_APARTMENT]: 'Residential Apartment / شقة سكنية',
+  [PropertyType.RESIDENTIAL_COMPOUND]: 'Residential Compound / مجمع سكني',
+  [PropertyType.COMMERCIAL_OFFICE]: 'Commercial Office / مكتب تجاري',
+  [PropertyType.COMMERCIAL_RETAIL]: 'Commercial Retail / محل تجاري',
+  [PropertyType.COMMERCIAL_WAREHOUSE]: 'Commercial Warehouse / مستودع',
+  [PropertyType.MIXED_USE]: 'Mixed Use / استخدام مختلط',
+  [PropertyType.LAND_RESIDENTIAL]: 'Residential Land / أرض سكنية',
+  [PropertyType.LAND_COMMERCIAL]: 'Commercial Land / أرض تجارية',
+  [PropertyType.AGRICULTURAL]: 'Agricultural / زراعي',
+  [PropertyType.INDUSTRIAL]: 'Industrial / صناعي'
+}
+
+export const PropertyConditionLabels = {
+  [PropertyCondition.NEW]: 'New / جديد',
+  [PropertyCondition.USED]: 'Used / مستعمل',
+  [PropertyCondition.RENOVATED]: 'Renovated / مجدد',
+  [PropertyCondition.UNDER_CONSTRUCTION]: 'Under Construction / تحت الإنشاء'
+}
+
+export const OwnershipTypeLabels = {
+  [OwnershipType.SINGLE_OWNER]: 'Single Owner / مالك واحد',
+  [OwnershipType.SHARED]: 'Shared / ملكية مشتركة',
+  [OwnershipType.CORPORATE]: 'Corporate / شركة',
+  [OwnershipType.USUFRUCT]: 'Usufruct / حق الانتفاع',
+  [OwnershipType.ELECTRONIC_DEED]: 'Electronic Deed / صك إلكتروني',
+  [OwnershipType.PAPER_DEED]: 'Paper Deed / صك ورقي'
+}
+
+export const PayoutScheduleLabels = {
+  [PayoutSchedule.MONTHLY]: 'Monthly / شهري',
+  [PayoutSchedule.QUARTERLY]: 'Quarterly / ربع سنوي',
+  [PayoutSchedule.ANNUAL]: 'Annual / سنوي'
+}
+
+export const OwnerTypeLabels = {
+  [OwnerType.INDIVIDUAL]: 'Individual / فرد',
+  [OwnerType.COMPANY]: 'Company / شركة'
+}
+
+// Helper functions
+export function calculateAvailableTokens(totalTokens, ownerRetainedPercentage) {
+  const total = Number(totalTokens) || 0
+  const retained = Number(ownerRetainedPercentage) || 0
+  const retainedTokens = Math.floor((total * retained) / 100)
+  return total - retainedTokens
+}
+
+export function validateNationalId(id) {
+  return /^[12][0-9]{9}$/.test(id)
+}
+
+export function validatePhone(phone) {
+  return /^(\+966|0)?5[0-9]{8}$/.test(phone)
+}
+
+export function validateIban(iban) {
+  return /^SA[0-9]{22}$/.test(iban)
+}
+
+export function formatFileSize(bytes) {
+  if (bytes === 0) return '0 Bytes'
+  const k = 1024
+  const sizes = ['Bytes', 'KB', 'MB', 'GB']
+  const i = Math.floor(Math.log(bytes) / Math.log(k))
+  return Math.round(bytes / Math.pow(k, i) * 100) / 100 + ' ' + sizes[i]
+}
