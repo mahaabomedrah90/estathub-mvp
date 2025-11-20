@@ -1,5 +1,5 @@
 import { Router, Request, Response } from 'express'
-import { OrderStatus, TransactionType } from '@prisma/client'
+import { OrderStatus, TransactionType, $Enums } from '@prisma/client'
 import { prisma } from '../lib/prisma'
 import { auth } from '../middleware/auth'
 import { submitMintTokens, isFabricEnabled, submitTxn } from '../lib/fabric'
@@ -132,7 +132,7 @@ data: { userId: order.userId, tenantId: user.tenantId, type: TransactionType.WIT
 
       // Certificate and finalize
       const code = crypto.randomUUID()
-      await tx.certificate.create({ data: ({ code, userId: order.userId, propertyId: order.propertyId, orderId: order.id, blockchainTxId: undefined }) as any })
+      await tx.certificate.create({ data: { code, userId: order.userId, propertyId: order.propertyId, orderId: order.id } })
       await tx.order.update({ where: { id: oid }, data: { status: 'ISSUED' } })
     })
     
@@ -178,18 +178,19 @@ data: { userId: order.userId, tenantId: user.tenantId, type: TransactionType.WIT
         await prisma.transaction.create({
           data: {
             userId: order.userId,
+            tenantId: req.user?.tenantId || 'default-tenant',
             type: TransactionType.TOKEN_MINT,
             amount: order.tokens, // Record actual token amount minted
             ref: String(oid),
             blockchainTxId: mintTxId,
             note: `Payment confirmed - ${order.tokens} tokens minted for property ${order.propertyId}`,
-          } as any,
+          },
         })
         
         // Step 4: Update certificate with blockchain txId
         await prisma.certificate.updateMany({
           where: { orderId: oid },
-          data: { blockchainTxId: mintTxId } as any
+          data: { blockchainTxId: mintTxId }
         })
         
         // Step 5: Record on-chain event for blockchain explorer
@@ -197,7 +198,7 @@ data: { userId: order.userId, tenantId: user.tenantId, type: TransactionType.WIT
           await prisma.onChainEvent.create({
             data: {
               txId: mintTxId,
-              type: 'TOKEN_MINT',
+              type: $Enums.OnChainEventType.TOKEN_MINT,
               userId: order.userId,
               propertyId: order.propertyId,
               orderId: oid,

@@ -2,6 +2,7 @@ import { Router, Request, Response } from 'express'
 import { prisma } from '../lib/prisma'
 import * as fabric from '../lib/fabric'
 import { auth } from '../middleware/auth'
+import { $Enums } from '@prisma/client'
 import {
   generateDeedNumber,
   calculateDeedHash,
@@ -219,7 +220,7 @@ deedRouter.post('/issue', auth(true), async (req: Request & { user?: any }, res:
           await prisma.onChainEvent.create({
             data: {
               txId: txId,
-              type: 'TOKEN_MINT' as any, // Reusing existing enum
+              type: $Enums.OnChainEventType.TOKEN_MINT, // Reusing existing enum
               userId: userId,
               propertyId: propertyId,
               orderId: orderId || undefined,

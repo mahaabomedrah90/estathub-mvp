@@ -103,7 +103,7 @@ authRouter.post('/login', async (req: Request, res: Response) => {
     let user = await prisma.user.findUnique({
       where: { email },
       include: { tenant: true }
-    }) as any
+    })
     
     // If user doesn't exist, create with auto-detected role
     if (!user) {
@@ -144,18 +144,15 @@ authRouter.post('/login', async (req: Request, res: Response) => {
     }
 
     if (!user) {
-  throw new Error('User authentication failed - user not found')
-}
-
-console.log('✅ User authenticated:', { id: user.id, email: user.email, role: user.role })
-    
-        // Include tenant information in token
-    if (!user) {
-    return res.status(500).json({ error: 'user_not_found' })
+      throw new Error('User authentication failed - user not found')
     }
+
+    console.log('✅ User authenticated:', { id: user.id, email: user.email, role: user.role })
+    
+    // Include tenant information in token
     const userWithTenant = {
-    ...user,
-    tenantId: user.tenant?.id || 1 // Default tenant if no tenant association
+      ...user,
+      tenantId: user.tenant?.id || '1' // Default tenant if no tenant association
     }
     const token = signToken(userWithTenant)
     const response = { 
@@ -343,7 +340,7 @@ usersRouter.patch('/:id/role', auth(true), async (req: Request, res: Response) =
 
     const updatedUser = await prisma.user.update({
       where: { id },
-      data: { role: role.toUpperCase() as any }
+      data: { role: role.toUpperCase() as Role }
     })
 
     console.log(`🔄 Updated user ${id} role to ${role}`)
