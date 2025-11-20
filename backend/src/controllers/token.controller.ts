@@ -1,5 +1,5 @@
 import { Router, Request, Response } from 'express'
-import prisma from '../lib/prisma'
+import { prisma } from '../lib/prisma'
 import { auth } from '../middleware/auth'
 import { requireRole } from '../middleware/roles'
 import { $Enums, Role } from '@prisma/client'
@@ -10,15 +10,16 @@ export const tokenRouter = Router()
 tokenRouter.post('/api/tokens/mint', auth(true), requireRole([Role.ADMIN, Role.OWNER] as unknown as string[]), async (req: Request & { user?: any }, res: Response) => {
   try {
     const { propertyId, userEmail, userId, tokens } = req.body || {}
-    const pid = Number(propertyId)
+   const pid = String(propertyId)
     const qty = Number(tokens)
-    if (!Number.isFinite(pid) || !Number.isFinite(qty) || qty <= 0) {
+    if (!pid || !Number.isFinite(qty) || qty <= 0) {
       return res.status(400).json({ error: 'invalid_input' })
     }
 
-    let targetUser = null as null | { id: number; email: string }
+    let targetUser = null as null | { id: string; email: string; tenantId: string }
     if (userId) {
-      targetUser = await prisma.user.findUnique({ where: { id: Number(userId) } })
+      targetUser = await prisma.user.findUnique({ where: { id: String(userId) } })
+
     } else if (userEmail) {
       targetUser = await prisma.user.findUnique({ where: { email: String(userEmail).toLowerCase().trim() } })
     }
@@ -28,40 +29,80 @@ tokenRouter.post('/api/tokens/mint', auth(true), requireRole([Role.ADMIN, Role.O
     if (!prop) return res.status(404).json({ error: 'property_not_found' })
     if (prop.remainingTokens < qty) return res.status(400).json({ error: 'insufficient_remaining_tokens' })
 
-    let txId: string | undefined
+    let fabricResult: { txId: string; dbTx?: any } | undefined
     console.log('🔗 Fabric enabled:', isFabricEnabled())
+    
     if (isFabricEnabled()) {
       try {
         console.log('🪙 Calling Fabric submitMintTokens...', { propertyId: pid, userId: targetUser.id, tokens: qty })
-        const out = await submitMintTokens({ propertyId: pid, userId: targetUser.id, tokens: qty })
-        txId = out.txId
-        console.log('✅ Fabric mint successful, txId:', txId)
+        fabricResult = await submitMintTokens({ propertyId: Number(pid), userId: Number(targetUser.id), tokens: qty })
+        console.log('✅ Fabric mint successful, txId:', fabricResult.txId, 'dbTx:', fabricResult.dbTx?.id)
       } catch (fabricError: any) {
         console.error('❌ Fabric mint failed:', fabricError.message || fabricError)
         // Continue without blockchain - save to DB only
       }
     }
 
-    await prisma.$transaction(async tx => {
-      await tx.property.update({ where: { id: pid }, data: { remainingTokens: { decrement: qty } } })
-      await tx.holding.upsert({
-        where: { userId_propertyId: { userId: targetUser!.id, propertyId: pid } },
+    // Only create database records if Fabric didn't already create them
+    let dbTx: any
+    console.log('🔍 fabricResult:', fabricResult)
+    console.log('🔍 fabricResult?.dbTx:', fabricResult?.dbTx)
+    
+    if (!fabricResult?.dbTx) {
+      console.log('🔍 Fabric did not create dbTx, creating it in controller...')
+      await prisma.$transaction(async tx => {
+        await tx.property.update({ where: { id: pid }, data: { remainingTokens: { decrement: qty } } })
+        if (targetUser) {
+          await tx.holding.upsert({
+            where: { userId_propertyId: { userId: targetUser.id, propertyId: pid } },
+            update: { tokens: { increment: qty } },
+            create: { userId: targetUser.id, propertyId: pid, tokens: qty },
+          })
+          // Record on-chain reference if available
+          dbTx = await tx.transaction.create({
+            data: {
+              userId: targetUser.id,
+              tenantId: targetUser.tenantId,
+              type: $Enums.TransactionType.TOKEN_MINT,
+              amount: qty,
+              note: 'Admin/Owner mint',
+              blockchainTxId: fabricResult?.txId,
+            },
+          })
+        }
+      })
+    } else {
+      // Still need to update property and holdings even if Fabric created the transaction
+      await prisma.$transaction(async tx => {
+                if (targetUser) {
+        await tx.holding.upsert({
+        where: { userId_propertyId: { userId: targetUser.id, propertyId: pid } },
         update: { tokens: { increment: qty } },
-        create: { userId: targetUser!.id, propertyId: pid, tokens: qty },
+        create: { userId: targetUser.id, propertyId: pid, tokens: qty },
+        })
+        }
       })
-      // Record on-chain reference if available
-      await tx.transaction.create({
-        data: ({
-          userId: targetUser!.id,
-          type: $Enums.TransactionType.TOKEN_MINT,
-          amount: 0,
-          note: 'Admin/Owner mint',
-          blockchainTxId: txId,
-        }) as any,
-      })
-    })
+      dbTx = fabricResult.dbTx
+    }
 
-    return res.json({ ok: true, message: 'tokens_minted', data: { propertyId: pid, userId: targetUser.id, tokens: qty, blockchainTxId: txId } })
+    return res.json({ 
+      ok: true, 
+      message: 'tokens_minted', 
+      data: { 
+        propertyId: pid, 
+        userId: targetUser.id, 
+        tokens: qty, 
+        blockchainTxId: fabricResult?.txId,
+        dbTransaction: dbTx,
+        mintedTokens: qty,
+        assetId: pid,
+        status: 'SUCCESS',
+        metadata: {
+          orderId: `ORDER-${Date.now()}`,
+          fabricResponse: fabricResult
+        }
+      } 
+    })
   } catch (e: any) {
     console.error('❌ Token mint error:', e.message || e)
     return res.status(500).json({ error: 'mint_failed', details: e.message })

@@ -12,6 +12,9 @@
     "start:ts": "tsx src/index.ts",
     "start": "node dist/index.js"
   },
+ "prisma": {
+  "seed": "node prisma/seed.js"
+},
   "files": [
     "dist",
     "package.json"
@@ -20,27 +23,31 @@
     "node": ">=16 <21"
   },
   "dependencies": {
-    "@prisma/client": "^6.18.0",
-    "bcryptjs": "^3.0.3",
+    "@grpc/grpc-js": "^1.14.1",
+    "@hyperledger/fabric-gateway": "^1.10.0",
+    "@hyperledger/fabric-network": "^2.2.20",
+    "@prisma/client": "^5.0.0",
+    "bcryptjs": "^2.4.3",
     "cors": "^2.8.5",
-    "dotenv": "^17.2.3",
-    "express": "^5.1.0",
-    "fabric-ca-client": "^2.2.20",
-    "fabric-contract-api": "^2.4.0",
-    "fabric-network": "^2.2.20",
-    "fabric-shim": "^2.4.0",
+    "dotenv": "^16.4.5",
+    "express": "^4.21.1",
+    "express-rate-limit": "^7.4.1",
     "jsonwebtoken": "^9.0.2",
-    "morgan": "^1.10.1",
-    "prisma": "^6.18.0"
+    "morgan": "^1.10.0",
+    "multer": "^1.4.5-lts.1",
+    "prisma": "^5.22.0",
+    "qrcode": "^1.5.4"
   },
   "devDependencies": {
     "@types/bcryptjs": "^2.4.6",
-    "@types/cors": "^2.8.19",
-    "@types/express": "^5.0.5",
-    "@types/jsonwebtoken": "^9.0.10",
-    "@types/morgan": "^1.9.10",
-    "@types/node": "^20.12.12",
+    "@types/cors": "^2.8.17",
+    "@types/express": "^4.17.21",
+    "@types/jsonwebtoken": "^9.0.7",
+    "@types/multer": "^1.4.12",
+    "@types/node": "^20.17.6",
+    "@types/qrcode": "^1.5.5",
     "eslint": "^8.57.0",
+    "prisma": "^5.0.0",
     "rimraf": "^5.0.5",
     "tsx": "^4.20.6",
     "typescript": "^5.4.5"

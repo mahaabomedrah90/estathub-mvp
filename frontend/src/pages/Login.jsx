@@ -1,11 +1,11 @@
 import React, { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { fetchJson, setToken } from '../lib/api'
-import { Building2, Mail, Lock, AlertCircle, Loader2 } from 'lucide-react'
+import { Building2, Mail, Lock, AlertCircle, Loader2, UserPlus } from 'lucide-react'
 
 export default function Login() {
-  const [email, setEmail] = useState('investor@estathub.local')
-  const [role, setRole] = useState('investor')
+  const [email, setEmail] = useState('admin@estathub.local')
+  const [password, setPassword] = useState('Demo123!')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
   const navigate = useNavigate()
@@ -15,13 +15,13 @@ export default function Login() {
     setError('')
     setLoading(true)
     
-    console.log('🔐 Starting login...', { email, role })
+    console.log('🔐 Starting login...', { email, password })
     
     try {
       const res = await fetchJson('/api/auth/login', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email, role }),
+        body: JSON.stringify({ email, password }),
       })
       
       console.log('✅ Login response:', res)
@@ -32,27 +32,34 @@ export default function Login() {
       
       setToken(res.token)
       
-      // Store role and userId in localStorage
-      localStorage.setItem('role', role)
-      localStorage.setItem('userId', res.user?.id || res.userId || '1')
+      // Store user data from server response
+      const userRole = (res.user?.role || 'INVESTOR').toUpperCase()
+      localStorage.setItem('role', userRole.toLowerCase()) // Store in lowercase for frontend
+      localStorage.setItem('userId', res.user?.id || '')
+      localStorage.setItem('userName', res.user?.name || res.user?.email || '')
+      localStorage.setItem('tenantName', res.user?.tenant?.name || '')
+      
+      console.log('✅ Login successful - Role:', userRole, 'UserId:', res.user?.id)
       
       console.log('💾 Stored in localStorage:', {
-        role,
-        userId: localStorage.getItem('userId'),
+        role: userRole,
+        userId: res.user?.id,
+        userName: res.user?.name,
+        tenantName: res.user?.tenant?.name,
         token: !!localStorage.getItem('estathub_token')
       })
       
-      // Navigate based on role
-      const redirectUrl = role === 'admin' 
+      // Navigate based on role from server
+      const redirectUrl = userRole === 'admin' 
         ? '/admin/overview'
-        : role === 'owner'
+        : userRole === 'owner'
         ? '/owner/dashboard'
         : '/investor/dashboard'
       
       console.log('🚀 Redirecting to:', redirectUrl)
       
-      // Use window.location for hard redirect
-      window.location.href = redirectUrl
+      // Use React Router for navigation
+      navigate(redirectUrl)
     } catch (err) {
       console.error('❌ Login error:', err)
       setError('Login failed. Please check your credentials and try again.')
@@ -97,42 +104,20 @@ export default function Login() {
 
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
-                Login As
-              </label>
-              <div className="grid grid-cols-3 gap-2">
-                <button
-                  type="button"
-                  onClick={() => setRole('investor')}
-                  className={`px-4 py-2 rounded-lg border-2 font-medium transition-all ${
-                    role === 'investor'
-                      ? 'border-emerald-600 bg-emerald-50 text-emerald-700'
-                      : 'border-gray-300 text-gray-600 hover:border-gray-400'
-                  }`}
-                >
-                  Investor
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setRole('owner')}
-                  className={`px-4 py-2 rounded-lg border-2 font-medium transition-all ${
-                    role === 'owner'
-                      ? 'border-amber-600 bg-amber-50 text-amber-700'
-                      : 'border-gray-300 text-gray-600 hover:border-gray-400'
-                  }`}
-                >
-                  Owner
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setRole('admin')}
-                  className={`px-4 py-2 rounded-lg border-2 font-medium transition-all ${
-                    role === 'admin'
-                      ? 'border-blue-600 bg-blue-50 text-blue-700'
-                      : 'border-gray-300 text-gray-600 hover:border-gray-400'
-                  }`}
-                >
-                  Admin
-                </button>
+               Password
+                  </label>
+                  <div className="relative">
+                  <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                  <Lock className="text-gray-400" size={20} />
+                  </div>
+                  <input
+                  type="password"
+                  value={password}
+                  onChange={e => setPassword(e.target.value)}
+                  className="border border-gray-300 rounded-lg w-full pl-10 pr-4 py-3 focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 transition-colors"
+                  placeholder="********"
+                  required
+                />
               </div>
             </div>
 
@@ -164,9 +149,14 @@ export default function Login() {
 
           {/* Demo Notice */}
           <div className="mt-6 p-4 bg-blue-50 border border-blue-200 rounded-lg">
-            <p className="text-sm text-blue-800">
-              <strong>Demo Mode:</strong> Use the pre-filled email or any email to login (no password required for MVP).
-            </p>
+          <p className="text-sm text-blue-800 font-medium mb-2">
+          <strong>Demo Credentials:</strong>
+          </p>
+          <div className="text-xs text-blue-700 space-y-1">
+          <p><strong>Admin:</strong> admin@estathub.local / Demo123!</p>
+          <p><strong>Investor:</strong> investor@estathub.local / Demo123!</p>
+          <p><strong>Owner:</strong> owner@estathub.local / Demo123!</p>
+          </div>
           </div>
         </div>
 
@@ -174,9 +164,12 @@ export default function Login() {
         <div className="mt-6 text-center text-sm text-gray-600">
           <p>
             Don't have an account? {' '}
-            <a href="#" className="text-emerald-600 hover:text-emerald-700 font-medium">
-              Sign up
-            </a>
+           <button 
+            onClick={() => navigate('/signup')}
+            className="text-emerald-600 hover:text-emerald-700 font-medium"
+          >
+            Sign up
+          </button>
           </p>
         </div>
       </div>

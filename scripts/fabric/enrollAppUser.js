@@ -11,9 +11,9 @@ async function main() {
   const outWalletPath = path.join(backendDir, 'fabric', 'wallet')
   const outConnProfilePath = path.join(backendDir, 'fabric', 'connection-org1.json')
 
-  // Paths in test-network for Org1 User1
+  // Paths in test-network for Org1 Admin (required for chaincode queries)
   const org1Dir = path.join(FABRIC_SAMPLES, 'test-network', 'organizations', 'peerOrganizations', 'org1.example.com')
-  const userDir = path.join(org1Dir, 'users', 'User1@org1.example.com', 'msp')
+  const userDir = path.join(org1Dir, 'users', 'Admin@org1.example.com', 'msp')
   const certPath = path.join(userDir, 'signcerts')
   const keyPath = path.join(userDir, 'keystore')
   const mspId = 'Org1MSP'

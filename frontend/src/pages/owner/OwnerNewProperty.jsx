@@ -1,8 +1,14 @@
 import React, { useState, useEffect, useRef } from "react";
 import { MapPin, Upload, X } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
+import { api, authHeader, ApiError, fetchJson, getToken } from '../../lib/api';
+
 
 const OwnerNewProperty = () => {
+  const navigate = useNavigate();
   const [step, setStep] = useState(1);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
   const [form, setForm] = useState({
     propertyName: "",
     propertyType: "",
@@ -14,6 +20,9 @@ const OwnerNewProperty = () => {
     description: "",
     propertyValue: "",
     expectedROI: "",
+    totalTokens: "",
+    tokenPrice: "",
+    monthlyYield: "",
     imageUrl: "",
     contactName: "",
     contactEmail: "",
@@ -25,6 +34,9 @@ const OwnerNewProperty = () => {
   const [mapLoaded, setMapLoaded] = useState(false);
   const [imageFile, setImageFile] = useState(null);
   const [imagePreview, setImagePreview] = useState(null);
+  const [minInvestment, setMinInvestment] = useState(100);
+  const [maxInvestment, setMaxInvestment] = useState(1000000);
+  const [validationErrors, setValidationErrors] = useState({});
   const mapRef = useRef(null);
   const markerRef = useRef(null);
   const fileInputRef = useRef(null);
@@ -128,6 +140,85 @@ const OwnerNewProperty = () => {
       markerRef.current = null;
     };
   }, [mapLoaded, showMap]);
+// Fetch investment limits from settings
+ useEffect(() => {
+ const fetchSettings = async () => {
+ try {
+ const token = getToken();
+ if (token) {
+ const settings = await fetchJson('/api/settings', { headers: authHeader() });
+ if (settings?.general) {
+ setMinInvestment(parseFloat(settings.general.minInvestmentAmount) || 100);
+ setMaxInvestment(parseFloat(settings.general.maxInvestmentAmount) || 1000000);
+ console.log('💰 Investment limits loaded for property creation:', {
+ min: settings.general.minInvestmentAmount,
+ max: settings.general.maxInvestmentAmount
+ });
+ }
+ }
+ } catch (error) {
+ console.error('Failed to fetch settings:', error);
+ // Keep default values
+ }
+ };
+ fetchSettings();
+ }, []);
+ // Comprehensive validation function
+ const validateForm = () => {
+ const errors = {};
+ // Step 1: Basic Information
+ if (!form.propertyName || form.propertyName.trim().length < 3) {
+ errors.propertyName = 'Property name must be at least 3 characters';
+ }
+ if (!form.location || form.location.trim().length < 5) {
+ errors.location = 'Location must be at least 5 characters';
+ }
+ // Step 2: Financials
+ const propertyValue = parseFloat(form.propertyValue);
+ const totalTokens = parseInt(form.totalTokens);
+ const tokenPrice = parseFloat(form.tokenPrice);
+ const expectedROI = parseFloat(form.expectedROI);
+ const monthlyYield = parseFloat(form.monthlyYield);
+ 
+ // Validate property value (reasonable minimum, no maximum)
+ if (!propertyValue || isNaN(propertyValue)) {
+ errors.propertyValue = 'Property value is required';
+ } else if (propertyValue < 100000) {
+ errors.propertyValue = 'Property value must be at least 100,000 SAR';
+ }
+ 
+ if (!totalTokens || totalTokens < 1) {
+ errors.totalTokens = 'Total tokens must be at least 1';
+ }
+ 
+ // Validate token price against investment limits (this is what investors buy)
+ if (!tokenPrice || isNaN(tokenPrice)) {
+ errors.tokenPrice = 'Token price is required';
+ } else if (tokenPrice < minInvestment) {
+ errors.tokenPrice = `Token price must be at least ${minInvestment.toLocaleString()} SAR (platform minimum investment)`;
+ } else if (tokenPrice > maxInvestment) {
+ errors.tokenPrice = `Token price cannot exceed ${maxInvestment.toLocaleString()} SAR (platform maximum investment)`;
+ }
+ if (!expectedROI || expectedROI < 0) {
+ errors.expectedROI = 'Expected ROI must be a positive number';
+ }
+ if (!monthlyYield || monthlyYield < 0) {
+ errors.monthlyYield = 'Monthly yield must be a positive number';
+ }
+ // Step 3: Contact Information
+ if (!form.contactName || form.contactName.trim().length < 2) {
+ errors.contactName = 'Contact name must be at least 2 characters';
+ }
+ if (!form.contactEmail || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.contactEmail)) {
+ errors.contactEmail = 'Please enter a valid email address';
+ }
+ if (!form.contactPhone || form.contactPhone.trim().length < 10) {
+ errors.contactPhone = 'Please enter a valid phone number';
+ }
+ 
+ setValidationErrors(errors);
+ return Object.keys(errors).length === 0;
+ };
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -171,24 +262,96 @@ const OwnerNewProperty = () => {
   const nextStep = () => setStep((prev) => prev + 1);
   const prevStep = () => setStep((prev) => prev - 1);
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
+    setError('');
 
-    // Basic validation
-    if (!form.propertyName || !form.location || !form.propertyType) {
-      alert("Please complete all required fields.");
+   setValidationErrors({});
+ // Comprehensive validation
+ if (!validateForm()) {
+ setError("Please fix the validation errors before submitting.");
+ // Scroll to first error
+ window.scrollTo({ top: 0, behavior: 'smooth' });
       return;
     }
 
-    // Prepare form data with image
-    const formData = {
-      ...form,
-      image: imageFile,
-    };
-    
-    console.log("✅ Property submitted:", formData);
-    console.log("📷 Image file:", imageFile);
-    alert("Property submitted successfully!");
+    try {
+      setLoading(true);
+      
+      // Prepare property data for API
+      const propertyValue = parseFloat(form.propertyValue) || 0;
+      const totalTokens = parseInt(form.totalTokens) || 10000;
+      const tokenPrice = parseFloat(form.tokenPrice) || (propertyValue / totalTokens);
+      const monthlyYield = parseFloat(form.monthlyYield) || 0;
+      
+      // Create FormData for multipart upload (supports images)
+      const formData = new FormData();
+      
+      // Add all property fields
+      formData.append('name', form.propertyName);
+      formData.append('location', form.location);
+      formData.append('description', form.description || '');
+      formData.append('propertyValue', propertyValue.toString());
+      formData.append('expectedROI', (parseFloat(form.expectedROI) || 0).toString());
+      formData.append('totalTokens', totalTokens.toString());
+      formData.append('tokenPrice', tokenPrice.toString());
+      formData.append('monthlyYield', monthlyYield.toString());
+      formData.append('ownerName', form.contactName || 'Property Owner');
+      formData.append('ownerId', ''); // Will be set by backend if auth is implemented
+      
+      // Add image file if selected
+      if (imageFile) {
+        formData.append('images', imageFile);
+      }
+      
+      console.log("📤 Submitting property with FormData:", {
+        name: form.propertyName,
+        hasImage: !!imageFile,
+        imageSize: imageFile ? (imageFile.size / 1024).toFixed(2) + ' KB' : 'none'
+      });
+      
+      // Use enhanced API client for FormData upload
+      const result = await api.upload('/api/properties', formData, {
+        headers: authHeader()
+      });
+      
+      console.log("✅ Property created:", result);
+      alert("✅ Property submitted successfully! Waiting for admin approval.");
+      
+      // Redirect to owner properties page
+      navigate('/owner/properties');
+      
+    } catch (err) {
+      console.error('❌ Property submission error:', err);
+      
+      // Handle different error types with better UX
+      let errorMessage = 'Failed to submit property. Please try again.';
+      
+      if (err instanceof ApiError) {
+        switch (err.code) {
+          case 'missing_required_fields':
+            errorMessage = 'Please fill in all required fields: Property Name, Total Tokens, and Token Price.';
+            break;
+          case 'invalid_file_type':
+            errorMessage = 'Please upload only image files (JPEG, PNG, GIF, WebP).';
+            break;
+          case 'file_too_large':
+            errorMessage = 'Image size should be less than 5MB. Please choose a smaller file.';
+            break;
+          case 'too_many_files':
+            errorMessage = 'Please upload a maximum of 10 images.';
+            break;
+          default:
+            errorMessage = err.details || err.message || errorMessage;
+        }
+      } else if (err.message) {
+        errorMessage = err.message;
+      }
+      
+      setError(errorMessage);
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -227,8 +390,15 @@ const OwnerNewProperty = () => {
               onChange={handleChange}
               required
               maxLength={80}
-              className="w-full border border-gray-300 rounded-lg p-3 focus:outline-none focus:ring-2 focus:ring-emerald-500"
-            />
+             className={`w-full border rounded-lg p-3 focus:outline-none focus:ring-2 focus:ring-emerald-500 ${
+ validationErrors.propertyName
+ ? 'border-red-500 bg-red-50'
+ : 'border-gray-300'
+ }`}
+ />
+ {validationErrors.propertyName && (
+ <p className="text-red-600 text-sm mt-1 font-medium">{validationErrors.propertyName}</p>
+ )}
 
             <label className="block mt-4 mb-2 font-medium">
               Property Type <span className="text-red-500">*</span>
@@ -350,6 +520,9 @@ const OwnerNewProperty = () => {
 
             <label className="block mb-2 font-medium">
               Property Value (SAR) <span className="text-red-500">*</span>
+              <span className="text-sm text-gray-500 ml-2">
+                (Min: {minInvestment.toLocaleString()} SAR, Max: {maxInvestment.toLocaleString()} SAR)
+              </span>
             </label>
             <input
               type="number"
@@ -358,10 +531,18 @@ const OwnerNewProperty = () => {
               onChange={handleChange}
               placeholder="e.g., 2500000"
               required
-              min={100000}
+              min={minInvestment}
+              max={maxInvestment}
               step={1000}
-              className="w-full border border-gray-300 rounded-lg p-3"
+              className={`w-full border rounded-lg p-3 ${
+                validationErrors.propertyValue
+                  ? 'border-red-500 bg-red-50'
+                  : 'border-gray-300'
+              }`}
             />
+            {validationErrors.propertyValue && (
+              <p className="text-red-600 text-sm mt-1 font-medium">{validationErrors.propertyValue}</p>
+            )}
 
             <label className="block mt-4 mb-2 font-medium">
               Expected ROI (%) <span className="text-red-500">*</span>
@@ -376,8 +557,98 @@ const OwnerNewProperty = () => {
               min={0}
               max={100}
               step={0.1}
-              className="w-full border border-gray-300 rounded-lg p-3"
+             className={`w-full border rounded-lg p-3 ${
+            validationErrors.monthlyYield
+            ? 'border-red-500 bg-red-50'
+            : 'border-gray-300'
+            }`}
             />
+            {validationErrors.monthlyYield && (
+            <p className="text-red-600 text-sm mt-1 font-medium">{validationErrors.monthlyYield}</p>
+            )}
+            <div className="grid grid-cols-2 gap-4 mt-4">
+              <div>
+                <label className="block mb-2 font-medium">
+                  Total Tokens <span className="text-red-500">*</span>
+                </label>
+                <input
+                  type="number"
+                  name="totalTokens"
+                  value={form.totalTokens}
+                  onChange={handleChange}
+                  placeholder="e.g., 10000"
+                  required
+                  min={1}
+                  step={1}
+                  className={`w-full border rounded-lg p-3 ${
+ validationErrors.totalTokens
+ ? 'border-red-500 bg-red-50'
+ : 'border-gray-300'
+ }`}
+ />
+ {validationErrors.totalTokens && (
+ <p className="text-red-600 text-sm mt-1">{validationErrors.totalTokens}</p>
+ )}
+              </div>
+              <div>
+                <label className="block mb-2 font-medium">
+                  Token Price (SAR) <span className="text-red-500">*</span>
+                  <span className="text-sm text-gray-500 block">
+                    (Range: {minInvestment.toLocaleString()} - {maxInvestment.toLocaleString()} SAR per token)
+                  </span>
+                </label>
+                <input
+                  type="number"
+                  name="tokenPrice"
+                  value={form.tokenPrice}
+                  onChange={handleChange}
+                  placeholder="e.g., 250"
+                  required
+                  min={minInvestment}
+                  max={maxInvestment}
+                  step={0.01}
+                 className={`w-full border rounded-lg p-3 ${
+ validationErrors.tokenPrice
+ ? 'border-red-500 bg-red-50'
+ : 'border-gray-300'
+ }`}
+ />
+ {validationErrors.tokenPrice && (
+ <p className="text-red-600 text-sm mt-1 font-medium">{validationErrors.tokenPrice}</p>
+ )}
+ </div>
+ </div>
+ {/* Investment Limits Info */}
+ <div className="mt-4 p-3 bg-blue-50 border border-blue-200 rounded-lg">
+ <p className="text-sm text-blue-800">
+ <strong>Investment Limits:</strong> Investors can invest between {minInvestment.toLocaleString()} SAR and {maxInvestment.toLocaleString()} SAR per transaction.
+ <br />
+ <strong>Token Price Guidance:</strong> Set token price between {minInvestment.toLocaleString()} SAR and {maxInvestment.toLocaleString()} SAR to allow single-token purchases.
+ </p>
+            </div>
+
+            <label className="block mt-4 mb-2 font-medium">
+              Monthly Yield (%)
+            </label>
+            <input
+              type="number"
+              name="monthlyYield"
+              value={form.monthlyYield}
+              onChange={handleChange}
+              placeholder="e.g., 0.5"
+              min={0}
+              max={100}
+              step={0.01}
+              className={`w-full border rounded-lg p-3 ${
+              validationErrors.expectedROI
+              ? 'border-red-500 bg-red-50'
+              : 'border-gray-300'
+              }`}
+              />
+              {validationErrors.expectedROI && (
+              <p className="text-red-600 text-sm mt-1 font-medium">{validationErrors.expectedROI}</p>
+              )}
+            
 
             <label className="block mt-4 mb-2 font-medium">
               Property Image
@@ -460,8 +731,15 @@ const OwnerNewProperty = () => {
               placeholder="Your full name"
               required
               minLength={3}
-              className="w-full border border-gray-300 rounded-lg p-3"
-            />
+            className={`w-full border rounded-lg p-3 ${
+ validationErrors.contactName
+ ? 'border-red-500 bg-red-50'
+ : 'border-gray-300'
+ }`}
+ />
+ {validationErrors.contactName && (
+ <p className="text-red-600 text-sm mt-1 font-medium">{validationErrors.contactName}</p>
+ )}
 
             <label className="block mt-4 mb-2 font-medium">
               Email Address <span className="text-red-500">*</span>
@@ -473,8 +751,15 @@ const OwnerNewProperty = () => {
               onChange={handleChange}
               placeholder="you@example.com"
               required
-              className="w-full border border-gray-300 rounded-lg p-3"
-            />
+              className={`w-full border rounded-lg p-3 ${
+ validationErrors.contactEmail
+ ? 'border-red-500 bg-red-50'
+ : 'border-gray-300'
+ }`}
+ />
+ {validationErrors.contactEmail && (
+ <p className="text-red-600 text-sm mt-1 font-medium">{validationErrors.contactEmail}</p>
+ )}
 
             <label className="block mt-4 mb-2 font-medium">
               Phone Number <span className="text-red-500">*</span>
@@ -485,10 +770,18 @@ const OwnerNewProperty = () => {
               value={form.contactPhone}
               onChange={handleChange}
               placeholder="+966512345678"
-              pattern="^\+?[0-9\s-]{9,15}$"
+              pattern="[+]?[0-9\s-]{9,15}"
+              title="Please enter a valid phone number (9-15 digits, may include +, spaces, or dashes)"
               required
-              className="w-full border border-gray-300 rounded-lg p-3"
-            />
+             className={`w-full border rounded-lg p-3 ${
+ validationErrors.contactPhone
+ ? 'border-red-500 bg-red-50'
+ : 'border-gray-300'
+ }`}
+ />
+ {validationErrors.contactPhone && (
+ <p className="text-red-600 text-sm mt-1 font-medium">{validationErrors.contactPhone}</p>
+ )}
 
             <label className="block mt-4 mb-2 font-medium">
               Sale Type <span className="text-red-500">*</span>
@@ -516,19 +809,37 @@ const OwnerNewProperty = () => {
               </label>
             </div>
 
+            {error && (
+              <div className="mt-4 p-3 bg-red-50 border border-red-200 rounded-lg text-red-700 text-sm">
+                {error}
+              </div>
+            )}
+            
             <div className="flex justify-between mt-6">
               <button
                 type="button"
                 onClick={prevStep}
-                className="text-gray-600 px-6 py-2 rounded-lg border"
+                disabled={loading}
+                className="text-gray-600 px-6 py-2 rounded-lg border disabled:opacity-50"
               >
                 ← Back
               </button>
               <button
                 type="submit"
-                className="bg-emerald-600 text-white px-6 py-2 rounded-lg"
+                disabled={loading}
+                className="bg-emerald-600 hover:bg-emerald-700 text-white px-6 py-2 rounded-lg disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
               >
-                Submit Property
+                {loading ? (
+                  <>
+                    <svg className="animate-spin h-5 w-5" viewBox="0 0 24 24">
+                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
+                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+                    </svg>
+                    Submitting...
+                  </>
+                ) : (
+                  'Submit Property'
+                )}
               </button>
             </div>
           </div>

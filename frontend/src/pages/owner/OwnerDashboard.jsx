@@ -35,18 +35,27 @@ export default function OwnerDashboard() {
         return
       }
 
-      // Fetch all properties (owner sees all their properties regardless of status)
+      // Fetch all properties and filter by owner ID
       const propertiesData = await fetchJson('/api/properties', { 
         headers: { ...authHeader() } 
       })
       
-      const propertiesList = Array.isArray(propertiesData) ? propertiesData : []
-      setProperties(propertiesList)
+      const allProperties = Array.isArray(propertiesData) ? propertiesData : []
+      
+      // Get current user's ID from localStorage
+      const currentUserId = localStorage.getItem('userId')
+      
+      // Filter to show only properties owned by this user
+      const ownerProperties = allProperties.filter(p => p.ownerId === currentUserId)
+      
+      console.log(`🏠 Owner Dashboard: Showing ${ownerProperties.length} properties out of ${allProperties.length} total (Owner ID: ${currentUserId})`)
+      
+      setProperties(ownerProperties)
 
-      // Calculate stats
-      const approved = propertiesList.filter(p => p.status === 'APPROVED')
-      const pending = propertiesList.filter(p => p.status === 'PENDING')
-      const rejected = propertiesList.filter(p => p.status === 'REJECTED')
+      // Calculate stats from owner's properties only
+ const approved = ownerProperties.filter(p => p.status === 'APPROVED')
+ const pending = ownerProperties.filter(p => p.status === 'PENDING')
+ const rejected = ownerProperties.filter(p => p.status === 'REJECTED')
       
       const totalRevenue = approved.reduce((sum, p) => {
         const raised = (p.totalTokens - (p.remainingTokens || p.tokensAvailable || 0)) * (p.tokenPrice || 0)
@@ -58,7 +67,7 @@ export default function OwnerDashboard() {
         : 0
 
       setStats({
-        totalProperties: propertiesList.length,
+        totalProperties: ownerProperties.length,
         approvedProperties: approved.length,
         pendingProperties: pending.length,
         rejectedProperties: rejected.length,
@@ -174,7 +183,7 @@ export default function OwnerDashboard() {
             </p>
           </div>
           <button
-            onClick={() => navigate('/owner/new')}
+            onClick={() => navigate('/owner/properties/new')}
             className="flex items-center gap-2 px-6 py-3 bg-white text-amber-600 rounded-xl font-semibold hover:bg-amber-50 transition-all hover:scale-105 shadow-lg"
           >
             <Plus size={20} />
@@ -224,7 +233,7 @@ export default function OwnerDashboard() {
             <Building2 className="mx-auto text-gray-400 mb-3" size={48} />
             <div className="text-gray-600 mb-4">No properties submitted yet</div>
             <button
-              onClick={() => navigate('/owner/new')}
+              onClick={() => navigate('/owner/properties/new')}
               className="inline-flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-amber-500 to-orange-600 text-white rounded-xl font-semibold hover:shadow-lg transition-all"
             >
               <Plus size={20} />

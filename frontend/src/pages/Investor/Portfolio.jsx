@@ -19,7 +19,9 @@ export default function Portfolio() {
       const data = await fetchJson('/api/wallet', { headers: { ...authHeader() } })
       setWallet(data)
     } catch (e) {
-      setError('Failed to load wallet')
+      console.warn('Portfolio wallet API failed, using fallback:', e)
+      setWallet({ cashBalance: 0, investedValue: 0, holdings: [], transactions: [] }) // Fallback
+      setError('Using demo data - wallet API unavailable')
     } finally {
       setLoading(false)
     }
@@ -62,7 +64,8 @@ export default function Portfolio() {
     )
   }
 
-  const totalValue = wallet.cashBalance + wallet.investedValue
+ const safeWallet = wallet || { cashBalance: 0, investedValue: 0 }
+ const totalValue = safeWallet.cashBalance + safeWallet.investedValue
 
   return (
     <div className="space-y-6">
@@ -100,8 +103,8 @@ export default function Portfolio() {
             <Wallet size={20} />
             <span>Available Cash</span>
           </div>
-          <div className="text-3xl font-bold text-gray-900 mb-1">{wallet.cashBalance.toLocaleString()} SAR</div>
-          <div className="text-gray-500 text-sm">Ready to invest</div>
+        <div className="text-3xl font-bold text-gray-900 mb-1">{safeWallet.cashBalance.toLocaleString()} SAR</div>
+        <div className="text-gray-500 text-sm">Ready to invest</div>
         </div>
 
         <div className="bg-white border border-gray-200 rounded-xl p-6 shadow-sm">
@@ -117,8 +120,45 @@ export default function Portfolio() {
       {/* Wallet ID Card */}
       <div className="bg-gray-50 border border-gray-200 rounded-xl p-4">
         <div className="text-sm text-gray-500 mb-1">Wallet ID</div>
-        <div className="font-mono text-sm text-gray-900 break-all">{wallet.walletId}</div>
+       <div className="font-mono text-sm text-gray-900 break-all">{safeWallet.walletId || 'DEMO-WALLET-ID'}</div>
       </div>
+
+      {/* Test Balance Button (Development Only) */}
+      {safeWallet.cashBalance === 0 && (
+        <div className="bg-yellow-50 border border-yellow-200 rounded-xl p-4">
+          <div className="flex items-start gap-3">
+            <AlertCircle className="text-yellow-600 flex-shrink-0 mt-0.5" size={20} />
+            <div className="flex-1">
+              <h3 className="font-semibold text-yellow-900 mb-1">No Balance Available</h3>
+              <p className="text-sm text-yellow-700 mb-3">
+                You need funds to invest in properties. For testing, click below to get 1,000,000 SAR.
+              </p>
+              <button
+                disabled={actionLoading}
+                onClick={async () => {
+                  try {
+                    setActionLoading(true)
+                    setError('')
+                    await fetchJson('/api/wallet/init-test-balance', {
+                      method: 'POST',
+                      headers: { 'Content-Type': 'application/json', ...authHeader() }
+                    })
+                    await load()
+                  } catch (e) {
+                    setError('Failed to initialize test balance')
+                  } finally {
+                    setActionLoading(false)
+                  }
+                }}
+                className="px-4 py-2 bg-yellow-600 hover:bg-yellow-700 disabled:bg-gray-300 text-white rounded-lg font-medium transition-colors flex items-center gap-2"
+              >
+                {actionLoading ? <Loader2 size={16} className="animate-spin" /> : <DollarSign size={16} />}
+                Get Test Balance (1M SAR)
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Deposit/Withdraw Section */}
       <div className="bg-white border border-gray-200 rounded-xl p-6">
@@ -192,9 +232,9 @@ export default function Portfolio() {
           <Building2 size={24} className="text-gray-700" />
           <h2 className="text-xl font-semibold text-gray-900">My Holdings</h2>
         </div>
-        {wallet.holdings?.length ? (
+        {safeWallet.holdings?.length ? (
           <div className="space-y-3">
-            {wallet.holdings.map(h => (
+            {safeWallet.holdings.map(h => (
               <div key={h.propertyId} className="bg-gray-50 rounded-lg p-4 hover:bg-gray-100 transition-colors">
                 <div className="flex justify-between items-start mb-2">
                   <div className="font-semibold text-gray-900">{h.title}</div>
@@ -230,9 +270,9 @@ export default function Portfolio() {
           <History size={24} className="text-gray-700" />
           <h2 className="text-xl font-semibold text-gray-900">Recent Transactions</h2>
         </div>
-        {wallet.transactions?.length ? (
+       {safeWallet.transactions?.length ? (
           <div className="space-y-2">
-            {wallet.transactions.map(t => {
+            {safeWallet.transactions.map(t => {
               const isDeposit = t.type === 'DEPOSIT'
               const isWithdraw = t.type === 'WITHDRAW'
               const isPurchase = t.type === 'PURCHASE'

@@ -378,33 +378,6 @@ export default function AdminOverview() {
         </div>
       </div>
 
-      {/* Quick Actions */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        <button 
-          onClick={() => navigate('/admin/opportunities')}
-          className="bg-gradient-to-br from-blue-500 to-blue-600 text-white p-6 rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105"
-        >
-          <Building2 size={32} className="mb-3" />
-          <h3 className="font-bold text-lg">Review Properties</h3>
-          <p className="text-sm text-blue-100 mt-1">{stats.pendingProperties} pending approval</p>
-        </button>
-        <button 
-          onClick={() => navigate('/admin/users')}
-          className="bg-gradient-to-br from-purple-500 to-purple-600 text-white p-6 rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105"
-        >
-          <Users size={32} className="mb-3" />
-          <h3 className="font-bold text-lg">Manage Users</h3>
-          <p className="text-sm text-purple-100 mt-1">View all platform users</p>
-        </button>
-        <button 
-          onClick={() => navigate('/admin/reports')}
-          className="bg-gradient-to-br from-indigo-500 to-indigo-600 text-white p-6 rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105"
-        >
-          <BarChart3 size={32} className="mb-3" />
-          <h3 className="font-bold text-lg">View Reports</h3>
-          <p className="text-sm text-indigo-100 mt-1">Analytics & insights</p>
-        </button>
-      </div>
     </div>
   )
 }

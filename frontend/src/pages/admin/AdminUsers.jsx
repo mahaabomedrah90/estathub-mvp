@@ -1,77 +1,87 @@
-import React, { useState } from 'react'
-import { Users, Edit2, Ban, CheckCircle, Mail, Phone, Shield, User } from 'lucide-react'
+import React, { useState, useEffect } from 'react'
+import { Users, Edit2, Ban, CheckCircle, Mail, Phone, Shield, User, Loader2 } from 'lucide-react'
+import { authHeader, fetchJson } from '../../lib/api'
 
 export default function AdminUsers() {
-  const [users, setUsers] = useState([
-    {
-      id: 1,
-      name: 'Mohammed Al-Saud',
-      email: 'mohammed@example.com',
-      phone: '+966 50 123 4567',
-      role: 'owner',
-      status: 'Active',
-      joinedDate: '2024-11-15',
-      properties: 3
-    },
-    {
-      id: 2,
-      name: 'Sara Al-Rashid',
-      email: 'sara@example.com',
-      phone: '+966 55 234 5678',
-      role: 'owner',
-      status: 'Active',
-      joinedDate: '2024-12-01',
-      properties: 2
-    },
-    {
-      id: 3,
-      name: 'Ahmed Al-Otaibi',
-      email: 'ahmed@example.com',
-      phone: '+966 50 345 6789',
-      role: 'investor',
-      status: 'Active',
-      joinedDate: '2024-10-20',
-      investments: 5
-    },
-    {
-      id: 4,
-      name: 'Fatima Al-Harbi',
-      email: 'fatima@example.com',
-      phone: '+966 55 456 7890',
-      role: 'investor',
-      status: 'Active',
-      joinedDate: '2024-11-05',
-      investments: 8
-    },
-    {
-      id: 5,
-      name: 'Khalid Al-Mutairi',
-      email: 'khalid@example.com',
-      phone: '+966 50 567 8901',
-      role: 'investor',
-      status: 'Suspended',
-      joinedDate: '2024-09-10',
-      investments: 2
-    },
-  ])
-
+  const [users, setUsers] = useState([])
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState('')
   const [filter, setFilter] = useState('All')
   const [selectedUser, setSelectedUser] = useState(null)
+  const [confirmRole, setConfirmRole] = useState(null)
+  const [successMessage, setSuccessMessage] = useState('')
 
-  const handleStatusToggle = (id) => {
-    setUsers(users.map(u => 
-      u.id === id 
-        ? { ...u, status: u.status === 'Active' ? 'Suspended' : 'Active' }
-        : u
-    ))
+  // Fetch users from database
+  useEffect(() => {
+    const loadUsers = async () => {
+      try {
+        setLoading(true)
+        setError('')
+        const fetchedUsers = await fetchJson('/api/users', {
+          headers: authHeader()
+        })
+        console.log('👥 Fetched users from database:', fetchedUsers)
+        setUsers(fetchedUsers)
+      } catch (err) {
+        console.error('❌ Failed to fetch users:', err)
+        setError('Failed to load users from database')
+      } finally {
+        setLoading(false)
+      }
+    }
+
+    loadUsers()
+  }, [])
+
+  const handleStatusToggle = async (id) => {
+    try {
+      const user = users.find(u => u.id === id)
+      const newStatus = user.status === 'Active' ? 'Suspended' : 'Active'
+      
+      await fetchJson(`/api/users/${id}/status`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json', ...authHeader() },
+        body: JSON.stringify({ status: newStatus })
+      })
+      
+      setUsers(users.map(u => 
+        u.id === id 
+          ? { ...u, status: newStatus }
+          : u
+      ))
+      
+      console.log(`🔄 Updated user ${id} status to ${newStatus}`)
+    } catch (err) {
+      console.error('❌ Failed to update user status:', err)
+      setError('Failed to update user status')
+    }
   }
 
-  const handleRoleChange = (id, newRole) => {
-    setUsers(users.map(u => 
-      u.id === id ? { ...u, role: newRole } : u
-    ))
-    setSelectedUser(null)
-    alert(`User role updated to ${newRole}`)
+  const handleRoleChange = async (id, newRole) => {
+    try {
+      await fetchJson(`/api/users/${id}/role`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json', ...authHeader() },
+        body: JSON.stringify({ role: newRole })
+      })
+      
+      const updatedUser = users.find(u => u.id === id)
+      setUsers(users.map(u => 
+        u.id === id ? { ...u, role: newRole } : u
+      ))
+      
+      setSelectedUser(null)
+      setConfirmRole(null)
+      console.log(`🔄 Updated user ${id} role to ${newRole}`)
+      
+      // Show success message with logout reminder
+      setSuccessMessage(`✅ User role updated to ${newRole.toUpperCase()}! The user (${updatedUser.name}) must log out and log back in for changes to take effect.`)
+      setTimeout(() => setSuccessMessage(''), 8000) // Auto-hide after 8 seconds
+    } catch (err) {
+      console.error('❌ Failed to update user role:', err)
+      setError('Failed to update user role. Please try again.')
+      setTimeout(() => setError(''), 5000)
+    }
   }
 
   const filteredUsers = filter === 'All' 
@@ -91,6 +101,33 @@ export default function AdminUsers() {
     return status === 'Active' 
       ? 'bg-green-100 text-green-700' 
       : 'bg-red-100 text-red-700'
+  }
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center py-12">
+        <div className="flex items-center gap-3">
+          <Loader2 className="animate-spin text-blue-600" size={24} />
+          <span className="text-gray-600">Loading users...</span>
+        </div>
+      </div>
+    )
+  }
+
+  if (error) {
+    return (
+      <div className="flex items-center justify-center py-12">
+        <div className="text-center">
+          <div className="text-red-600 mb-2">{error}</div>
+          <button 
+            onClick={() => window.location.reload()}
+            className="text-blue-600 hover:text-blue-700 underline"
+          >
+            Try Again
+          </button>
+        </div>
+      </div>
+    )
   }
 
   return (
@@ -269,8 +306,28 @@ export default function AdminUsers() {
         </div>
       </div>
 
+      {/* Success Message */}
+      {successMessage && (
+        <div className="fixed top-4 right-4 z-50 max-w-md animate-slide-in">
+          <div className="bg-green-50 border-2 border-green-500 rounded-xl p-4 shadow-lg">
+            <div className="flex items-start gap-3">
+              <CheckCircle className="text-green-600 flex-shrink-0 mt-0.5" size={20} />
+              <div className="flex-1">
+                <p className="text-sm font-medium text-green-900">{successMessage}</p>
+              </div>
+              <button
+                onClick={() => setSuccessMessage('')}
+                className="text-green-600 hover:text-green-700"
+              >
+                ×
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Edit Role Modal */}
-      {selectedUser && (
+      {selectedUser && !confirmRole && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-2xl max-w-md w-full p-6">
             <h2 className="text-xl font-bold text-gray-900 mb-4">Change User Role</h2>
@@ -281,17 +338,18 @@ export default function AdminUsers() {
               {['investor', 'owner', 'admin'].map((role) => (
                 <button
                   key={role}
-                  onClick={() => handleRoleChange(selectedUser.id, role)}
+                  onClick={() => setConfirmRole(role)}
+                  disabled={selectedUser.role === role}
                   className={`w-full p-4 rounded-xl border-2 transition-all ${
                     selectedUser.role === role
-                      ? 'border-blue-600 bg-blue-50'
-                      : 'border-gray-200 hover:border-blue-300'
+                      ? 'border-gray-300 bg-gray-50 opacity-50 cursor-not-allowed'
+                      : 'border-gray-200 hover:border-blue-300 hover:bg-blue-50'
                   }`}
                 >
                   <div className="flex items-center justify-between">
                     <span className="font-semibold capitalize">{role}</span>
                     {selectedUser.role === role && (
-                      <CheckCircle className="text-blue-600" size={20} />
+                      <span className="text-xs text-gray-500">(Current)</span>
                     )}
                   </div>
                 </button>
@@ -303,6 +361,45 @@ export default function AdminUsers() {
             >
               Cancel
             </button>
+          </div>
+        </div>
+      )}
+
+      {/* Confirmation Modal */}
+      {confirmRole && selectedUser && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-2xl max-w-md w-full p-6">
+            <div className="w-12 h-12 bg-amber-100 rounded-full flex items-center justify-center mx-auto mb-4">
+              <Shield className="text-amber-600" size={24} />
+            </div>
+            <h2 className="text-xl font-bold text-gray-900 mb-2 text-center">Confirm Role Change</h2>
+            <p className="text-gray-600 mb-6 text-center">
+              Are you sure you want to change <span className="font-semibold">{selectedUser.name}</span>'s role from{' '}
+              <span className="font-semibold capitalize text-blue-600">{selectedUser.role}</span> to{' '}
+              <span className="font-semibold capitalize text-green-600">{confirmRole}</span>?
+            </p>
+            <div className="bg-amber-50 border border-amber-200 rounded-lg p-4 mb-6">
+              <p className="text-sm text-amber-800">
+                <strong>⚠️ Important:</strong> The user must log out and log back in for the role change to take effect.
+              </p>
+            </div>
+            <div className="flex gap-3">
+              <button
+                onClick={() => {
+                  setConfirmRole(null)
+                  setSelectedUser(null)
+                }}
+                className="flex-1 px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors font-medium"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={() => handleRoleChange(selectedUser.id, confirmRole)}
+                className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium"
+              >
+                Confirm Change
+              </button>
+            </div>
           </div>
         </div>
       )}

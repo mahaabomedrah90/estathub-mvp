@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
+import { hasPermission, getCurrentPermissions, getNavigationItems } from '../lib/api'
 
 export function useAuth() {
   const navigate = useNavigate()
@@ -61,4 +62,48 @@ export function useAuth() {
     setRole,
     checkAuth
   }
+  }
+// Hook for checking permissions
+export function usePermissions(route = null) {
+ const [userRole, setUserRole] = useState('investor')
+ const [permissions, setPermissions] = useState([])
+ const [loading, setLoading] = useState(true)
+ useEffect(() => {
+ const role = (localStorage.getItem('role') || 'investor').toLowerCase()
+ setUserRole(role)
+ setPermissions(getCurrentPermissions())
+ setLoading(false)
+ }, [])
+ const canAccess = (targetRoute) => {
+ return hasPermission(targetRoute || route, userRole)
+ }
+ return {
+ userRole,
+ permissions,
+ loading,
+ canAccess,
+ hasPermission: canAccess
+ }
+}
+// Hook for navigation items based on role
+export function useNavigation() {
+ const [items, setItems] = useState([])
+ const [loading, setLoading] = useState(true)
+ useEffect(() => {
+ const role = (localStorage.getItem('role') || 'investor').toLowerCase()
+ setItems(getNavigationItems(role))
+ setLoading(false)
+ }, [])
+ return { items, loading }
+}
+// Component for conditional rendering based on permissions
+export function PermissionGate({ children, route, roles = [], fallback = null }) {
+ const { canAccess, userRole, loading } = usePermissions()
+ if (loading) {
+ return fallback || null
+ }
+ if (!canAccess(route)) {
+ return fallback || null
+ }
+ return children
 }
