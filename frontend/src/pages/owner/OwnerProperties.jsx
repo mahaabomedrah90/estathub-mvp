@@ -8,67 +8,8 @@ import {
 export default function OwnerProperties() {
   const navigate = useNavigate()
   const [filter, setFilter] = useState('All')
-  const [properties, setProperties] = useState([])
+  const [properties, setProperties] = useState([]) // Start with empty array
   const [loading, setLoading] = useState(true)
-  
-  const [mockProperties] = useState([
-    {
-      id: 1,
-      name: 'Luxury Villa - Al Malqa',
-      location: 'Al Malqa, Riyadh',
-      status: 'Approved',
-      targetAmount: 2000000,
-      raised: 1500000,
-      investors: 15,
-      yield: 9.2,
-      submittedDate: '2024-12-15',
-      approvedDate: '2024-12-20',
-      imageUrl: 'https://images.unsplash.com/photo-1613490493576-7fde63acd811?w=800',
-      description: 'Modern luxury villa with 5 bedrooms, pool, and garden'
-    },
-    {
-      id: 2,
-      name: 'Commercial Tower - King Fahd',
-      location: 'King Fahd Road, Riyadh',
-      status: 'Approved',
-      targetAmount: 5000000,
-      raised: 3200000,
-      investors: 28,
-      yield: 7.8,
-      submittedDate: '2024-11-20',
-      approvedDate: '2024-11-25',
-      imageUrl: 'https://images.unsplash.com/photo-1486406146926-c627a92ad1ab?w=800',
-      description: '10-floor commercial building in prime location'
-    },
-    {
-      id: 3,
-      name: 'Residential Complex - Al Nakheel',
-      location: 'Al Nakheel, Riyadh',
-      status: 'Pending',
-      targetAmount: 3500000,
-      raised: 0,
-      investors: 0,
-      yield: 0,
-      submittedDate: '2025-01-05',
-      imageUrl: 'https://images.unsplash.com/photo-1545324418-cc1a3fa10c00?w=800',
-      description: '20-unit residential complex with modern amenities'
-    },
-    {
-      id: 4,
-      name: 'Shopping Mall - Al Yasmin',
-      location: 'Al Yasmin, Riyadh',
-      status: 'Rejected',
-      targetAmount: 8000000,
-      raised: 0,
-      investors: 0,
-      yield: 0,
-      submittedDate: '2024-12-01',
-      rejectedDate: '2024-12-05',
-      rejectionReason: 'Incomplete documentation',
-      imageUrl: 'https://images.unsplash.com/photo-1519567241046-7f570eee3ce6?w=800',
-      description: 'Large shopping mall with 50+ retail spaces'
-    },
-  ])
 
   useEffect(() => {
     loadProperties()
@@ -78,11 +19,21 @@ export default function OwnerProperties() {
     setLoading(true)
     try {
       const ownerId = localStorage.getItem('userId') || '1'
+      console.log('🔍 Owner Properties - Current User ID:', ownerId)
+      
       const response = await fetch(import.meta.env.VITE_API_BASE + '/api/properties')
       const data = await response.json()
       
+      console.log('📊 Total properties fetched:', data.length)
+      console.log('📊 Sample property ownerIds:', data.slice(0, 3).map(p => ({ id: p.id, name: p.name, ownerId: p.ownerId })))
+      
+      // Filter properties by ownerId - only show properties owned by this user
+      const ownerProperties = data.filter(p => p.ownerId === ownerId)
+      
+      console.log('✅ Filtered to', ownerProperties.length, 'properties for owner', ownerId)
+      
       // Map backend data to frontend format
-      const mapped = data.map(p => ({
+      const mapped = ownerProperties.map(p => ({
         id: p.id,
         name: p.name,
         location: p.location || 'Riyadh, Saudi Arabia',
@@ -102,8 +53,8 @@ export default function OwnerProperties() {
       setProperties(mapped)
     } catch (error) {
       console.error('Failed to load properties:', error)
-      // Fallback to mock data if API fails
-      setProperties(mockProperties)
+      // Set empty array on error instead of mock data
+      setProperties([])
     } finally {
       setLoading(false)
     }
@@ -140,7 +91,7 @@ export default function OwnerProperties() {
           <p className="text-gray-600 mt-1">Manage and track your property submissions</p>
         </div>
         <button
-          onClick={() => navigate('/owner/new')}
+          onClick={() => navigate('/owner/properties/new')}
           className="flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-amber-500 to-orange-600 text-white rounded-xl font-semibold hover:shadow-lg transition-all hover:scale-105"
         >
           <Building2 size={20} />
@@ -324,7 +275,7 @@ export default function OwnerProperties() {
               : `No ${filter.toLowerCase()} properties`}
           </p>
           <button
-            onClick={() => navigate('/owner/new')}
+            onClick={() => navigate('/owner/properties/new')}
             className="inline-flex items-center gap-2 px-6 py-3 bg-amber-600 text-white rounded-xl font-semibold hover:bg-amber-700 transition-colors"
           >
             <Building2 size={20} />

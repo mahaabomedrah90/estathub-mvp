@@ -9,20 +9,23 @@ const roleMenus = {
   investor: [
     { path: '/investor/dashboard', label: 'Dashboard', icon: PieChart },
     { path: '/investor/wallet', label: 'My Wallet', icon: Wallet },
+    { path: '/investor/deeds', label: 'My Deeds', icon: FileText },
   ],
   owner: [
     { path: '/owner/dashboard', label: 'Dashboard', icon: BarChart3 },
     { path: '/owner/properties', label: 'My Properties', icon: Building2 },
-    { path: '/owner/new', label: 'Submit Property', icon: Plus },
-    { path: '/owner/investors', label: 'Investors', icon: Users },
-    { path: '/owner/wallet', label: 'My Wallet', icon: Wallet },
+    { path: '/owner/properties/new', label: 'Submit Property', icon: Plus },
+   
   ],
   admin: [
     { path: '/admin/overview', label: 'Overview', icon: BarChart3 },
     { path: '/admin/opportunities', label: 'Review Properties', icon: Building2 },
     { path: '/admin/users', label: 'Manage Users', icon: Users },
+    { path: '/admin/issue-deeds', label: 'Issue Deeds', icon: FileText },
     { path: '/admin/reports', label: 'Reports', icon: FileText },
     { path: '/admin/settings', label: 'Settings', icon: Settings },
+    { path: '/admin/investors', label: 'Investors', icon: Users },
+
   ]
 }
 
@@ -76,11 +79,17 @@ export default function Sidebar({ role, isOpen, onClose }) {
   }, [isPinned])
 
   const toggleCollapse = () => {
-    setIsCollapsed(!isCollapsed)
+    const newState = !isCollapsed
+    setIsCollapsed(newState)
+    localStorage.setItem('sidebarCollapsed', newState.toString())
+    window.dispatchEvent(new Event('sidebar-collapse-change'))
   }
 
   const togglePin = () => {
-    setIsPinned(!isPinned)
+    const newState = !isPinned
+    setIsPinned(newState)
+    localStorage.setItem('sidebarPinned', newState.toString())
+    window.dispatchEvent(new Event('sidebar-collapse-change'))
   }
 
   const linkClass = ({ isActive }) =>

@@ -1,7 +1,14 @@
 import React, { useEffect, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
-import { Building2, TrendingUp, Coins, MapPin, ArrowRight, Loader2, Plus, Edit2, Eye } from 'lucide-react'
+import { Building2, TrendingUp, Coins, MapPin, ArrowRight, Loader2, Plus, Edit2, Eye, Shield } from 'lucide-react'
 import { getToken } from '../../lib/api'
+
+// Mask property ID for public view
+const maskPropertyId = (id) => {
+  if (!id || typeof id !== 'string') return id
+  if (id.length <= 8) return id
+  return id.substring(0, 8) + '**********' + id.substring(id.length - 8)
+}
 
 export default function Opportunities() {
   const navigate = useNavigate()
@@ -131,6 +138,10 @@ export default function Opportunities() {
                       <MapPin size={14} />
                       <span>Riyadh, Saudi Arabia</span>
                     </div>
+                    <div className="flex items-center gap-1 text-xs text-gray-400 mt-1">
+                      <Shield size={12} />
+                      <span>ID: {maskPropertyId(p.id)}</span>
+                    </div>
                   </div>
 
                   {/* Stats Grid */}
@@ -190,7 +201,7 @@ export default function Opportunities() {
                       </div>
                     ) : (
                       <Link
-                        to={`/properties/${p.id}`}
+                        to={`/investor/properties/${p.id}`}
                         className="flex items-center justify-center gap-2 w-full px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg font-medium transition-colors"
                       >
                         <span>View Details</span>

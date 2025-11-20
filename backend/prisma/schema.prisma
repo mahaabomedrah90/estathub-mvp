@@ -6,7 +6,7 @@ generator client {
 }
 
 datasource db {
-  provider = "sqlite"
+  provider = "postgresql"
   url      = env("DATABASE_URL")
 }
 
@@ -17,9 +17,9 @@ enum Role {
 }
 
 enum PropertyStatus {
-  DRAFT
-  PUBLISHED
-  ARCHIVED
+  PENDING
+  APPROVED
+  REJECTED
 }
 
 enum OrderStatus {
@@ -29,101 +29,187 @@ enum OrderStatus {
   CANCELLED
 }
 
+enum PropertyUsage {
+  RESIDENTIAL
+  COMMERCIAL
+  AGRICULTURAL
+  INDUSTRIAL
+  MIXED
+}
+
+enum DeedStatus {
+  DRAFT
+  PENDING_APPROVAL
+  ISSUED
+  REVOKED
+  TRANSFERRED
+}
+
+enum LandType {
+  URBAN
+  RURAL
+  DESERT
+  COASTAL
+}
+
+// Tenant model for multi-tenant support
+model Tenant {
+  id        String   @id @default(cuid())
+  name      String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  
+  // Relations
+  users      User[]
+  properties Property[]
+  wallets    Wallet[]
+  transactions Transaction[]
+  
+  @@map("tenants")
+}
+
 model User {
-  id            Int            @id @default(autoincrement())
-  email         String         @unique
+  id            String   @id @default(cuid())
+  email         String   @unique
+  passwordHash  String   // Added for proper authentication
   name          String?
-  role          Role           @default(INVESTOR)
+  role          Role     @default(INVESTOR)
+  tenantId      String   // Multi-tenant support
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+  
+  // Relations
+  tenant        Tenant         @relation(fields: [tenantId], references: [id], onDelete: Cascade)
   orders        Order[]
   holdings      Holding[]
   distributions Distribution[]
   certificates  Certificate[]
-  createdAt     DateTime       @default(now())
-
-  // Add these lines:
-  wallet       Wallet?
-  transactions Transaction[]
-  bankLinks    BankLink[]
+  wallet        Wallet?
+  transactions  Transaction[]
+  bankLinks     BankLink[]
+  deeds         DigitalDeed[]
+  
+  // Saudi KYC fields
+  nationalId   String?        // Saudi National ID or Iqama
+  phoneNumber  String?
+  address      String?
+  
+  @@index([tenantId])
+  @@index([email])
 }
 
 model Property {
-  id              Int            @id @default(autoincrement())
+  id              String         @id @default(cuid())
   title           String
+  location        String         @default("")
+  description     String         @default("")
+  imageUrl        String         @default("")
+  images          String[]                       // Array of multiple image URLs
   totalValue      Float
   tokenPrice      Float
   totalTokens     Int
   remainingTokens Int
   monthlyYield    Float
-  status          PropertyStatus @default(DRAFT)
+  expectedROI     Float          @default(0)
+  status          PropertyStatus @default(PENDING)
+  ownerId         String?        // Owner who submitted the property (changed to String)
+  ownerName       String         @default("")
   blockchainTxId  String?
+  tenantId        String         // Multi-tenant support
+  submittedAt     DateTime       @default(now())
+  approvedAt      DateTime?
+  rejectedAt      DateTime?
+  rejectionReason String?
   orders          Order[]
   holdings        Holding[]
   payouts         Payout[]
   certificates    Certificate[]
   createdAt       DateTime       @default(now())
+  
+  // Relations
+  tenant          Tenant         @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  
+  // Saudi-specific property fields
+  propertyUsage   PropertyUsage  @default(RESIDENTIAL)
+  landType        LandType       @default(URBAN)
+  municipality    String         @default("")  // e.g., "Riyadh Municipality"
+  district        String         @default("")  // e.g., "Al Olaya District"
+  landArea        Float?         // in square meters
+  builtArea       Float?         // in square meters
+  planNumber      String?        // Planning/Survey Plan Number
+  deedNumber      String?        // Original deed number from Ministry
+  coordinates     String?        // GPS coordinates (lat,lng)
+  zoningClass     String?        // Zoning classification
+  permitNumber    String?        // Building/Development permit
+  
+  // Relations
+  deeds           DigitalDeed[]
+  documents       DeedDocument[]
+  @@index([images])
 }
 
 model Order {
-  id         Int         @id @default(autoincrement())
-  userId     Int
-  propertyId Int
+  id         String      @id @default(cuid())
+  userId     String
+  propertyId String
   tokens     Int
   amount     Float
   status     OrderStatus @default(PENDING)
   createdAt  DateTime    @default(now())
 
-  user        User         @relation(fields: [userId], references: [id])
-  property    Property     @relation(fields: [propertyId], references: [id])
+  user        User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  property    Property      @relation(fields: [propertyId], references: [id], onDelete: Cascade)
   certificate Certificate?
+  deeds       DigitalDeed[]
 }
 
 model Holding {
-  id         Int      @id @default(autoincrement())
-  userId     Int
-  propertyId Int
+  id         String   @id @default(cuid())
+  userId     String
+  propertyId String
   tokens     Int
   createdAt  DateTime @default(now())
 
-  user     User     @relation(fields: [userId], references: [id])
-  property Property @relation(fields: [propertyId], references: [id])
+  user     User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  property Property @relation(fields: [propertyId], references: [id], onDelete: Cascade)
 
   @@unique([userId, propertyId])
 }
 
 model Payout {
-  id          Int      @id @default(autoincrement())
-  propertyId  Int
+  id          String   @id @default(cuid())
+  propertyId  String
   month       String
   totalAmount Float
   createdAt   DateTime @default(now())
 
-  property      Property       @relation(fields: [propertyId], references: [id])
+  property      Property       @relation(fields: [propertyId], references: [id], onDelete: Cascade)
   distributions Distribution[]
 }
 
 model Distribution {
-  id        Int      @id @default(autoincrement())
-  payoutId  Int
-  userId    Int
+  id        String   @id @default(cuid())
+  payoutId  String
+  userId    String
   amount    Float
   createdAt DateTime @default(now())
 
-  payout Payout @relation(fields: [payoutId], references: [id])
-  user   User   @relation(fields: [userId], references: [id])
+  payout Payout @relation(fields: [payoutId], references: [id], onDelete: Cascade)
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
 
 model Certificate {
-  id         Int      @id @default(autoincrement())
-  code       String   @unique
-  userId     Int
-  propertyId Int
-  orderId    Int      @unique
+  id             String   @id @default(cuid())
+  code           String   @unique
+  userId         String
+  propertyId     String
+  orderId        String   @unique
   blockchainTxId String?
-  createdAt  DateTime @default(now())
+  createdAt      DateTime @default(now())
 
-  user     User     @relation(fields: [userId], references: [id])
-  property Property @relation(fields: [propertyId], references: [id])
-  order    Order    @relation(fields: [orderId], references: [id])
+  user     User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  property Property @relation(fields: [propertyId], references: [id], onDelete: Cascade)
+  order    Order    @relation(fields: [orderId], references: [id], onDelete: Cascade)
 }
 
 enum TransactionType {
@@ -135,27 +221,35 @@ enum TransactionType {
 }
 
 model Wallet {
-  id          Int      @id @default(autoincrement())
+  id          String   @id @default(cuid())
   walletId    String   @unique @default(uuid())
-  userId      Int      @unique
+  userId      String   @unique
+  tenantId    String   // Multi-tenant support
   cashBalance Float    @default(0)
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
-  user User @relation(fields: [userId], references: [id])
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  
+  @@index([tenantId])
 }
 
 model Transaction {
-  id        Int             @id @default(autoincrement())
-  userId    Int
-  type      TransactionType
-  amount    Float
-  ref       String?
-  note      String?
+  id             String          @id @default(cuid())
+  userId         String
+  tenantId       String          // Multi-tenant support
+  type           TransactionType
+  amount         Float
+  ref            String?
+  note           String?
   blockchainTxId String?
-  createdAt DateTime        @default(now())
+  createdAt      DateTime        @default(now())
 
-  user User @relation(fields: [userId], references: [id])
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  
+  @@index([tenantId])
 }
 
 enum OnChainEventType {
@@ -165,24 +259,99 @@ enum OnChainEventType {
 }
 
 model OnChainEvent {
-  id          Int              @id @default(autoincrement())
+  id          String           @id @default(cuid())
   txId        String           @unique
   type        OnChainEventType
-  userId      Int?
-  propertyId  Int?
-  orderId     Int?
+  userId      String?
+  propertyId  String?
+  orderId     String?
   payload     Json?
   createdAt   DateTime         @default(now())
 }
 
 model BankLink {
-  id         Int      @id @default(autoincrement())
-  userId     Int
+  id         String   @id @default(cuid())
+  userId     String
   provider   String
   status     String
   externalId String?
   createdAt  DateTime @default(now())
   updatedAt  DateTime @updatedAt
 
-  user User @relation(fields: [userId], references: [id])
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+// Digital Title Deed Model (صك ملكية رقمي)
+model DigitalDeed {
+  id              String     @id @default(cuid())
+  deedNumber      String     @unique  // Unique deed identifier (e.g., DEED-2025-00001)
+  userId          String              // Investor who owns this deed
+  propertyId      String              // Property this deed represents
+  orderId         String?             // Original order that triggered deed issuance
+  
+  // Ownership details
+  ownedTokens     Int                 // Number of tokens/units owned
+  ownershipPct    Float               // Percentage of total property (calculated)
+  
+  // Deed metadata
+  status          DeedStatus @default(DRAFT)
+  deedHash        String?             // SHA-256 hash of the signed PDF deed
+  qrCodeData      String?             // QR code payload for verification
+  pdfUrl          String?             // URL/path to generated PDF deed
+  
+  // Blockchain tracking
+  blockchainTxId  String?             // Fabric transaction ID for deed issuance
+  ledgerKey       String?             // Key used in Fabric ledger
+  
+  // Timestamps
+  issuedAt        DateTime?           // When deed was officially issued
+  expiresAt       DateTime?           // Expiry date (if applicable)
+  revokedAt       DateTime?           // If deed was revoked
+  revocationReason String?            // Reason for revocation
+  createdAt       DateTime   @default(now())
+  updatedAt       DateTime   @updatedAt
+  
+  // Relations
+  user            User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  property        Property   @relation(fields: [propertyId], references: [id], onDelete: Cascade)
+  order           Order?     @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  
+  @@index([userId])
+  @@index([propertyId])
+  @@index([deedNumber])
+  @@index([status])
+}
+
+// Document storage metadata (actual files in PDC or external storage)
+model DeedDocument {
+  id              String   @id @default(cuid())
+  propertyId      String
+  documentType    String            // e.g., "title_deed", "survey_plan", "permit"
+  fileName        String
+  fileHash        String            // SHA-256 hash for integrity
+  fileSize        Int?              // File size in bytes
+  mimeType        String?           // e.g., "application/pdf"
+  uploadedBy      String?           // User ID who uploaded
+  storagePath     String?           // Path in storage or PDC reference
+  isPrivate       Boolean  @default(true)  // Whether stored in PDC
+  createdAt       DateTime @default(now())
+  
+  property        Property @relation(fields: [propertyId], references: [id], onDelete: Cascade)
+  
+  @@index([propertyId])
+  @@index([documentType])
+}
+
+// Platform Settings Model
+model Settings {
+  id                    String   @id @default(cuid())
+  key                   String   @unique  // e.g., "minInvestmentAmount", "platformFee"
+  value                 String              // Store as string, parse as needed
+  category              String   @default("general")  // e.g., "general", "notifications", "security"
+  description           String?             // Human-readable description
+  updatedAt             DateTime @updatedAt
+  createdAt             DateTime @default(now())
+  
+  @@index([category])
+  @@index([key])
 }

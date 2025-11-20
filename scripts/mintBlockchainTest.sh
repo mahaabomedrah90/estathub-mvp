@@ -47,5 +47,3 @@ curl -X POST http://localhost:5001/api/properties \
     "totalTokens": 10000
   }'
 
-# 3. Now test minting tokens
-./scripts/mintBlockchainTest.sh

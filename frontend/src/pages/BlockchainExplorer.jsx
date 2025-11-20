@@ -1,5 +1,13 @@
 import React, { useEffect, useState } from 'react'
+import { Shield } from 'lucide-react'
 import { authHeader, fetchJson, getToken } from '../lib/api'
+
+// Mask property ID for public view
+const maskPropertyId = (id) => {
+  if (!id || typeof id !== 'string') return id
+  if (id.length <= 8) return id
+  return id.substring(0, 8) + '**********' + id.substring(id.length - 8)
+}
 
 export default function BlockchainExplorer() {
   const [loading, setLoading] = useState(true)
@@ -17,20 +25,44 @@ export default function BlockchainExplorer() {
       setError('')
       setLoading(true)
 
-      // Fetch all blockchain-related data
-      const [eventsRes, propsRes, certsRes, txnsRes] = await Promise.all([
+      console.log('🔗 Loading blockchain data...')
+ // Fetch all blockchain-related data with individual error handling
+ const results = await Promise.allSettled([
         fetchJson('/api/blockchain/events', { headers: { ...authHeader() } }),
         fetchJson('/api/blockchain/properties', { headers: { ...authHeader() } }),
         fetchJson('/api/blockchain/certificates', { headers: { ...authHeader() } }),
         fetchJson('/api/blockchain/transactions', { headers: { ...authHeader() } }),
       ])
 
-      setOnChainEvents(eventsRes.events || [])
-      setProperties(propsRes.properties || [])
-      setCertificates(certsRes.certificates || [])
-      setTransactions(txnsRes.transactions || [])
+      // Extract results with fallbacks
+ const eventsRes = results[0].status === 'fulfilled' ? results[0].value : { events: [] }
+ const propsRes = results[1].status === 'fulfilled' ? results[1].value : { properties: [] }
+ const certsRes = results[2].status === 'fulfilled' ? results[2].value : { certificates: [] }
+ const txnsRes = results[3].status === 'fulfilled' ? results[3].value : { transactions: [] }
+ // Log any failures
+ results.forEach((result, index) => {
+ if (result.status === 'rejected') {
+ console.error(`❌ Failed to load ${['events', 'properties', 'certificates', 'transactions'][index]}:`, result.reason)
+ }
+ })
+ console.log('✅ Blockchain data loaded:', {
+ events: eventsRes.events?.length || 0,
+ properties: propsRes.properties?.length || 0,
+ certificates: certsRes.certificates?.length || 0,
+ transactions: txnsRes.transactions?.length || 0
+ })
+ setOnChainEvents(Array.isArray(eventsRes.events) ? eventsRes.events : [])
+ setProperties(Array.isArray(propsRes.properties) ? propsRes.properties : [])
+ setCertificates(Array.isArray(certsRes.certificates) ? certsRes.certificates : [])
+ setTransactions(Array.isArray(txnsRes.transactions) ? txnsRes.transactions : [])
     } catch (e) {
+      console.error('❌ Unexpected error loading blockchain data:', e)
       setError('Failed to load blockchain data: ' + (e.message || 'Unknown error'))
+      // Set empty arrays to prevent crashes
+      setOnChainEvents([])
+      setProperties([])
+      setCertificates([])
+      setTransactions([])
     } finally {
       setLoading(false)
     }
@@ -183,7 +215,10 @@ function OnChainEventsTab({ events }) {
           {events.map(event => (
             <tr key={event.id} className="hover:bg-gray-50">
               <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-                #{event.id}
+                <div className="flex items-center gap-1">
+                  <Shield size={12} />
+                  <span>{maskPropertyId(event.id)}</span>
+                </div>
               </td>
               <td className="px-6 py-4 whitespace-nowrap">
                 <span className="px-2 py-1 text-xs font-semibold rounded-full bg-blue-100 text-blue-800">
@@ -197,8 +232,12 @@ function OnChainEventsTab({ events }) {
               </td>
               <td className="px-6 py-4 text-sm text-gray-500">
                 {event.userId && <div>User: {event.userId}</div>}
-                {event.propertyId && <div>Property: {event.propertyId}</div>}
-                {event.orderId && <div>Order: {event.orderId}</div>}
+{event.propertyId && (
+ <div className="flex items-center gap-1">
+ <Shield size={12} />
+ <span>Property: {maskPropertyId(event.propertyId)}</span>
+ </div>
+ )}                {event.orderId && <div>Order: {event.orderId}</div>}
                 {event.payload && (
                   <div className="text-xs mt-1">
                     {JSON.stringify(event.payload)}
@@ -218,8 +257,7 @@ function OnChainEventsTab({ events }) {
 
 // Properties Tab
 function PropertiesTab({ properties }) {
-  const blockchainProps = properties.filter(p => p.blockchainTxId)
-
+const blockchainProps = properties.filter(p => p && p.blockchainTxId)
   if (blockchainProps.length === 0) {
     return (
       <div className="p-8 text-center text-gray-500">
@@ -244,7 +282,10 @@ function PropertiesTab({ properties }) {
           {blockchainProps.map(prop => (
             <tr key={prop.id} className="hover:bg-gray-50">
               <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-                #{prop.id}
+                <div className="flex items-center gap-1">
+                <Shield size={12} />
+                <span>{maskPropertyId(prop.id)}</span>
+                </div>
               </td>
               <td className="px-6 py-4 text-sm text-gray-900">{prop.title}</td>
               <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
@@ -268,7 +309,7 @@ function PropertiesTab({ properties }) {
 
 // Certificates Tab
 function CertificatesTab({ certificates }) {
-  const blockchainCerts = certificates.filter(c => c.blockchainTxId)
+const blockchainCerts = certificates.filter(c => c && c.blockchainTxId)
 
   if (blockchainCerts.length === 0) {
     return (
@@ -316,12 +357,12 @@ function CertificatesTab({ certificates }) {
 
 // Transactions Tab
 function TransactionsTab({ transactions }) {
-  const blockchainTxns = transactions.filter(t => t.blockchainTxId)
-
+  // Filter to show only blockchain transactions
+const blockchainTxns = transactions.filter(t => t && t.blockchainTxId)
   if (blockchainTxns.length === 0) {
     return (
       <div className="p-8 text-center text-gray-500">
-        No blockchain transactions yet. Mint tokens with Fabric enabled to see transactions here.
+        No blockchain transactions yet. Mint tokens or register properties to see on-chain transactions here.
       </div>
     )
   }
@@ -357,12 +398,16 @@ function TransactionsTab({ transactions }) {
               </td>
               <td className="px-6 py-4 text-sm text-gray-900">{txn.userEmail}</td>
               <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                {txn.amount.toLocaleString()} SAR
+                {txn.tokens ? `${txn.tokens} tokens` : `${(txn.amount || 0).toLocaleString()} SAR`}
               </td>
               <td className="px-6 py-4 text-sm">
-                <code className="bg-orange-50 text-orange-800 px-2 py-1 rounded text-xs break-all">
-                  {txn.blockchainTxId}
-                </code>
+                {txn.blockchainTxId ? (
+                  <code className="bg-orange-50 text-orange-800 px-2 py-1 rounded text-xs break-all">
+                    {txn.blockchainTxId}
+                  </code>
+                ) : (
+                  <span className="text-gray-400 text-xs">Database only</span>
+                )}
               </td>
               <td className="px-6 py-4 text-sm text-gray-500">{txn.note || '-'}</td>
               <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
