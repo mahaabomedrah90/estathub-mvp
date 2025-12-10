@@ -1,0 +1,46 @@
+{
+  "investor": {
+    "dashboard": "Dashboard",
+    "wallet": "My Wallet",
+    "deeds": "My Deeds"
+  },
+  "owner": {
+    "dashboard": "Dashboard",
+    "properties": "My Properties",
+    "submitProperty": "Submit Property"
+  },
+  "admin": {
+    "overview": "Overview",
+    "reviewProperties": "Review Properties",
+    "users": "Manage Users",
+    "issueDeeds": "Issue Deeds",
+    "reports": "Reports",
+    "settings": "Settings",
+    "investors": "Investor Management"
+  },
+  "regulator": {
+    "dashboard": "Dashboard",
+    "overview": "Overview",
+    "properties": "Properties",
+    "ledger": "Ledger",
+    "amlAlerts": "AML Alerts",
+    "investors": "Investors",
+    "events": "Events Log"
+  },
+  "meta": {
+  "pinned": "Pinned",
+    "pinSidebar": "Pin sidebar",
+    "loggedInAs": "Logged in as",
+    "expandSidebar": "Expand sidebar",
+    "collapseSidebar": "Collapse sidebar",
+    "unpinSidebar": "Unpin sidebar",
+    "portalLabel": "{{role}} Portal"
+
+  },
+ 
+  "roles": {
+    "investor": "Investor",
+    "owner": "Owner",
+    "admin": "Admin",
+    "regulator": "Regulator"
+}}

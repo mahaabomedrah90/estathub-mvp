@@ -14,6 +14,7 @@ enum Role {
   INVESTOR
   OWNER
   ADMIN
+  REGULATOR
 }
 
 enum PropertyStatus {
@@ -50,6 +51,33 @@ enum LandType {
   RURAL
   DESERT
   COASTAL
+}
+
+enum OwnershipType {
+  SINGLE_OWNER
+  SHARED
+  CORPORATE
+  USUFRUCT
+  ELECTRONIC_DEED
+  PAPER_DEED
+}
+
+enum PropertyCondition {
+  NEW
+  USED
+  RENOVATED
+  UNDER_CONSTRUCTION
+}
+
+enum PayoutSchedule {
+  MONTHLY
+  QUARTERLY
+  ANNUAL
+}
+
+enum OwnerType {
+  INDIVIDUAL
+  COMPANY
 }
 
 // Tenant model for multi-tenant support
@@ -125,7 +153,7 @@ model Property {
   payouts         Payout[]
   certificates    Certificate[]
   createdAt       DateTime       @default(now())
-  
+ 
   // Relations
   tenant          Tenant         @relation(fields: [tenantId], references: [id], onDelete: Cascade)
   
@@ -141,6 +169,55 @@ model Property {
   coordinates     String?        // GPS coordinates (lat,lng)
   zoningClass     String?        // Zoning classification
   permitNumber    String?        // Building/Development permit
+  
+  // STEP 1: Legal Verification Fields
+  ownershipType           OwnershipType?
+  deedDate                DateTime?
+  deedAuthority           String?
+  deedDocumentUrl         String?
+  sitePlanDocumentUrl     String?
+  buildingPermitUrl       String?
+  electricityBillUrl      String?
+  waterBillUrl            String?
+  ownerIdDocumentUrl      String?
+  
+  // STEP 2: Technical Specification Fields
+  propertyTypeDetailed    String?        // More detailed than propertyUsage
+  buildingAge             Int?
+  floorsCount             Int?
+  unitsCount              Int?
+  propertyCondition       PropertyCondition?
+  gpsLatitude             Float?
+  gpsLongitude            Float?
+  city                    String?
+  propertyDescription     String?        @db.Text
+  mainImagesUrls          String[]       @default([])
+  
+  // STEP 3: Financial & Tokenization Fields
+  marketValue             Float?
+  valuationReportUrl      String?
+  ownerRetainedPercentage Float?         @default(0)
+  payoutSchedule          PayoutSchedule? @default(MONTHLY)
+  
+  // STEP 4: Owner Information Fields
+  ownerType               OwnerType?
+  nationalIdOrCR          String?
+  ownerPhone              String?
+  ownerEmail              String?
+  ownerIban               String?
+  authorizedPersonName    String?
+  authorizedPersonId      String?
+  commercialRegistration  String?
+  
+  // STEP 5: Compliance & Agreements Fields
+  declarationPropertyAccuracy         Boolean @default(false)
+  declarationLegalResponsibility      Boolean @default(false)
+  declarationTokenizationApproval     Boolean @default(false)
+  declarationDocumentSharingApproval  Boolean @default(false)
+  
+  // Metadata
+  isDraft                 Boolean   @default(true)
+  submissionCompletedAt   DateTime?
   
   // Relations
   deeds           DigitalDeed[]
@@ -315,13 +392,25 @@ model DigitalDeed {
   user            User       @relation(fields: [userId], references: [id], onDelete: Cascade)
   property        Property   @relation(fields: [propertyId], references: [id], onDelete: Cascade)
   order           Order?     @relation(fields: [orderId], references: [id], onDelete: Cascade)
-  
+  events          DeedIssuanceEvent[]   
+
   @@index([userId])
   @@index([propertyId])
   @@index([deedNumber])
   @@index([status])
 }
+model DeedIssuanceEvent {
+  id          String   @id @default(cuid())
+  deedId      String
+  deltaTokens Int
+  createdAt   DateTime @default(now())
+  orderId     String?
+  note        String?
 
+  deed        DigitalDeed @relation(fields: [deedId], references: [id], onDelete: Cascade)
+
+  @@index([deedId])
+}
 // Document storage metadata (actual files in PDC or external storage)
 model DeedDocument {
   id              String   @id @default(cuid())

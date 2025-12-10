@@ -4,10 +4,14 @@ import {
   Building2, Edit2, Eye, MapPin, DollarSign, 
   Users, TrendingUp, Clock, CheckCircle, XCircle, AlertCircle, Loader2 
 } from 'lucide-react'
+import { useTranslation } from 'react-i18next'
 
 export default function OwnerProperties() {
+  const { t } = useTranslation('pages')
+  const { t: tCommon } = useTranslation('common')
+
   const navigate = useNavigate()
-  const [filter, setFilter] = useState('All')
+  const [filter, setFilter] = useState('all')
   const [properties, setProperties] = useState([]) // Start with empty array
   const [loading, setLoading] = useState(true)
 
@@ -28,7 +32,7 @@ export default function OwnerProperties() {
       console.log('📊 Sample property ownerIds:', data.slice(0, 3).map(p => ({ id: p.id, name: p.name, ownerId: p.ownerId })))
       
       // Filter properties by ownerId - only show properties owned by this user
-      const ownerProperties = data.filter(p => p.ownerId === ownerId)
+      const ownerProperties = data.filter(p => p.ownerId === ownerId && !p.isDraft)
       
       console.log('✅ Filtered to', ownerProperties.length, 'properties for owner', ownerId)
       
@@ -60,9 +64,9 @@ export default function OwnerProperties() {
     }
   }
 
-  const filteredProperties = filter === 'All' 
-    ? properties 
-    : properties.filter(p => p.status === filter)
+  const filteredProperties = filter === 'all'
+    ? properties
+    : properties.filter(p => p.status.toLowerCase() === filter)
 
   const getStatusBadge = (status) => {
     const styles = {
@@ -87,34 +91,34 @@ export default function OwnerProperties() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">My Properties</h1>
-          <p className="text-gray-600 mt-1">Manage and track your property submissions</p>
+          <h1 className="text-2xl font-bold text-gray-900">{t('owner.properties.title')}</h1>
+          <p className="text-gray-600 mt-1">{t('owner.properties.subtitle')}</p>
         </div>
         <button
           onClick={() => navigate('/owner/properties/new')}
           className="flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-amber-500 to-orange-600 text-white rounded-xl font-semibold hover:shadow-lg transition-all hover:scale-105"
         >
           <Building2 size={20} />
-          Submit New Property
+          {t('owner.properties.ctaNewProperty')}
         </button>
       </div>
 
       {/* Filter Tabs */}
       <div className="flex gap-2">
-        {['All', 'Approved', 'Pending', 'Rejected'].map((status) => (
-          <button
-            key={status}
-            onClick={() => setFilter(status)}
-            className={`px-4 py-2 rounded-lg font-medium transition-colors ${
-              filter === status
-                ? 'bg-amber-600 text-white'
-                : 'bg-white text-gray-700 hover:bg-gray-100'
-            }`}
-          >
-            {status}
-          </button>
-        ))}
-      </div>
+  {['All', 'Approved', 'Pending', 'Rejected'].map((status) => (
+    <button
+      key={status}
+      onClick={() => setFilter(status)}
+      className={`px-4 py-2 rounded-lg font-medium transition-colors ${
+        filter === status
+          ? 'bg-amber-600 text-white'
+          : 'bg-white text-gray-700 hover:bg-gray-100'
+      }`}
+    >
+      {t(`owner.properties.filters.${status.toLowerCase()}`)}
+    </button>
+  ))}
+</div>
 
       {/* Loading State */}
       {loading ? (
@@ -155,41 +159,50 @@ export default function OwnerProperties() {
                 <div>
                   <h3 className="text-xl font-bold text-gray-900 mb-2">{property.name}</h3>
                   <div className="flex items-center gap-2 text-sm text-gray-600">
-                    <MapPin size={16} />
-                    {property.location}
+                   <MapPin size={16} />
+{property.location || t('owner.properties.defaultLocation')}
+
+<p className="text-sm text-gray-600 line-clamp-2">
+  {property.description || t('owner.properties.noDescription')}
+</p>
                   </div>
                 </div>
 
-                <p className="text-sm text-gray-600 line-clamp-2">{property.description}</p>
+                <p className="text-sm text-gray-600 line-clamp-2">{property.description || t('owner.properties.noDescription')}</p>
 
                 {/* Stats */}
                 <div className="grid grid-cols-2 gap-4 py-4 border-y border-gray-200">
                   <div>
-                    <p className="text-xs text-gray-600 mb-1">Target Amount</p>
+                    <p className="text-xs text-gray-600 mb-1">
+                      {t('owner.properties.metrics.targetAmount')}
+                    </p>
+                    <span className="font-bold text-gray-900">
+                      {tCommon('currency.sar')} {property.targetAmount.toLocaleString()}
+                    </span>
                     <div className="flex items-center gap-1">
                       <DollarSign size={16} className="text-amber-600" />
                       <span className="font-bold text-gray-900">
-                        SAR {property.targetAmount.toLocaleString()}
+                        {tCommon('currency.sar')} {property.targetAmount.toLocaleString()}
                       </span>
                     </div>
                   </div>
                   {property.status === 'Approved' && (
                     <>
                       <div>
-                        <p className="text-xs text-gray-600 mb-1">Investors</p>
+                        <p className="text-xs text-gray-600 mb-1">{t('owner.properties.metrics.investors')}</p>
                         <div className="flex items-center gap-1">
                           <Users size={16} className="text-blue-600" />
                           <span className="font-bold text-gray-900">{property.investors}</span>
                         </div>
                       </div>
                       <div>
-                        <p className="text-xs text-gray-600 mb-1">Raised</p>
+                        <p className="text-xs text-gray-600 mb-1">{t('owner.properties.metrics.raised')}</p>
                         <span className="font-bold text-emerald-600">
-                          SAR {property.raised.toLocaleString()}
+                          {tCommon('currency.sar')} {property.raised.toLocaleString()}
                         </span>
                       </div>
                       <div>
-                        <p className="text-xs text-gray-600 mb-1">Yield</p>
+                        <p className="text-xs text-gray-600 mb-1">{t('owner.properties.metrics.yield')}</p>
                         <div className="flex items-center gap-1">
                           <TrendingUp size={16} className="text-purple-600" />
                           <span className="font-bold text-gray-900">{property.yield}%</span>
@@ -203,7 +216,7 @@ export default function OwnerProperties() {
                 {property.status === 'Approved' && (
                   <div>
                     <div className="flex items-center justify-between mb-2">
-                      <span className="text-sm font-medium text-gray-700">Funding Progress</span>
+                      <span className="text-sm font-medium text-gray-700">{t('owner.properties.metrics.fundingProgress')}</span>
                       <span className="text-sm font-bold text-amber-600">{progress.toFixed(1)}%</span>
                     </div>
                     <div className="w-full bg-gray-200 rounded-full h-2.5">
@@ -220,8 +233,8 @@ export default function OwnerProperties() {
                   <div className="flex items-center gap-2 p-3 bg-yellow-50 rounded-lg">
                     <AlertCircle size={18} className="text-yellow-600" />
                     <div className="flex-1">
-                      <p className="text-sm font-medium text-yellow-900">Under Review</p>
-                      <p className="text-xs text-yellow-700">Submitted on {property.submittedDate}</p>
+                      <p className="text-sm font-medium text-yellow-900">{t('owner.properties.statusMessages.pending.title')}</p>
+                      <p className="text-xs text-yellow-700">{t('owner.properties.statusMessages.pending.subtitle', { date: property.submittedDate })}</p>
                     </div>
                   </div>
                 )}
@@ -230,7 +243,7 @@ export default function OwnerProperties() {
                   <div className="flex items-center gap-2 p-3 bg-red-50 rounded-lg">
                     <XCircle size={18} className="text-red-600" />
                     <div className="flex-1">
-                      <p className="text-sm font-medium text-red-900">Rejected</p>
+                      <p className="text-sm font-medium text-red-900">{t('owner.properties.statusMessages.rejected.title')}</p>
                       <p className="text-xs text-red-700">{property.rejectionReason}</p>
                     </div>
                   </div>
@@ -240,24 +253,21 @@ export default function OwnerProperties() {
                   <div className="flex items-center gap-2 p-3 bg-green-50 rounded-lg">
                     <CheckCircle size={18} className="text-green-600" />
                     <div className="flex-1">
-                      <p className="text-sm font-medium text-green-900">Live & Accepting Investments</p>
-                      <p className="text-xs text-green-700">Approved on {property.approvedDate}</p>
+                      <p className="text-sm font-medium text-green-900">{t('owner.properties.statusMessages.approved.title')}</p>
+                      <p className="text-xs text-green-700">{t('owner.properties.statusMessages.approved.subtitle', { date: property.approvedDate })}</p>
                     </div>
                   </div>
                 )}
 
-                {/* Action Buttons */}
+                {/* Action Buttons - MVP: view only, no editing */}
                 <div className="flex gap-2 pt-2">
-                  <button className="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors font-medium">
+                  <button
+                    onClick={() => navigate(`/properties/${property.id}`)}
+                    className="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors font-medium"
+                  >
                     <Eye size={18} />
-                    View Details
+                    {t('owner.properties.actions.viewDetails')}
                   </button>
-                  {(property.status === 'Pending' || property.status === 'Rejected') && (
-                    <button className="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 bg-amber-600 text-white rounded-lg hover:bg-amber-700 transition-colors font-medium">
-                      <Edit2 size={18} />
-                      Edit
-                    </button>
-                  )}
                 </div>
               </div>
             </div>
@@ -268,18 +278,22 @@ export default function OwnerProperties() {
       {filteredProperties.length === 0 && (
         <div className="text-center py-12">
           <Building2 className="mx-auto text-gray-400 mb-4" size={64} />
-          <h3 className="text-xl font-semibold text-gray-900 mb-2">No properties found</h3>
-          <p className="text-gray-600 mb-6">
-            {filter === 'All' 
-              ? "You haven't submitted any properties yet" 
-              : `No ${filter.toLowerCase()} properties`}
-          </p>
+      <h3 className="text-xl font-semibold text-gray-900 mb-2">
+  {t('owner.properties.empty.title')}
+</h3>
+<p className="text-gray-600 mb-6">
+  {filter === 'All'
+    ? t('owner.properties.empty.bodyAll')
+    : t('owner.properties.empty.bodyFiltered', {
+        status: t(`owner.properties.filters.${filter.toLowerCase()}`)
+      })}
+</p>
           <button
             onClick={() => navigate('/owner/properties/new')}
             className="inline-flex items-center gap-2 px-6 py-3 bg-amber-600 text-white rounded-xl font-semibold hover:bg-amber-700 transition-colors"
           >
             <Building2 size={20} />
-            Submit Your First Property
+             {t('owner.properties.empty.cta')}
           </button>
         </div>
       )}

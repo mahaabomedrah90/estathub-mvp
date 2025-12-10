@@ -1,0 +1,46 @@
+{
+  "investor": {
+    "dashboard": "لوحة المستثمر",
+    "wallet": "محفظتي",
+    "deeds": "صكوكي"
+  },
+  "owner": {
+    "dashboard": "لوحة المالك",
+    "properties": "عقاراتي",
+    "submitProperty": "إضافة عقار"
+  },
+  "admin": {
+    "overview": "نظرة عامة",
+    "reviewProperties": "مراجعة العقارات",
+    "users": "إدارة المستخدمين",
+    "issueDeeds": "إصدار الصكوك",
+    "reports": "التقارير",
+    "settings": "الإعدادات",
+    "investors": "إدارة المستثمرين"
+  },
+  "regulator": {
+    "dashboard": "لوحة الجهة الرقابية",
+    "overview": "نظرة عامة",
+    "properties": "العقارات",
+    "ledger": "سجل المعاملات",
+    "amlAlerts": "تنبيهات غسل الأموال",
+    "investors": "المستثمرون",
+    "events": "سجل الأحداث"
+  },
+  "meta": {
+    "pinned": "مثبّت",
+    "pinSidebar": "تثبيت القائمة",
+    "loggedInAs": "مسجّل الدخول كـ",
+    "expandSidebar": "توسيع القائمة",
+    "collapseSidebar": "تصغير القائمة",
+    "unpinSidebar": "إلغاء تثبيت القائمة",
+    "portalLabel": "بوابة {{role}}"
+  },
+  
+    "roles": {
+    "investor": "مستثمر",
+    "owner": "مالك",
+    "admin": "مسؤول",
+    "regulator": "جهة رقابية"
+  }
+}

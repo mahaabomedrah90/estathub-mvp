@@ -1,4 +1,5 @@
 export function getToken() {
+
   return localStorage.getItem('estathub_token') || ''
 }
 
@@ -157,18 +158,30 @@ export class ApiError extends Error {
 export const api = new ApiClient()
 
 // Backward compatibility - keep fetchJson for existing code
-export async function fetchJson(path, opts = {}) {
+// Add this function if it doesn't exist, or update it if it does
+export async function fetchJson(url, options = {}) {
+  const headers = {
+    'Content-Type': 'application/json',
+    ...options.headers
+  };
+
   try {
-    return await api.request(path, opts)
-  } catch (error) {
-    // Convert ApiError to old format for backward compatibility
-    if (error instanceof ApiError) {
-      const legacyError = new Error(error.message)
-      legacyError.status = error.status
-      legacyError.body = error.data
-      throw legacyError
+    const response = await fetch(url, {
+      ...options,
+      headers
+    });
+
+    if (!response.ok) {
+      const error = new Error(`HTTP error! status: ${response.status}`);
+      error.status = response.status;
+      throw error;
     }
-    throw error
+
+    const data = await response.json();
+    return data;
+  } catch (error) {
+    console.error(`Fetch error for ${url}:`, error);
+    throw error;
   }
 }
 
@@ -223,6 +236,16 @@ export const defaultPermissions = {
     // Admin can also access all investor and owner pages if needed
     '/investor/dashboard',
     '/owner/dashboard'
+  ],
+
+  // Regulator permissions (read-only access + regulatory tools)
+  regulator: [
+    '/regulator/overview',
+    '/regulator/properties',
+    '/regulator/properties/:id',
+    '/regulator/ledger',
+    '/regulator/aml-alerts',
+    '/blockchain'
   ]
 }
 
@@ -339,4 +362,166 @@ export function updatePermissions(role, permissions) {
 // Update navigation visibility (for admin settings)
 export function updateNavigationVisibility(role, disabledItems) {
   localStorage.setItem(`disabled_nav_${role}`, JSON.stringify(disabledItems))
+}
+
+// ============================================================================
+// PROPERTY SUBMISSION CONSTANTS & HELPERS
+// ============================================================================
+
+export const OwnershipType = {
+  SINGLE_OWNER: 'SINGLE_OWNER',
+  SHARED: 'SHARED',
+  CORPORATE: 'CORPORATE',
+  USUFRUCT: 'USUFRUCT',
+  ELECTRONIC_DEED: 'ELECTRONIC_DEED',
+  PAPER_DEED: 'PAPER_DEED'
+}
+
+export const PropertyType = {
+  RESIDENTIAL_VILLA: 'residentialVilla',
+  RESIDENTIAL_APARTMENT: 'residentialApartment',
+  RESIDENTIAL_COMPOUND: 'residentialCompound',
+  COMMERCIAL_OFFICE: 'commercialOffice',
+  COMMERCIAL_RETAIL: 'commercialRetail',
+  COMMERCIAL_WAREHOUSE: 'commercialWarehouse',
+  MIXED_USE: 'mixedUse',
+  LAND_RESIDENTIAL: 'landResidential',
+  LAND_COMMERCIAL: 'landCommercial',
+  AGRICULTURAL: 'agricultural',
+  INDUSTRIAL: 'industrial'
+}
+
+export const PropertyCondition = {
+  NEW: 'NEW',
+  USED: 'USED',
+  RENOVATED: 'RENOVATED',
+  UNDER_CONSTRUCTION: 'UNDER_CONSTRUCTION'
+}
+
+export const PayoutSchedule = {
+  MONTHLY: 'MONTHLY',
+  QUARTERLY: 'QUARTERLY',
+  ANNUAL: 'ANNUAL'
+}
+
+export const OwnerType = {
+  INDIVIDUAL: 'INDIVIDUAL',
+  COMPANY: 'COMPANY'
+}
+
+export const PropertyTypeLabels = {
+  [PropertyType.RESIDENTIAL_VILLA]: 'Residential Villa / فيلا سكنية',
+  [PropertyType.RESIDENTIAL_APARTMENT]: 'Residential Apartment / شقة سكنية',
+  [PropertyType.RESIDENTIAL_COMPOUND]: 'Residential Compound / مجمع سكني',
+  [PropertyType.COMMERCIAL_OFFICE]: 'Commercial Office / مكتب تجاري',
+  [PropertyType.COMMERCIAL_RETAIL]: 'Commercial Retail / محل تجاري',
+  [PropertyType.COMMERCIAL_WAREHOUSE]: 'Commercial Warehouse / مستودع',
+  [PropertyType.MIXED_USE]: 'Mixed Use / استخدام مختلط',
+  [PropertyType.LAND_RESIDENTIAL]: 'Residential Land / أرض سكنية',
+  [PropertyType.LAND_COMMERCIAL]: 'Commercial Land / أرض تجارية',
+  [PropertyType.AGRICULTURAL]: 'Agricultural / زراعي',
+  [PropertyType.INDUSTRIAL]: 'Industrial / صناعي'
+}
+
+export const PropertyConditionLabels = {
+  [PropertyCondition.NEW]: 'New / جديد',
+  [PropertyCondition.USED]: 'Used / مستعمل',
+  [PropertyCondition.RENOVATED]: 'Renovated / مجدد',
+  [PropertyCondition.UNDER_CONSTRUCTION]: 'Under Construction / تحت الإنشاء'
+}
+
+export const OwnershipTypeLabels = {
+  [OwnershipType.SINGLE_OWNER]: 'Single Owner / مالك واحد',
+  [OwnershipType.SHARED]: 'Shared / ملكية مشتركة',
+  [OwnershipType.CORPORATE]: 'Corporate / شركة',
+  [OwnershipType.USUFRUCT]: 'Usufruct / حق الانتفاع',
+  [OwnershipType.ELECTRONIC_DEED]: 'Electronic Deed / صك إلكتروني',
+  [OwnershipType.PAPER_DEED]: 'Paper Deed / صك ورقي'
+}
+
+export const PayoutScheduleLabels = {
+  [PayoutSchedule.MONTHLY]: 'Monthly / شهري',
+  [PayoutSchedule.QUARTERLY]: 'Quarterly / ربع سنوي',
+  [PayoutSchedule.ANNUAL]: 'Annual / سنوي'
+}
+
+export const OwnerTypeLabels = {
+  [OwnerType.INDIVIDUAL]: 'Individual / فرد',
+  [OwnerType.COMPANY]: 'Company / شركة'
+}
+
+// Helper functions
+export function calculateAvailableTokens(totalTokens, ownerRetainedPercentage) {
+  const total = Number(totalTokens) || 0
+  const retained = Number(ownerRetainedPercentage) || 0
+  const retainedTokens = Math.floor((total * retained) / 100)
+  return total - retainedTokens
+}
+
+export function validateNationalId(id) {
+  return /^[12][0-9]{9}$/.test(id)
+}
+
+export function validatePhone(phone) {
+  return /^(\+966|0)?5[0-9]{8}$/.test(phone)
+}
+
+export function validateIban(iban) {
+  return /^SA[0-9]{22}$/.test(iban)
+}
+
+export function formatFileSize(bytes) {
+  if (bytes === 0) return '0 Bytes'
+  const k = 1024
+  const sizes = ['Bytes', 'KB', 'MB', 'GB']
+  const i = Math.floor(Math.log(bytes) / Math.log(k))
+  return Math.round(bytes / Math.pow(k, i) * 100) / 100 + ' ' + sizes[i]
+}
+
+// ============================================================================
+// REGULATOR API HELPERS
+// ==========================================================================
+
+export async function getRegulatorProperties(params = {}) {
+  const query = new URLSearchParams(params).toString()
+  const suffix = query ? `?${query}` : ''
+  return fetchJson(`/api/regulator/properties${suffix}`, {
+    headers: { ...authHeader() },
+  })
+}
+
+export async function getRegulatorProperty(id) {
+  return fetchJson(`/api/regulator/properties/${id}`, {
+    headers: { ...authHeader() },
+  })
+}
+
+export async function approvePropertyAsRegulator(id) {
+  return fetchJson(`/api/regulator/properties/${id}/approve`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...authHeader() },
+    body: JSON.stringify({}),
+  })
+}
+
+export async function rejectPropertyAsRegulator(id, reason = '') {
+  return fetchJson(`/api/regulator/properties/${id}/reject`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...authHeader() },
+    body: JSON.stringify({ reason }),
+  })
+}
+
+export async function getRegulatorLedger(params = {}) {
+  const query = new URLSearchParams(params).toString()
+  const suffix = query ? `?${query}` : ''
+  return fetchJson(`/api/regulator/ledger${suffix}`, {
+    headers: { ...authHeader() },
+  })
+}
+
+export async function getRegulatorAMLAlerts() {
+  return fetchJson('/api/regulator/aml-alerts', {
+    headers: { ...authHeader() },
+  })
 }

@@ -1,12 +1,15 @@
 import React, { useState, useEffect } from 'react'
 import { Users, Edit2, Ban, CheckCircle, Mail, Phone, Shield, User, Loader2 } from 'lucide-react'
 import { authHeader, fetchJson } from '../../lib/api'
+import { useTranslation } from 'react-i18next';
+
 
 export default function AdminUsers() {
+  const { t } = useTranslation('pages');
   const [users, setUsers] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
-  const [filter, setFilter] = useState('All')
+const [filter, setFilter] = useState('all')
   const [selectedUser, setSelectedUser] = useState(null)
   const [confirmRole, setConfirmRole] = useState(null)
   const [successMessage, setSuccessMessage] = useState('')
@@ -24,7 +27,7 @@ export default function AdminUsers() {
         setUsers(fetchedUsers)
       } catch (err) {
         console.error('❌ Failed to fetch users:', err)
-        setError('Failed to load users from database')
+        setError(t('admin.users.messages.loadFailed'))
       } finally {
         setLoading(false)
       }
@@ -53,7 +56,7 @@ export default function AdminUsers() {
       console.log(`🔄 Updated user ${id} status to ${newStatus}`)
     } catch (err) {
       console.error('❌ Failed to update user status:', err)
-      setError('Failed to update user status')
+      setError(t('admin.users.messages.statusUpdateFailed'))
     }
   }
 
@@ -75,18 +78,23 @@ export default function AdminUsers() {
       console.log(`🔄 Updated user ${id} role to ${newRole}`)
       
       // Show success message with logout reminder
-      setSuccessMessage(`✅ User role updated to ${newRole.toUpperCase()}! The user (${updatedUser.name}) must log out and log back in for changes to take effect.`)
+     setSuccessMessage(
+  t('admin.users.messages.roleUpdateSuccess', {
+    role: newRole.toUpperCase(),
+    name: updatedUser.name,
+  })
+)
       setTimeout(() => setSuccessMessage(''), 8000) // Auto-hide after 8 seconds
     } catch (err) {
       console.error('❌ Failed to update user role:', err)
-      setError('Failed to update user role. Please try again.')
-      setTimeout(() => setError(''), 5000)
+      setError(t('admin.users.messages.roleUpdateFailed'));
+      setTimeout(() => setError(''), 5000);
     }
   }
 
-  const filteredUsers = filter === 'All' 
-    ? users 
-    : users.filter(u => u.role === filter.toLowerCase())
+  const filteredUsers = filter === 'all'
+  ? users
+  : users.filter(u => u.role === filter)
 
   const getRoleBadge = (role) => {
     const styles = {
@@ -108,7 +116,9 @@ export default function AdminUsers() {
       <div className="flex items-center justify-center py-12">
         <div className="flex items-center gap-3">
           <Loader2 className="animate-spin text-blue-600" size={24} />
-          <span className="text-gray-600">Loading users...</span>
+          <span className="text-gray-600">
+  {t('admin.users.loading')}
+</span>
         </div>
       </div>
     )
@@ -119,12 +129,12 @@ export default function AdminUsers() {
       <div className="flex items-center justify-center py-12">
         <div className="text-center">
           <div className="text-red-600 mb-2">{error}</div>
-          <button 
-            onClick={() => window.location.reload()}
-            className="text-blue-600 hover:text-blue-700 underline"
-          >
-            Try Again
-          </button>
+         <button
+  onClick={() => window.location.reload()}
+  className="text-blue-600 hover:text-blue-700 underline"
+>
+  {t('admin.users.errorTryAgain')}
+</button>
         </div>
       </div>
     )
@@ -135,23 +145,27 @@ export default function AdminUsers() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">User Management</h1>
-          <p className="text-gray-600 mt-1">Manage platform users and their roles</p>
+         <h1 className="text-2xl font-bold text-gray-900">
+  {t('admin.users.headerTitle')}
+</h1>
+<p className="text-gray-600 mt-1">
+  {t('admin.users.headerSubtitle')}
+</p>
         </div>
         <div className="flex gap-2">
-          {['All', 'Owner', 'Investor', 'Admin'].map((role) => (
-            <button
-              key={role}
-              onClick={() => setFilter(role)}
-              className={`px-4 py-2 rounded-lg font-medium transition-colors ${
-                filter === role
-                  ? 'bg-blue-600 text-white'
-                  : 'bg-white text-gray-700 hover:bg-gray-100'
-              }`}
-            >
-              {role}
-            </button>
-          ))}
+         {['all', 'owner', 'investor', 'admin'].map((role) => (
+  <button
+    key={role}
+    onClick={() => setFilter(role)}
+    className={`px-4 py-2 rounded-lg font-medium transition-colors ${
+      filter === role
+        ? 'bg-blue-600 text-white'
+        : 'bg-white text-gray-700 hover:bg-gray-100'
+    }`}
+  >
+    {t(`admin.users.filters.${role}`)}
+  </button>
+))}
         </div>
       </div>
 
@@ -163,7 +177,10 @@ export default function AdminUsers() {
               <Users className="text-blue-600" size={24} />
             </div>
             <div>
-              <p className="text-sm text-gray-600">Total Users</p>
+             <p className="text-sm text-gray-600">
+  {t('admin.users.stats.totalUsers')}
+</p>
+
               <p className="text-2xl font-bold text-gray-900">{users.length}</p>
             </div>
           </div>
@@ -174,7 +191,9 @@ export default function AdminUsers() {
               <Shield className="text-amber-600" size={24} />
             </div>
             <div>
-              <p className="text-sm text-gray-600">Owners</p>
+              <p className="text-sm text-gray-600">
+  {t('admin.users.stats.owners')}
+</p>
               <p className="text-2xl font-bold text-gray-900">
                 {users.filter(u => u.role === 'owner').length}
               </p>
@@ -187,7 +206,9 @@ export default function AdminUsers() {
               <User className="text-emerald-600" size={24} />
             </div>
             <div>
-              <p className="text-sm text-gray-600">Investors</p>
+              <p className="text-sm text-gray-600">
+  {t('admin.users.stats.investors')}
+</p>
               <p className="text-2xl font-bold text-gray-900">
                 {users.filter(u => u.role === 'investor').length}
               </p>
@@ -199,8 +220,10 @@ export default function AdminUsers() {
             <div className="w-12 h-12 bg-green-50 rounded-lg flex items-center justify-center">
               <CheckCircle className="text-green-600" size={24} />
             </div>
-            <div>
-              <p className="text-sm text-gray-600">Active</p>
+            <div>   
+              <p className="text-sm text-gray-600">
+  {t('admin.users.stats.active')}
+</p>
               <p className="text-2xl font-bold text-gray-900">
                 {users.filter(u => u.status === 'Active').length}
               </p>
@@ -216,22 +239,22 @@ export default function AdminUsers() {
             <thead className="bg-gray-50 border-b border-gray-200">
               <tr>
                 <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
-                  User
+                  {t('admin.users.table.user')}
                 </th>
                 <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
-                  Contact
+                  {t('admin.users.table.contact')}
                 </th>
                 <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
-                  Role
+                  {t('admin.users.table.role')}
                 </th>
                 <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
-                  Status
+                  {t('admin.users.table.status')}
                 </th>
                 <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
-                  Joined
+                  {t('admin.users.table.joined')}
                 </th>
                 <th className="px-6 py-4 text-right text-xs font-semibold text-gray-600 uppercase tracking-wider">
-                  Actions
+                  {t('admin.users.table.actions')}
                 </th>
               </tr>
             </thead>
@@ -271,8 +294,10 @@ export default function AdminUsers() {
                   </td>
                   <td className="px-6 py-4">
                     <span className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold ${getStatusBadge(user.status)}`}>
-                      {user.status}
-                    </span>
+                     {user.status === 'Active'
+    ? t('admin.users.status.active')
+    : t('admin.users.status.suspended')}
+</span>
                   </td>
                   <td className="px-6 py-4">
                     <span className="text-sm text-gray-600">{user.joinedDate}</span>
@@ -282,7 +307,7 @@ export default function AdminUsers() {
                       <button
                         onClick={() => setSelectedUser(user)}
                         className="p-2 bg-blue-100 text-blue-600 rounded-lg hover:bg-blue-200 transition-colors"
-                        title="Edit Role"
+                        title={t('admin.users.actions.edit')}
                       >
                         <Edit2 size={16} />
                       </button>
@@ -293,8 +318,12 @@ export default function AdminUsers() {
                             ? 'bg-red-100 text-red-600 hover:bg-red-200'
                             : 'bg-green-100 text-green-600 hover:bg-green-200'
                         }`}
-                        title={user.status === 'Active' ? 'Suspend' : 'Activate'}
-                      >
+                        title={
+  user.status === 'Active'
+    ? t('admin.users.actions.suspend')
+    : t('admin.users.actions.activate')
+}
+                      > 
                         {user.status === 'Active' ? <Ban size={16} /> : <CheckCircle size={16} />}
                       </button>
                     </div>
@@ -313,7 +342,7 @@ export default function AdminUsers() {
             <div className="flex items-start gap-3">
               <CheckCircle className="text-green-600 flex-shrink-0 mt-0.5" size={20} />
               <div className="flex-1">
-                <p className="text-sm font-medium text-green-900">{successMessage}</p>
+                <p className="text-sm font-medium text-green-900">{t('admin.users.messages.success')}</p>
               </div>
               <button
                 onClick={() => setSuccessMessage('')}
@@ -330,10 +359,12 @@ export default function AdminUsers() {
       {selectedUser && !confirmRole && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-2xl max-w-md w-full p-6">
-            <h2 className="text-xl font-bold text-gray-900 mb-4">Change User Role</h2>
-            <p className="text-gray-600 mb-6">
-              Select a new role for <span className="font-semibold">{selectedUser.name}</span>
-            </p>
+            <h2 className="text-xl font-bold text-gray-900 mb-4">
+  {t('admin.users.actions.changeRole')}
+</h2>
+<p className="text-gray-600 mb-6">
+  {t('admin.users.texts.selectNewRole', { name: selectedUser.name })}
+</p>
             <div className="space-y-3">
               {['investor', 'owner', 'admin'].map((role) => (
                 <button
@@ -347,10 +378,14 @@ export default function AdminUsers() {
                   }`}
                 >
                   <div className="flex items-center justify-between">
-                    <span className="font-semibold capitalize">{role}</span>
-                    {selectedUser.role === role && (
-                      <span className="text-xs text-gray-500">(Current)</span>
-                    )}
+                    <span className="font-semibold capitalize">
+  {t(`admin.users.role.${role}`)}
+</span>
+{selectedUser.role === role && (
+  <span className="text-xs text-gray-500">
+    {t('admin.users.texts.currentRole')}
+  </span>
+)}
                   </div>
                 </button>
               ))}
@@ -359,7 +394,8 @@ export default function AdminUsers() {
               onClick={() => setSelectedUser(null)}
               className="w-full mt-4 px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors"
             >
-              Cancel
+                  {t('admin.users.actions.cancel')}
+
             </button>
           </div>
         </div>
@@ -372,16 +408,21 @@ export default function AdminUsers() {
             <div className="w-12 h-12 bg-amber-100 rounded-full flex items-center justify-center mx-auto mb-4">
               <Shield className="text-amber-600" size={24} />
             </div>
-            <h2 className="text-xl font-bold text-gray-900 mb-2 text-center">Confirm Role Change</h2>
-            <p className="text-gray-600 mb-6 text-center">
-              Are you sure you want to change <span className="font-semibold">{selectedUser.name}</span>'s role from{' '}
-              <span className="font-semibold capitalize text-blue-600">{selectedUser.role}</span> to{' '}
-              <span className="font-semibold capitalize text-green-600">{confirmRole}</span>?
-            </p>
+             <h2 className="text-xl font-bold text-gray-900 mb-2 text-center">
+  {t('admin.users.actions.confirmRole')}
+</h2>
+<p className="text-gray-600 mb-6 text-center">
+  {t('admin.users.messages.roleChangeConfirm', {
+    name: selectedUser.name,
+    from: selectedUser.role,
+    to: confirmRole,
+  })}
+</p>
             <div className="bg-amber-50 border border-amber-200 rounded-lg p-4 mb-6">
               <p className="text-sm text-amber-800">
-                <strong>⚠️ Important:</strong> The user must log out and log back in for the role change to take effect.
-              </p>
+  <strong>⚠️ {t('admin.users.texts.important')}</strong>{' '}
+  {t('admin.users.texts.roleChangeLoginNote')}
+</p>
             </div>
             <div className="flex gap-3">
               <button
@@ -391,13 +432,13 @@ export default function AdminUsers() {
                 }}
                 className="flex-1 px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors font-medium"
               >
-                Cancel
+                {t('admin.users.actions.cancel')}
               </button>
               <button
                 onClick={() => handleRoleChange(selectedUser.id, confirmRole)}
                 className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium"
               >
-                Confirm Change
+                {t('admin.users.actions.confirm_change')}
               </button>
             </div>
           </div>

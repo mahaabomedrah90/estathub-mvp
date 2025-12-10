@@ -50,7 +50,7 @@ ownerRouter.get('/:ownerId/investors', auth(true), async (req: Request, res: Res
           email: h.user.email,
           totalTokens: 0,
           totalInvestment: 0,
-          positions: [] as any[]
+          positions: [] as Array<{ propertyId: string; propertyTitle: string; tokens: number; investment: number }>
         })
       }
 

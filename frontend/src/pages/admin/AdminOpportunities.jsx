@@ -1,10 +1,15 @@
 import React, { useState, useEffect } from 'react'
 import { Building2, Eye, CheckCircle, X, MapPin, DollarSign, Clock, User, Loader2 } from 'lucide-react'
+import { useTranslation } from 'react-i18next';
+
+
 
 export default function AdminOpportunities() {
+  const { t, i18n } = useTranslation('pages');
+
   const [properties, setProperties] = useState([])
   const [loading, setLoading] = useState(true)
-  const [mockProperties] = useState([
+  /* const [mockProperties] = useState([
     {
       id: 1,
       name: 'Luxury Villa - Al Malqa',
@@ -23,7 +28,7 @@ export default function AdminOpportunities() {
       owner: 'Sara Al-Rashid',
       targetAmount: 5000000,
       description: '10-floor commercial building in prime location',
-      status: 'Pending',
+      status: 'approved',
       submittedDate: '2025-01-04',
       imageUrl: 'https://images.unsplash.com/photo-1486406146926-c627a92ad1ab?w=800'
     },
@@ -34,7 +39,7 @@ export default function AdminOpportunities() {
       owner: 'Ahmed Al-Otaibi',
       targetAmount: 3500000,
       description: '20-unit residential complex with modern amenities',
-      status: 'Approved',
+      status: 'rejected',
       submittedDate: '2025-01-01',
       imageUrl: 'https://images.unsplash.com/photo-1545324418-cc1a3fa10c00?w=800'
     },
@@ -45,14 +50,14 @@ export default function AdminOpportunities() {
       owner: 'Fatima Al-Harbi',
       targetAmount: 8000000,
       description: 'Large shopping mall with 50+ retail spaces',
-      status: 'Rejected',
+      status: 'pending',
       submittedDate: '2024-12-28',
       imageUrl: 'https://images.unsplash.com/photo-1519567241046-7f570eee3ce6?w=800'
     },
-  ])
+  ]) */
 
   const [selectedProperty, setSelectedProperty] = useState(null)
-  const [filter, setFilter] = useState('All')
+  const [filter, setFilter] = useState('all')
 
   useEffect(() => {
     loadProperties()
@@ -66,13 +71,19 @@ export default function AdminOpportunities() {
       
       // Map backend data to frontend format
       const mapped = data.map(p => ({
+        
         id: p.id,
         name: p.name,
-        location: p.location || 'Riyadh, Saudi Arabia',
-        owner: p.ownerName || 'Unknown Owner',
+        location: p.location || t('admin.opportunities.defaults.location'),
+        owner: p.ownerName || t('admin.opportunities.defaults.owner'),
         targetAmount: p.totalValue,
-        description: p.description || 'No description provided',
-        status: p.status === 'APPROVED' ? 'Approved' : p.status === 'REJECTED' ? 'Rejected' : 'Pending',
+description: p.description || t('admin.opportunities.defaults.description'),
+       status: p.status === 'APPROVED'
+  ? 'approved'
+  : p.status === 'REJECTED'
+    ? 'rejected'
+    : 'pending',
+
         submittedDate: p.submittedDate ? new Date(p.submittedDate).toLocaleDateString() : new Date().toLocaleDateString(),
         imageUrl: p.imageUrl || 'https://images.unsplash.com/photo-1613490493576-7fde63acd811?w=800',
         rejectionReason: p.rejectionReason
@@ -82,10 +93,10 @@ export default function AdminOpportunities() {
     } catch (error) {
       console.error('Failed to load properties:', error)
       // Fallback to mock data if API fails
-      setProperties(mockProperties)
+      setProperties([])
     } finally {
       setLoading(false)
-    }
+    }                                                                                                                                                                                                                             
   }
 
   const handleApprove = async (id) => {
@@ -97,23 +108,26 @@ export default function AdminOpportunities() {
       
       if (response.ok) {
         setProperties(properties.map(p => 
-          p.id === id ? { ...p, status: 'Approved' } : p
+          p.id === id ? { ...p, status: 'approved' } : p
         ))
         setSelectedProperty(null)
-        alert('Property approved successfully!')
+        alert(t('admin.opportunities.messages.approveSuccess'))
         loadProperties() // Reload to get fresh data
       } else {
-        alert('Failed to approve property')
+        alert(t('admin.opportunities.messages.approveFailed'))
+        console.error('Approve failed with status:', response.status);
       }
     } catch (error) {
       console.error('Approve error:', error)
-      alert('Failed to approve property')
+      alert(t('admin.opportunities.messages.approveFailed'))
+
     }
   }
 
   const handleReject = async (id) => {
-    const reason = prompt('Reason for rejection (optional):') || 'No reason provided'
-    
+    const reason =
+  prompt(t('admin.opportunities.messages.rejectReasonPrompt')) ||
+  t('admin.opportunities.messages.rejectNoReason')    
     try {
       const response = await fetch(import.meta.env.VITE_API_BASE + `/api/properties/${id}/reject`, {
         method: 'PUT',
@@ -123,29 +137,33 @@ export default function AdminOpportunities() {
       
       if (response.ok) {
         setProperties(properties.map(p => 
-          p.id === id ? { ...p, status: 'Rejected', rejectionReason: reason } : p
+          p.id === id ? { ...p, status: 'rejected', rejectionReason: reason } : p
         ))
         setSelectedProperty(null)
-        alert('Property rejected')
+        alert(t('admin.opportunities.messages.rejectFailed'))
+
         loadProperties() // Reload to get fresh data
       } else {
-        alert('Failed to reject property')
+        console.error('Reject failed with status:', response.status);
+        alert(t('admin.opportunities.messages.rejectFailed'))
+
       }
     } catch (error) {
       console.error('Reject error:', error)
-      alert('Failed to reject property')
+      alert(t('admin.opportunities.messages.rejectFailed'))
+
     }
   }
 
-  const filteredProperties = filter === 'All' 
-    ? properties 
-    : properties.filter(p => p.status === filter)
+  const filteredProperties = filter === 'all'
+  ? properties
+  : properties.filter(p => p.status === filter)
 
   const getStatusBadge = (status) => {
     const styles = {
-      Pending: 'bg-yellow-100 text-yellow-700',
-      Approved: 'bg-green-100 text-green-700',
-      Rejected: 'bg-red-100 text-red-700'
+        pending: 'bg-yellow-100 text-yellow-700',
+      approved: 'bg-green-100 text-green-700',
+      rejected: 'bg-red-100 text-red-700'
     }
     return styles[status] || 'bg-gray-100 text-gray-700'
   }
@@ -163,21 +181,24 @@ export default function AdminOpportunities() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Property Submissions</h1>
-          <p className="text-gray-600 mt-1">Review and manage property tokenization requests</p>
-        </div>
+         <h1 className="text-2xl font-bold text-gray-900">
+  {t('admin.opportunities.headerTitle')}
+</h1>
+<p className="text-gray-600 mt-1">
+  {t('admin.opportunities.headerSubtitle')}
+</p>        </div>
         <div className="flex gap-2">
-          {['All', 'Pending', 'Approved', 'Rejected'].map((status) => (
+          {['all', 'pending', 'approved', 'rejected'].map((status) => (
             <button
               key={status}
-              onClick={() => setFilter(status)}
+                  onClick={() => setFilter(status)}
               className={`px-4 py-2 rounded-lg font-medium transition-colors ${
                 filter === status
                   ? 'bg-blue-600 text-white'
                   : 'bg-white text-gray-700 hover:bg-gray-100'
               }`}
             >
-              {status}
+              {t(`admin.opportunities.filters.${status}`)}
             </button>
           ))}
         </div>
@@ -190,22 +211,22 @@ export default function AdminOpportunities() {
             <thead className="bg-gray-50 border-b border-gray-200">
               <tr>
                 <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
-                  Property
+                  {t('admin.opportunities.table.property')}
                 </th>
                 <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
-                  Owner
+                  {t('admin.opportunities.table.owner')}
                 </th>
                 <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
-                  Target Amount
+                  {t('admin.opportunities.table.targetAmount')}
                 </th>
                 <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
-                  Status
+                  {t('admin.opportunities.table.status')}
                 </th>
                 <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
-                  Submitted
+                  {t('admin.opportunities.table.submitted')}
                 </th>
                 <th className="px-6 py-4 text-right text-xs font-semibold text-gray-600 uppercase tracking-wider">
-                  Actions
+                  {t('admin.opportunities.table.actions')}
                 </th>
               </tr>
             </thead>
@@ -235,18 +256,18 @@ export default function AdminOpportunities() {
                   <td className="px-6 py-4">
                     <div className="flex items-center gap-1 text-sm font-semibold text-gray-900">
                       <DollarSign size={16} className="text-emerald-600" />
-                      SAR {property.targetAmount.toLocaleString()}
+                      {t('admin.opportunities.currency')} {property.targetAmount.toLocaleString()}
                     </div>
                   </td>
                   <td className="px-6 py-4">
                     <span className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold ${getStatusBadge(property.status)}`}>
-                      {property.status}
+                      {t(`admin.opportunities.status.${property.status}`)}
                     </span>
                   </td>
                   <td className="px-6 py-4">
                     <div className="flex items-center gap-1 text-sm text-gray-600">
                       <Clock size={14} />
-                      {property.submittedDate}
+                      {t('admin.opportunities.table.submittedDate', { date: property.submittedDate })}
                     </div>
                   </td>
                   <td className="px-6 py-4 text-right">
@@ -255,7 +276,7 @@ export default function AdminOpportunities() {
                       className="inline-flex items-center gap-1 px-3 py-1.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm font-medium"
                     >
                       <Eye size={16} />
-                      View Details
+                      {i18n.language === 'ar' ? 'عرض التفاصيل' : 'View Details'}
                     </button>
                   </td>
                 </tr>
@@ -271,7 +292,9 @@ export default function AdminOpportunities() {
           <div className="bg-white rounded-2xl max-w-3xl w-full max-h-[90vh] overflow-y-auto">
             <div className="p-6 border-b border-gray-200">
               <div className="flex items-center justify-between">
-                <h2 className="text-2xl font-bold text-gray-900">Property Details</h2>
+                <h2 className="text-2xl font-bold text-gray-900">
+                    {t('admin.opportunities.modal.title')}
+                </h2>
                 <button
                   onClick={() => setSelectedProperty(null)}
                   className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
@@ -294,57 +317,73 @@ export default function AdminOpportunities() {
               {/* Property Info */}
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="text-sm font-semibold text-gray-600">Property Name</label>
+               <label className="text-sm font-semibold text-gray-600">
+  {t('admin.opportunities.fields.name')}
+</label>
                   <p className="text-lg font-bold text-gray-900 mt-1">{selectedProperty.name}</p>
                 </div>
                 <div>
-                  <label className="text-sm font-semibold text-gray-600">Location</label>
+                  <label className="text-sm font-semibold text-gray-600">
+  {t('admin.opportunities.fields.location')}
+</label>
                   <p className="text-lg text-gray-900 mt-1">{selectedProperty.location}</p>
                 </div>
                 <div>
-                  <label className="text-sm font-semibold text-gray-600">Owner</label>
+                  <label className="text-sm font-semibold text-gray-600">
+  {t('admin.opportunities.fields.owner')}
+</label>
                   <p className="text-lg text-gray-900 mt-1">{selectedProperty.owner}</p>
                 </div>
                 <div>
-                  <label className="text-sm font-semibold text-gray-600">Target Amount</label>
+                  <label className="text-sm font-semibold text-gray-600">
+  {t('admin.opportunities.fields.targetAmount')}
+</label>
                   <p className="text-lg font-bold text-emerald-600 mt-1">
-                    SAR {selectedProperty.targetAmount.toLocaleString()}
-                  </p>
+  {t('admin.opportunities.currency')} {selectedProperty.targetAmount.toLocaleString()}
+</p>
                 </div>
                 <div>
-                  <label className="text-sm font-semibold text-gray-600">Status</label>
+                  <label className="text-sm font-semibold text-gray-600">
+  {t('admin.opportunities.fields.status')}
+</label>
                   <span className={`inline-flex items-center px-3 py-1 rounded-full text-sm font-semibold mt-1 ${getStatusBadge(selectedProperty.status)}`}>
-                    {selectedProperty.status}
+                    {t(`admin.opportunities.status.${selectedProperty.status}`)}
                   </span>
                 </div>
                 <div>
-                  <label className="text-sm font-semibold text-gray-600">Submitted Date</label>
-                  <p className="text-lg text-gray-900 mt-1">{selectedProperty.submittedDate}</p>
+                  <label className="text-sm font-semibold text-gray-600">
+                    {t('admin.opportunities.fields.submittedDate')}
+                  </label>
+                  <p className="text-lg text-gray-900 mt-1">
+                    {selectedProperty.submittedDate}
+                  </p>
                 </div>
               </div>
 
               {/* Description */}
               <div>
-                <label className="text-sm font-semibold text-gray-600">Description</label>
+                <label className="text-sm font-semibold text-gray-600">
+  {t('admin.opportunities.fields.description')}
+</label>
                 <p className="text-gray-700 mt-2 leading-relaxed">{selectedProperty.description}</p>
               </div>
 
               {/* Actions */}
-              {selectedProperty.status === 'Pending' && (
+              {selectedProperty.status === 'pending' && (
                 <div className="flex gap-3 pt-4">
                   <button
                     onClick={() => handleApprove(selectedProperty.id)}
                     className="flex-1 flex items-center justify-center gap-2 px-6 py-3 bg-green-600 text-white rounded-xl hover:bg-green-700 transition-colors font-semibold"
                   >
                     <CheckCircle size={20} />
-                    Approve Property
+                    {t('admin.opportunities.actions.approve')}
                   </button>
                   <button
                     onClick={() => handleReject(selectedProperty.id)}
                     className="flex-1 flex items-center justify-center gap-2 px-6 py-3 bg-red-600 text-white rounded-xl hover:bg-red-700 transition-colors font-semibold"
                   >
                     <X size={20} />
-                    Reject Property
+                    {t('admin.opportunities.actions.reject')}
                   </button>
                 </div>
               )}

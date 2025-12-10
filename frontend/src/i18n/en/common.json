@@ -1,0 +1,45 @@
+{
+  "appName": "Estathub",
+  "loading": "Loading...",
+  "save": "Save",
+  "cancel": "Cancel",
+  "close": "Close",
+  "confirm": "Confirm",
+  "back": "Back",
+  "next": "Next",
+  "viewAll": "View All",
+  "noData": "No data available",
+  "home": "Home",
+  "status": {
+    "pending": "Pending",
+    "approved": "Approved",
+    "rejected": "Rejected",
+    "underReview": "Under Review"
+    
+  },
+   "footer": {
+    "tagline": "Democratizing real estate investment through blockchain-powered tokenization.",
+    "quickLinks": "Quick Links",
+    "resources": "Resources",
+    "contactUs": "Contact Us",
+    "links": {
+      "home": "Home",
+      "opportunities": "Opportunities",
+      "wallet": "My Wallet",
+      "blockchainExplorer": "Blockchain Explorer",
+      "about": "About Us",
+      "howItWorks": "How It Works",
+      "faq": "FAQ",
+      "terms": "Terms of Service",
+      "privacy": "Privacy Policy"
+    },
+    "location": "Riyadh, Saudi Arabia",
+    "copyright": "All rights reserved. Built with Hyperledger Fabric."
+  },
+  "date": {
+    "joinedOn": "Joined on {{date}}"
+  },
+  "currency": {
+    "sar": "SAR"
+  }
+}

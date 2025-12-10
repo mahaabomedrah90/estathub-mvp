@@ -1,0 +1,1423 @@
+{
+  "financialTokenization": "البيانات المالية والتوكنة",
+  "valuationTokenStructure": "تقييم العقار وهيكل التوكنات",
+  "tokenizationStructure": "هيكل التوكنة",
+  "defineTokenizedProperty": "قم بتحديد كيفية ترميز العقار: إجمالي عدد التوكنات، سعر التوكن، ونسبة التوكنات التي ترغب بالاحتفاظ بها.",
+  "marketValue": "القيمة السوقية (ريال)",
+  "valuationReport": "تقرير التقييم",
+  "tokenDistributionSummary": "ملخص توزيع التوكنات",
+  "expectedReturns": "العوائد المتوقعة",
+  "roiConsistencyCheck": "فحص توافق العائد",
+  "tokenPrice": "سعر الرمز (ريال)",
+"totalTokens": "إجمالي الرموز",
+"ownerRetainedPercentage": "نسبة احتفاظ المالك (%)",
+"ownerRetainedPercentageDescription": "نسبة التوكنات التي ترغب بالاحتفاظ بها لنفسك (0–100٪)",
+
+"expectedAnnualROI": "العائد السنوي المتوقع (%)",
+"expectedMonthlyYield": "العائد الشهري المتوقع (%)",
+"monthlyYield": "العائد الشهري",
+"roiDoesntMatch": "لا يتطابق مع العائد السنوي الذي أدخلته",
+
+"payoutSchedule": "جدول التوزيع",
+
+"availableForSale": "متاح للبيع",
+"availableTokensLabel": "{{count}} رمز",
+"availableTokensValue": "القيمة: {{value}} ريال",
+
+"ownerRetained": "احتفاظ المالك",
+"retainedTokensLabel": "{{count}} رمز",
+"ownerRetainedValue": "قيمة احتفاظ المالك: {{value}} ريال",
+"ownerInformationTitle": "معلومات المالك",
+"ownerInformationDescription": "بيانات المالك وبيانات التواصل والحساب البنكي.",
+
+"importantInformationTitle": "مهم",
+"importantInformationDescription": "يجب أن تتطابق بيانات المالك مع السجلات الرسمية. قد تُستخدم هذه البيانات لأغراض التحقق وصرف العوائد.",
+
+"ownerType": "نوع المالك",
+"companyInformation": "بيانات الشركة",
+"personalInformation": "بيانات الفرد",
+"companyName": "اسم الشركة",
+"fullName": "الاسم الكامل",
+
+"commercialRegistration": "السجل التجاري",
+"nationalId": "رقم الهوية الوطنية",
+"nationalIdMustBe10DigitsStartingWith1Or2": "يجب أن يكون رقم الهوية 10 أرقام ويبدأ بالرقم 1 أو 2.",
+
+"commercialRegistrationNumber": "رقم السجل التجاري",
+"authorizedPersonName": "اسم الشخص المخوّل",
+"authorizedPersonId": "رقم هوية الشخص المخوّل",
+
+"contactInformation": "بيانات التواصل",
+"phoneNumber": "رقم الجوال",
+"phoneNumberHint": "أدخل رقم جوال سعودي صحيح (05XXXXXXXX)",
+"emailAddress": "البريد الإلكتروني",
+
+"bankingInformation": "البيانات البنكية",
+"payoutAccount": "حساب استلام العوائد",
+"payoutAccountDescription": "سيتم استخدام هذا الآيبان لتحويل عوائد الإيجار وعوائد التوكنة.",
+
+"iban": "الآيبان",
+"ibanMustStartWithSAFollowedBy22Digits": "يجب أن يبدأ الآيبان بـ SA متبوعة بـ 22 رقمًا.",
+"complianceAgreements": "الالتزام والاتفاقيات",
+"legalDeclarationsAgreements": "الإقرارات القانونية واتفاقيات المنصة",
+
+"requiredDeclarations": "الإقرارات المطلوبة",
+"readAcceptDeclarations": "يرجى قراءة الإقرارات التالية بعناية ثم تأكيد قبولك لها.",
+
+"declaration": "إقرار",
+"allDeclarationsAccepted": "تم قبول جميع الإقرارات",
+"actionRequired": "إجراء مطلوب",
+"acceptedAllRequiredDeclarations": "لقد قمت بقبول جميع الإقرارات المطلوبة لتقديم هذا العقار.",
+"acceptDeclarations": "يرجى مراجعة جميع الإقرارات أعلاه وقبولها للمتابعة.",
+
+"legalNotice": "ملاحظة قانونية",
+"submitPropertyTokenization": "بتقديم هذا العقار للتوكنة على منصة Estathub، فإنك تقر وتوافق على ما يلي:",
+
+"complySaudiRealEstate": "الالتزام بجميع أنظمة ولوائح العقار والأنظمة المالية ومكافحة غسل الأموال المعمول بها في المملكة العربية السعودية.",
+"allowPlatformAdmin": "تخويل إدارة المنصة بمراجعة مستندات وبيانات العقار للتحقق والامتثال.",
+"maintainPropertyRecords": "الالتزام بتحديث بيانات العقار وإبلاغ المنصة بأي تغييرات جوهرية.",
+"distributeRentalIncome": "الموافقة على أن يتم توزيع عوائد الإيجار وعوائد التوكنة وفق هيكل التوكنات وسياسات المنصة.",
+"payPlatformFees": "الموافقة على سداد أي رسوم أو تكاليف خاصة بالمنصة مرتبطة بإدراج هذا العقار وتوكنته.",
+
+"platformOperatesSaudiLaws": "تعمل منصة Estathub وفق أنظمة ولوائح المملكة العربية السعودية، وتخضع أي نزاعات لاختصاص الجهات القضائية المختصة.",
+
+"readyToSubmit": "جاهز لتقديم عقارك",
+"propertySubmissionComplete": "تم استكمال جميع الخطوات وقبول جميع الإقرارات. يمكنك الآن تقديم عقارك للمراجعة.",
+"declarationAccepted": "تم القبول",
+
+  "declarationPropertyAccuracyTitle": "دقة معلومات العقار",
+  "declarationPropertyAccuracyTitleAr": "دقة معلومات العقار",
+  "declarationPropertyAccuracyDescription": "I confirm that all property information and documents I have provided are accurate, complete, and reflect the actual status of the property.",
+  "declarationPropertyAccuracyDescriptionAr": "أقر بأن جميع بيانات ومستندات العقار التي قمت بتقديمها صحيحة وكاملة وتمثل حالة العقار الفعلية.",
+
+  "declarationLegalResponsibilityTitle": "المسؤولية القانونية",
+  "declarationLegalResponsibilityTitleAr": "المسؤولية القانونية",
+  "declarationLegalResponsibilityDescription": "I understand that I am legally responsible for the accuracy of the information provided and for complying with all applicable laws and regulations.",
+  "declarationLegalResponsibilityDescriptionAr": "أفهم أنني أتحمل المسؤولية القانونية الكاملة عن صحة المعلومات المقدمة والالتزام بجميع الأنظمة واللوائح ذات الصلة.",
+
+  "declarationTokenizationApprovalTitle": "الموافقة على التوكنة",
+  "declarationTokenizationApprovalTitleAr": "الموافقة على التوكنة",
+  "declarationTokenizationApprovalDescription": "I approve listing this property on Estathub and tokenizing it according to the platform’s structure, terms, and conditions.",
+  "declarationTokenizationApprovalDescriptionAr": "أوافق على إدراج هذا العقار على منصة Estathub وتوكنته وفق هيكل التوكنات وشروط وأحكام المنصة.",
+
+  "declarationDocumentSharingApprovalTitle": "الموافقة على مشاركة المستندات",
+  "declarationDocumentSharingApprovalTitleAr": "الموافقة على مشاركة المستندات",
+  "declarationDocumentSharingApprovalDescription": "I authorize Estathub to share necessary property documents and information with regulators, valuers, and other relevant parties for verification and compliance.",
+  "declarationDocumentSharingApprovalDescriptionAr": "أفوض منصة Estathub بمشاركة المستندات والمعلومات اللازمة عن العقار مع الجهات التنظيمية والمقيمين والأطراف ذات العلاقة لأغراض التحقق والامتثال.",
+
+  "auth": {
+    "login": {
+     "welcomeBack": "مرحباً بعودتك",
+    "subtitle": "سجّل الدخول للوصول إلى محفظتك الاستثمارية",
+    "emailLabel": "البريد الإلكتروني",
+    "emailPlaceholder": "you@example.com",
+    "passwordLabel": "كلمة المرور",
+    "passwordPlaceholder": "********",
+    "signIn": "تسجيل الدخول",
+    "signingIn": "جاري تسجيل الدخول...",
+    "demoCredentials": "بيانات الدخول التجريبية:",
+    "noAccount": "ليس لديك حساب؟",
+    "signUp": "إنشاء حساب",
+    "signupLink": "إنشاء حساب",
+    "adminUser": "مستخدم المسؤول",
+    "investorUser": "مستخدم مستثمر",
+    "ownerUser": "مستخدم مالك",
+    "errorInvalid": "لم يتم تسجيل الدخول. تأكد من البيانات ثم حاول مرة أخرى."
+    },
+  "investors": {
+    "title": "إدارة المستثمرين",
+    "headerTitle": "إدارة المستثمرين",
+    "headerSubtitle": "إدارة وتحليل أنشطة المحافظ الاستثمارية للمستثمرين",
+    "subtitle": "إدارة وتحليل أنشطة المحافظ الاستثمارية للمستثمرين",
+    "loginRequired": "يرجى تسجيل الدخول كمسؤول لعرض بيانات المستثمرين",
+    "loading": "جاري تحميل بيانات المستثمرين...",
+    "filters": {
+      "all": "جميع المستثمرين",
+      "active": "نشط",
+      "inactive": "غير نشط",
+      "verified": "موثق",
+      "unverified": "غير موثق"
+    },
+    "columns": {
+      "name": "اسم المستثمر",
+      "email": "البريد الإلكتروني",
+      "phone": "رقم الجوال",
+      "joinDate": "تاريخ الانضمام",
+      "status": "الحالة",
+      "totalInvestment": "إجمالي الاستثمار",
+      "totalReturns": "إجمالي العوائد",
+      "roi": "العائد على الاستثمار",
+      "performance": "الأداء",
+      "properties": "العقارات",
+      "propertiesCount": "عقار",
+      "totalTokens": "توكن",
+      "actions": "الإجراءات"
+    },
+    "analytics": {
+      "totalInvestors": "إجمالي المستثمرين",
+      "totalInvestment": "إجمالي الاستثمار",
+      "totalReturns": "إجمالي العوائد",
+      "avgInvestment": "متوسط الاستثمار",
+      "profitableInvestors": "المستثمرون المربحون",
+      "avgROI": "متوسط العائد"
+    },
+    "sections": {
+      "investorPortfolio": "محفظة المستثمر"
+    },
+    "table": {
+      "details": "التفاصيل"
+    },
+    "details": {
+      "totalInvestment": "إجمالي الاستثمار",
+      "totalReturns": "إجمالي العوائد",
+      "roi": "العائد على الاستثمار",
+      "properties": "عدد العقارات",
+      "investment": "الاستثمار",
+      "returns": "العوائد",
+      "tokens": "عدد التوكنات",
+      "performance": "الأداء",
+      "portfolioDetails": "تفاصيل المحفظة",
+      "blockchainInfo": "بيانات البلوكشين",
+      "walletAddress": "عنوان المحفظة",
+      "transactionCount": "عدد المعاملات",
+      "smartContractInteractions": "تفاعلات العقود الذكية"
+    }
+  },
+   "signup": {
+  "title": "إنشاء حساب في Estathub",
+  "subtitle": "انضم إلى Estathub وابدأ الاستثمار في العقار.",
+  "nameLabel": "الاسم الكامل *",
+  "namePlaceholder": "محمد أحمد",
+  "emailLabel": "البريد الإلكتروني *",
+  "emailPlaceholder": "you@example.com",
+  "passwordLabel": "كلمة المرور *",
+  "passwordPlaceholder": "8 أحرف على الأقل",
+  "confirmPasswordLabel": "تأكيد كلمة المرور *",
+  "confirmPasswordPlaceholder": "أعد إدخال كلمة المرور",
+  "tenantLabel": "اسم الشركة / الجهة",
+  "tenantPlaceholder": "اسم شركتك (اختياري)",
+  "accountTypeLabel": "نوع الحساب",
+  "roleInvestor": "مستثمر",
+  "roleOwner": "مالك",
+  "roleAdmin": "مسؤول",
+  "submit": "إنشاء الحساب",
+  "submitting": "جاري إنشاء الحساب...",
+  "footerQuestion": "لديك حساب مسبقاً؟",
+  "footerLogin": "تسجيل الدخول",
+  "errorRequired": "يرجى تعبئة جميع الحقول المطلوبة",
+  "errorPasswordLength": "يجب أن تكون كلمة المرور 8 أحرف على الأقل",
+  "errorPasswordMismatch": "كلمتا المرور غير متطابقتين",
+  "errorEmailInvalid": "يرجى إدخال بريد إلكتروني صحيح",
+  "errorGeneric": "لم يتم إنشاء الحساب. حاول مرة أخرى."
+}
+  },
+  "home": {
+    "financialTokenization": "البيانات المالية والتوكنة",
+    "valuationTokenStructure": "تقييم العقار وهيكل التوكنات",
+    "tokenizationStructure": "هيكل التوكنة",
+    "defineTokenizedProperty": "قم بتحديد كيفية ترميز العقار: إجمالي عدد التوكنات، سعر التوكن، ونسبة التوكنات التي ترغب بالاحتفاظ بها.",
+    "marketValue": "القيمة السوقية (ريال)",
+    "valuationReport": "تقرير التقييم",
+    "tokenDistributionSummary": "ملخص توزيع التوكنات",
+    "expectedReturns": "العوائد المتوقعة",
+    "roiConsistencyCheck": "فحص توافق العائد",
+    "statsBlockchainSecured": "محفوظة على البلوكشين",
+"statsMarketAccess": "سوق متاح 24/7",
+"statsLocalCurrency": "عملة محلية",
+    "badge": "استثمار عقاري مدعوم بالبلوكشين",
+    "heroTitle1": "استثمر في العقار،",
+    "heroTitle2": "توكن واحد في كل مرة",
+    "heroSubtitle": "Estathub يسهّل الاستثمار في العقار عن طريق توكنات على البلوكشين.",
+    "heroCTA": " ابدأ بمحفظة عقارية بمبلغ بسيط.",
+    "exploreOpportunities": "استكشاف الفرص العقارية",
+    "viewBlockchain": "عرض البلوكشين",
+    "feature1Title": "ملكية جزئية",
+    "feature1Description": "امتلك جزءاً من عقار مميز بدون مبلغ كبير. ابدأ بتوكن واحد فقط.",
+    "feature2Title": "عوائد شهرية",
+    "feature2Description": "استلم عوائد الإيجار شهرياً مباشرة في محفظتك.",
+    "feature3Title": "أمان البلوكشين",
+    "feature3Description": "جميع العمليات محفوظة في Hyperledger Fabric بشكل شفاف وغير قابل للتعديل.",
+    "feature4Title": "مدفوعات سهلة",
+    "feature4Description": "استثمر بالريال السعودي عبر طرق دفع محلية بسيطة وآمنة.",
+    "ctaTitle": "جاهز لتبدأ؟",
+    "ctaSubtitle": "انضم إلى Estathub اليوم وابدأ في بناء محفظتك العقارية عبر التوكنات.",
+    "browseProperties": "تصفح العقارات"
+  },
+  "admin": {
+   
+    "overview": {
+    "loginRequired": "يرجى تسجيل الدخول كمسؤول لعرض هذه اللوحة.",
+    "loginCta": "تسجيل الدخول الآن",
+    "loading": "جاري تحميل لوحة تحكم المسؤول...",
+    "loadError": "فشل في تحميل بيانات لوحة التحكم",
+
+    "headerTitle": "نظرة عامة على المنصة",
+    "headerSubtitle": "تابع الأداء، راجع طلبات العقارات، وأدِر المستخدمين",
+
+    "notificationApproved": "تم اعتماد العقار بنجاح!",
+    "notificationRejected": "تم رفض العقار بنجاح!",
+    "currency": "ريال سعودي",
+    "approved": "معتمد",
+    "pendingProperties": "قيد المراجعة",
+    "rejected": "مرفوض",
+    "stat": {
+      "totalProperties": "إجمالي العقارات",
+      "approvedProperties": "العقارات المعتمدة",
+      "pendingProperties": "قيد المراجعة",
+      "pendingReview": "طلبات قيد المراجعة",
+      "activeInvestors": "المستثمرون النشطون",
+      "investmentVolume": "حجم الاستثمارات",
+      "monthlyGrowth": "النمو الشهري",
+      "changeLabel": "{{value}}"
+    },
+
+    "pending": {
+      "title": "العقارات قيد الموافقة",
+      "subtitle": "{{count}} عقارات بانتظار المراجعة",
+      "viewAll": "عرض الكل",
+      "emptyTitle": "لا توجد عقارات قيد المراجعة",
+
+      "table": {
+        "propertyTitle": "عنوان العقار",
+        "owner": "المالك",
+        "submitted": "تاريخ التقديم",
+        "value": "القيمة",
+        "status": "الحالة",
+        "actions": "الإجراءات"
+      },
+
+      "defaultLocation": "الرياض، السعودية",
+      "defaultOwner": "مالك العقار",
+      "statusPending": "قيد المراجعة",
+      "unknownDate": "تاريخ غير متوفر",
+      "viewDetailsTitle": "عرض التفاصيل",
+      "approve": "اعتماد",
+      "reject": "رفض"
+    },
+
+    "activity": {
+      "title": "آخر نشاط على المنصة",
+      "approvedPrefix": "تم الاعتماد: ",
+      "submittedPrefix": "تم التقديم: ",
+      "rejectedPrefix": "تم الرفض: "
+    }
+  },
+    
+    "users": {
+    "headerTitle": "إدارة المستخدمين",
+    "headerSubtitle": "إدارة مستخدمي المنصة وأدوارهم",
+    "filters": {
+      "all": "الكل",
+      "owner": "المالكون",
+      "investor": "المستثمرون",
+      "admin": "المسؤولون"
+    },
+    "loading": "جاري تحميل المستخدمين...",
+    "errorTryAgain": "إعادة المحاولة",
+    "stats": {
+      "totalUsers": "إجمالي المستخدمين",
+      "owners": "المالكون",
+      "investors": "المستثمرون",
+      "active": "النشطون"
+    },
+    "messages": {
+      "deleteConfirm": "هل أنت متأكد أنك تريد حذف هذا المستخدم؟",
+      "success": "تم تحديث المستخدم بنجاح!",
+      "error": "فشل في تحديث بيانات المستخدم",
+      "loadFailed": "فشل في تحميل المستخدمين من قاعدة البيانات",
+      "statusUpdateError": "فشل في تحديث حالة المستخدم",
+      "roleUpdateError": "فشل في تحديث دور المستخدم. يرجى المحاولة مرة أخرى.",
+      "roleUpdateSuccess": "تم تحديث دور المستخدم إلى {{role}}! يجب على المستخدم ({{name}}) تسجيل الخروج ثم الدخول مرة أخرى لتطبيق التغييرات.",
+      "roleChangeConfirm": "هل أنت متأكد من تغيير دور {{name}} من {{from}} إلى {{to}}؟",
+      "statusUpdateFailed": "فشل في تحديث حالة المستخدم",
+      "roleUpdateFailed": "فشل في تحديث دور المستخدم. يرجى المحاولة مرة أخرى."
+    },
+    "status": {
+      "active": "نشط",
+      "suspended": "معلّق"
+    },
+    "role": {
+      "owner": "مالك",
+      "investor": "مستثمر",
+      "admin": "مسؤول"
+    },
+    "texts": {
+      "selectNewRole": "اختر دوراً جديداً لـ {{name}}",
+      "currentRole": "(الدور الحالي)",
+      "important": "مهم:",
+      "roleChangeLoginNote": "يجب على المستخدم تسجيل الخروج ثم تسجيل الدخول مرة أخرى ليتم تطبيق تغيير الدور."
+    },
+    "actions": {
+      "edit": "تعديل الدور",
+      "changeRole": "تغيير الدور",
+      "confirmRole": "تأكيد الدور",
+      "cancel": "إلغاء",
+      "confirmChange": "تأكيد التغيير",
+      "confirm_change": "تأكيد التغيير",
+      "suspend": "إيقاف مؤقت",
+      "activate": "تفعيل"
+    },
+    "table": {
+      "user": "المستخدم",
+      "contact": "بيانات التواصل",
+      "role": "الدور",
+      "status": "الحالة",
+      "joined": "تاريخ الانضمام",
+      "actions": "الإجراءات"
+    }
+  },
+  "issueDeeds": {
+  "headerTitle": "إصدار الصكوك الرقمية",
+  "headerSubtitle": "إصدار صكوك الملكية الرقمية للمستثمرين",
+  "stats": {
+    "totalProperties": "إجمالي العقارات",
+    "pendingIssuance": "قيد الإصدار",
+    "alreadyIssued": "تم إصدارها"
+  },
+  "selectProperty": {
+    "title": "اختر العقار",
+    "onlyApprovedTooltip": "يمكن إصدار الصكوك للعقارات المعتمدة فقط",
+    "tokensSold": "{{sold}} / {{total}} توكنات مباعة",
+    "tokensIssued": "{{issued}} / {{sold}} توكنات مصدرة"
+  },
+  "investors": {
+    "title": "المستثمرون ({{count}})",
+    "issueAll": "إصدار الصكوك للجميع",
+    "empty": "لا يوجد مستثمرون لهذا العقار",
+    "badgeFullyIssued": "تم إصدار الصكوك كاملة",
+    "badgeNewTokens": "⚠ {{count}} توكن جديد",
+    "buttonFullyIssued": "تم الإصدار بالكامل",
+    "buttonIssueTokens": "إصدار {{count}} توكن",
+    "buttonIssueDeed": "إصدار صك",
+    "holdings": "{{tokens}} توكن ({{percent}}٪)",
+    "issuedSummary": "{{issued}} توكنات مصدرة في {{deedCount}} صك",
+    "issuedSummaryWithPending": "{{issued}} توكنات مصدرة في {{deedCount}} صك، {{pending}} قيد الإصدار",
+    "viewInvestorDetails": "عرض تفاصيل المستثمر",
+    "columns": {
+      "properties": "العقارات",
+      "propertiesCount": "عقار",
+      "totalTokens": "توكن",
+      "actions": "الإجراءات"
+    }
+  },
+  "confirmTitle": "تأكيد إصدار الصك",
+  "confirmIssueForInvestor": "هل أنت متأكد أنك تريد إصدار صك ملكية رقمي لهذا المستثمر {{name}}؟",
+  "confirmCancel": "إلغاء",
+  "confirmOk": "تأكيد الإصدار",
+  "confirmProcessing": "جاري الإصدار...",
+  "results": {
+    "title": "نتائج الإصدار",
+    "deedAlreadyExists": "تم إصدار صك مسبقاً: {{deedNumber}}",
+    "skipped": "(تم التجاهل)",
+    "deedIssued": "تم إصدار الصك: {{deedNumber}}",
+    "errorPrefix": "خطأ: {{message}}"
+  },
+  "propertyModal": {
+    "title": "تفاصيل العقار",
+    "basicInfo": "المعلومات الأساسية",
+    "technical": "المواصفات الفنية",
+    "financial": "البيانات المالية والتوكنة",
+    "ownerInfo": "معلومات المالك",
+    "legalDocs": "المستندات القانونية",
+    "images": "صور العقار",
+    "description": "الوصف",
+    "labels": {
+      "propertyName": "اسم العقار",
+      "location": "الموقع",
+      "city": "المدينة",
+      "district": "الحي",
+      "status": "الحالة",
+      "propertyType": "نوع العقار",
+      "landArea": "مساحة الأرض",
+      "builtArea": "مساحة البناء",
+      "buildingAge": "عمر المبنى",
+      "floors": "عدد الطوابق",
+      "units": "عدد الوحدات",
+      "condition": "حالة العقار",
+      "marketValue": "القيمة السوقية",
+      "expectedRoi": "العائد المتوقع",
+      "totalTokens": "إجمالي التوكنات",
+      "tokenPrice": "سعر التوكن",
+      "tokensSold": "التوكنات المباعة",
+      "ownerRetained": "نسبة احتفاظ المالك",
+      "ownerName": "اسم المالك",
+      "ownerType": "نوع المالك",
+      "nationalIdCr": "الهوية الوطنية / السجل التجاري",
+      "phone": "الجوال",
+      "email": "البريد الإلكتروني",
+      "iban": "الآيبان"
+    },
+    "docs": {
+      "deed": "صك الملكية",
+      "sitePlan": "مخطط الموقع",
+      "buildingPermit": "رخصة البناء",
+      "valuationReport": "تقرير التقييم",
+      "ownerId": "هوية المالك"
+    },
+    "close": "إغلاق"
+   },
+   "confirmIssueForInvestor": "هل أنت متأكد أنك تريد إصدار الصكوك لهذا المستثمر ({{name}})؟",
+  "investorModal": {
+    "title": "تفاصيل المستثمر",
+    "info": "بيانات المستثمر",
+    "labels": {
+      "name": "الاسم",
+      "email": "البريد الإلكتروني",
+      "userId": "معرّف المستخدم"
+    },
+    "investmentDate": "تاريخ الاستثمار",
+    "investmentIn": "الاستثمار في",
+    "ownedTokens": "التوكنات المملوكة",
+    "ownershipPercentage": "نسبة الملكية",
+    "investmentValue": "قيمة الاستثمار",
+    "deedIssuanceStatus": "حالة إصدار الصكوك",
+    "totalTokensIssued": "إجمالي التوكنات المصدرة: {{count}}",
+    "tokensIssued": "في {{count}} صك",
+    "deedsForThisInvestor": "لهذا المستثمر",
+    "pendingTokens": "{{count}} قيد الإصدار",
+    "ownedTokensCount": "{{count}} توكن",
+    "noDeedsIssuedYet": "لم يتم إصدار أي صك بعد",
+    "pendingDeedIssuance": "{{count}} توكن قيد إصدار الصك لهذا المستثمر",
+    "transactionSummary": "ملخص العملية",
+    "tokenPrice": "سعر التوكن",
+    "tokensPurchased": "التوكنات المشتراة",
+    "totalInvestment": "إجمالي الاستثمار",
+    "expectedAnnualROI": "العائد السنوي المتوقع",
+    "estimatedAnnualReturn": "العائد السنوي المقدر",
+    "holdings": "ممتلكاته في هذا العقار",
+    "deeds": "الصكوك الصادرة",
+    "deedNumber": "رقم الصك",
+    "ownedTokensLabel": "التوكنات المملوكة",
+    "status": "الحالة",
+    "downloadPdf": "تحميل PDF",
+    "close": "إغلاق",
+    "issueDeedForPendingTokens": "إصدار صك للتوكنات قيد الإصدار"
+  }
+    },
+    "investors": {
+      "title": "إدارة المستثمرين",
+      "headerTitle": "إدارة المستثمرين",
+      "headerSubtitle": "إدارة وتحليل أنشطة المحافظ الاستثمارية للمستثمرين",
+      "subtitle": "إدارة وتحليل أنشطة المحافظ الاستثمارية للمستثمرين",
+      "loginRequired": "يرجى تسجيل الدخول كمسؤول لعرض بيانات المستثمرين",
+      "loading": "جاري تحميل بيانات المستثمرين...",
+      "filters": {
+        "all": "جميع المستثمرين",
+        "active": "نشط",
+        "inactive": "غير نشط",
+        "verified": "موثق",
+        "unverified": "غير موثق"
+      },
+      "columns": {
+        "name": "اسم المستثمر",
+        "email": "البريد الإلكتروني",
+        "phone": "رقم الجوال",
+        "joinDate": "تاريخ الانضمام",
+        "status": "الحالة",
+        "totalInvestment": "إجمالي الاستثمار",
+        "totalReturns": "إجمالي العوائد",
+        "roi": "العائد على الاستثمار",
+        "performance": "الأداء",
+        "properties": "العقارات",
+        "propertiesCount": "عقار",
+        "totalTokens": "توكن",
+        "actions": "الإجراءات"
+      },
+      "analytics": {
+        "totalInvestors": "إجمالي المستثمرين",
+        "totalInvestment": "إجمالي الاستثمار",
+        "totalReturns": "إجمالي العوائد",
+        "avgInvestment": "متوسط الاستثمار",
+        "profitableInvestors": "المستثمرون المربحون",
+        "avgROI": "متوسط العائد"
+      },
+      "sections": {
+        "investorPortfolio": "محفظة المستثمر"
+      },
+      "table": {
+        "details": "التفاصيل"
+      },
+      "details": {
+        "totalInvestment": "إجمالي الاستثمار",
+        "totalReturns": "إجمالي العوائد",
+        "roi": "العائد على الاستثمار",
+        "properties": "عدد العقارات",
+        "investment": "الاستثمار",
+        "returns": "العوائد",
+        "tokens": "عدد التوكنات",
+        "performance": "الأداء",
+        "portfolioDetails": "تفاصيل المحفظة",
+        "blockchainInfo": "بيانات البلوكشين",
+        "walletAddress": "عنوان المحفظة",
+        "transactionCount": "عدد المعاملات",
+        "smartContractInteractions": "تفاعلات العقود الذكية"
+      }
+    },
+  "reports": {
+    "loginRequired": "يرجى تسجيل الدخول كمسؤول لعرض التقارير.",
+    "loading": "جاري تحميل بيانات التقارير...",
+    "headerTitle": "لوحة تحليلات المنصة",
+    "headerSubtitle": "رؤى العملاء ومقاييس نمو المنصة لاتخاذ القرارات الاستراتيجية",
+    "timeRange": {
+      "7d": "آخر 7 أيام",
+      "30d": "آخر 30 يومًا",
+      "90d": "آخر 90 يومًا",
+      "1y": "آخر سنة"
+    },
+    "sections": {
+      "platformOverview": "نظرة عامة على المنصة",
+      "growthMetrics": "مؤشرات النمو",
+      "customerSegmentation": "تحليل شرائح العملاء",
+      "investmentBehavior": "تحليل سلوك الاستثمار",
+      "topInvestorsBySegment": "أفضل المستثمرين حسب الشريحة",
+      "platformPerformance": "أداء المنصة",
+      "segmentationInsights": "رؤى وتوصيات حسب شرائح العملاء"
+    },
+    "topInvestors": {
+      "properties": "العقارات",
+      "totalInvested": "إجمالي الاستثمار"
+    },
+    "overview": {
+      "totalProperties": "إجمالي العقارات",
+      "totalInvestors": "إجمالي المستثمرين",
+      "totalVolume": "إجمالي الحجم",
+      "activeProperties": "العقارات النشطة",
+      "pendingApprovals": "الطلبات قيد الموافقة"
+    },
+
+    "growth": {
+      "newInvestors": "المستثمرون الجدد (30 يومًا)",
+      "monthlyRevenue": "الإيراد الشهري",
+      "newListings": "العقارات الجديدة"
+    },
+
+    "segments": {
+      "micro": "المستثمرون الصغار",
+      "growth": "الباحثون عن النمو",
+      "whale": "المستثمرون الكبار",
+      "customers": "العملاء",
+      "percentOfTotal": "٪ من الإجمالي",
+      "avgInvestment": "متوسط الاستثمار",
+      "totalValue": "إجمالي القيمة",
+      "characteristics": "السمات:",
+      "microCharacteristics": [
+        "مستثمرون لأول مرة",
+        "نهج محافظ",
+        "يفضلون العقارات منخفضة المخاطر",
+        "يستثمرون لغرض التنويع"
+      ],
+      "growthCharacteristics": [
+        "مستثمرون ذو خبرة",
+        "يبحثون عن عوائد معتدلة",
+        "محافظهم متنوعة",
+        "يتابعون الاستثمارات بشكل نشط"
+      ],
+      "whaleCharacteristics": [
+        "أصحاب ثروات عالية",
+        "يبحثون عن فرص عالية القيمة",
+        "أفق استثماري طويل الأجل",
+        "يفضلون العقارات المميزة"
+      ]
+    },
+
+    "behavior": {
+      "oneTime": "مستثمرون لمرة واحدة",
+      "repeat": "مستثمرون متكررون",
+      "highFrequency": "متداولون عاليّو التكرار",
+      "longTerm": "مستثمرون طويلو الأجل"
+    },
+
+    "topInvestorsBySegment": {
+      "propertiesLabel": "{{count}} عقارات",
+      "segmentUnknown": "غير معروف",
+      "totalInvested": "إجمالي المستثمَر"
+    },
+
+    "performance": {
+      "fundedProperties": "العقارات الممولة",
+      "successRate": "نسبة النجاح",
+      "avgApprovalTime": "متوسط وقت الموافقة"
+    },
+
+    "insights": {
+      "microTitle": "استراتيجية المستثمرين الصغار",
+      "microBody": "{{count}} من المستثمرين الصغار ({{percent}}٪). أنشئ محتوى توعويًا وحزم عقارية منخفضة المخاطر لجذب هذه الشريحة.",
+      "growthTitle": "فرصة الباحثين عن النمو",
+      "growthBody": "{{count}} من الباحثين عن النمو ({{percent}}٪). قدّم أدوات تحليل المحافظ وخيارات استثمار متنوعة.",
+      "whaleTitle": "الاحتفاظ بالمستثمرين الكبار",
+      "whaleBody": "{{count}} من المستثمرين الكبار ({{percent}}٪). قدّم صفقات مميزة وإدارة علاقات مخصصة."
+    }
+  },
+  "opportunities": {
+  "headerTitle": "طلبات العقارات",
+  "headerSubtitle": "مراجعة وإدارة طلبات توكنة العقارات",
+  "loading": "جاري تحميل طلبات العقارات...",
+  "currency": "ريال",
+  "filters": {
+    "all": "الكل",
+    "pending": "قيد المراجعة",
+    "approved": "مقبول",
+    "rejected": "مرفوض"
+  },
+  "table": {
+    "property": "العقار",
+    "owner": "المالك",
+    "targetAmount": "المبلغ المستهدف",
+    "status": "الحالة",
+    "submitted": "تاريخ التقديم",
+    "submittedDate": "تاريخ التقديم: {{date}}",
+    "actions": "الإجراءات"
+  },
+  "fields": {
+    "name": "اسم العقار",
+    "location": "الموقع",
+    "owner": "المالك",
+    "targetAmount": "المبلغ المستهدف",
+    "status": "الحالة",
+    "submittedDate": "تاريخ التقديم",
+    "description": "الوصف"
+  },
+  "status": {
+    "pending": "قيد المراجعة",
+    "approved": "مقبول",
+    "rejected": "مرفوض"
+  },
+  "actions": {
+    "viewDetails": "عرض التفاصيل",
+    "approve": "الموافقة على العقار",
+    "reject": "رفض العقار"
+  },
+  "modal": {
+    "title": "تفاصيل العقار"
+  },
+  "messages": {
+    "approveSuccess": "تمت الموافقة على العقار بنجاح!",
+    "approveFailed": "فشل في الموافقة على العقار",
+    "rejectSuccess": "تم رفض العقار",
+    "rejectFailed": "فشل في رفض العقار",
+    "rejectReasonPrompt": "سبب الرفض (اختياري):",
+    "rejectNoReason": "لم يتم تقديم سبب"
+  },
+  "defaults": {
+    "location": "الرياض، المملكة العربية السعودية",
+    "owner": "مالك غير معروف",
+    "description": "لم يتم توفير وصف"
+  }
+},   
+  "management": {
+    "headerTitle": "إدارة العقارات",
+    "headerSubtitle": "إضافة وإدارة فرص الاستثمار العقارية",
+    "loginRequired": "يرجى تسجيل الدخول للوصول إلى لوحة تحكم المسؤول.",
+    "loginCta": "تسجيل الدخول الآن",
+    "loading": "جاري تحميل لوحة تحكم المسؤول...",
+    "loadError": "فشل في تحميل بيانات لوحة التحكم",
+    "success": "تم حفظ العقار بنجاح!",
+    "error": "فشل في حفظ العقار",
+    "messages": {
+      "loadFailed": "فشل في تحميل العقارات",
+      "saveFailed": "فشل في حفظ العقار"
+    },
+    "list": {
+      "title": "العقارات الحالية",
+      "loading": "جاري تحميل العقارات...",
+      "noProperties": "لا توجد عقارات بعد. أضف أول عقار للبدء!",
+      "edit": "تعديل",
+      "tokenPrice": "سعر التوكن",
+      "monthlyYield": "العائد الشهري",
+      "totalTokens": "إجمالي التوكنات",
+      "sold": "النسبة المباعة"
+    }
+  },
+   "settings": {
+      "headerTitle": "الإعدادات",
+      "headerSubtitle": "إدارة إعدادات المنصة والتكوينات",
+      "generalSettings": "الإعدادات العامة",
+      "appearance": "المظهر",
+      "notifications": "الإشعارات",
+      "security": "الأمان",
+      "features": "الميزات",
+      "saving": "جاري الحفظ...",
+      "saveChanges": "حفظ التغييرات",
+      "platformName": "اسم المنصة",
+      "platformFee": "رسوم المنصة",
+      "minInvestment": "الحد الأدنى للاستثمار",
+      "maxInvestment": "الحد الأقصى للاستثمار",
+      "maintenanceMode": "وضع الصيانة",
+      "maintenanceModeDesc": "تعطيل وصول المستخدمين إلى المنصة مؤقتًا",
+      "allowNewRegistrations": "السماح بتسجيلات المستخدمين الجدد",
+      "allowNewRegistrationsDesc": "السماح للمستخدمين الجدد بالتسجيل في المنصة",
+      "requireEmailVerification": "تفعيل التحقق من البريد الإلكتروني",
+      "requireEmailVerificationDesc": "يتطلب من المستخدمين تأكيد بريدهم الإلكتروني قبل تسجيل الدخول",
+      "adminEmail": "البريد الإلكتروني للمسؤول",
+      "emailNotifications": "إشعارات البريد الإلكتروني",
+      "emailNotificationsDesc": "تمكين إرسال الإشعارات عبر البريد الإلكتروني",
+      "newPropertyAlerts": "تنبيهات العقارات الجديدة",
+      "newPropertyAlertsDesc": "إرسال إشعار عند إضافة عقار جديد",
+      "investmentAlerts": "تنبيهات الاستثمار",
+      "investmentAlertsDesc": "إرسال إشعارات عن أنشطة الاستثمار",
+      "systemAlerts": "تنبيهات النظام",
+      "systemAlertsDesc": "إرسال إشعارات حول تحديثات النظام والصيانة",
+      "sessionTimeout": "مهلة انتهاء الجلسة (ساعات)",
+      "maxLoginAttempts": "الحد الأقصى لمحاولات تسجيل الدخول",
+      "passwordMinLength": "الحد الأدنى لطول كلمة المرور",
+      "twoFactorAuth": "المصادقة الثنائية",
+      "twoFactorAuthDesc": "تتطلب من المستخدمين إدخال رمز إضافي لتسجيل الدخول",
+      "qrCodeGeneration": "إنشاء رمز الاستجابة السريعة",
+      "qrCodeGenerationDesc": "تمكين إنشاء رموز QR للعقارات",
+      "analyticsDashboard": "لوحة التحليلات",
+      "analyticsDashboardDesc": "عرض إحصائيات وأداء المنصة",
+      "reportsGeneration": "إنشاء التقارير",
+      "reportsGenerationDesc": "تمكين إنشاء وتصدير التقارير",
+      "messagingSystem": "نظام المراسلة",
+      "messagingSystemDesc": "تمكين نظام المراسلة الداخلية بين المستخدمين",
+      "roleBasedAccessControl": "التحكم في الوصول القائم على الأدوار",
+      "navigationVisibility": "رؤية القوائم",
+      "navigationVisibilityDesc": "التحكم في عناصر القائمة المرئية لكل دور",
+      "navigation": {
+        "investor/dashboard": "لوحة تحكم المستثمر",
+        "investor/opportunities": "الفرص",
+        "blockchain": "البلوكشين",
+        "owner/dashboard": "لوحة تحكم المالك",
+        "owner/properties": "العقارات",
+        "admin/overview": "نظرة عامة",
+        "admin/opportunities": "مراجعة العقارات",
+        "overview": "نظرة عامة",
+        "opportunities": "الفرص",
+        "users": "المستخدمون",
+        "deeds": "سندات الملكية",
+        "reports": "التقارير",
+        "management": "الإدارة",
+        "settings": "الإعدادات",
+        "investors": "المستثمرون"
+      },
+      "roles": {
+        "admin": "المسؤول",
+        "user": "المستخدم",
+        "viewer": "المشاهد"
+      },
+      "toggleNavigation": "تبديل رؤية القائمة لـ {role}",
+      "navigationItemVisible": "{item} مرئي لـ {role}",
+      "navigationItemHidden": "{item} مخفي عن {role}"
+    },
+   "investors": {
+    "title": "إدارة المستثمرين",
+    "headerTitle": "إدارة المستثمرين",
+    "headerSubtitle": "إدارة وتحليل أنشطة المستثمرين ومحافظهم الاستثمارية",
+    "subtitle": "إدارة وتحليل أنشطة المستثمرين ومحافظهم الاستثمارية",
+    "loginRequired": "يرجى تسجيل الدخول كمسؤول لعرض بيانات المستثمرين",
+    "loading": "جاري تحميل بيانات المستثمرين...",
+    "filters": {
+      "all": "جميع المستثمرين",
+      "active": "نشط",
+      "inactive": "غير نشط",
+      "verified": "تم التحقق",
+      "unverified": "غير متحقق"
+    },
+    "columns": {
+      "name": "اسم المستثمر",
+      "email": "البريد الإلكتروني",
+      "phone": "الهاتف",
+      "joinDate": "تاريخ الانضمام",
+      "status": "الحالة",
+      "totalInvestment": "إجمالي الاستثمار",
+      "totalReturns": "إجمالي العوائد",
+      "roi": "عائد الاستثمار",
+      "performance": "الأداء",
+      "properties": "العقارات",
+      "actions": "الإجراءات"
+    },
+    "status": {
+      "active": "نشط",
+      "inactive": "غير نشط",
+      "suspended": "معلق"
+    },
+    "verification": {
+      "verified": "تم التحقق",
+      "unverified": "غير متحقق",
+      "pending": "قيد الانتظار"
+    },
+    "details": {
+      "title": "تفاصيل المستثمر",
+      "contactInfo": "معلومات الاتصال",
+      "investmentPortfolio": "محفظة الاستثمار",
+      "investmentHistory": "سجل الاستثمار",
+      "walletAddress": "عنوان المحفظة",
+      "transactions": "المعاملات",
+      "lastActive": "آخر نشاط",
+      "viewDetails": "عرض التفاصيل",
+      "editProfile": "تعديل الملف الشخصي",
+      "sendMessage": "إرسال رسالة",
+      "suspendAccount": "تعليق الحساب",
+      "activateAccount": "تفعيل الحساب"
+    },
+    "analytics": {
+      "totalInvestors": "إجمالي المستثمرين",
+      "totalInvestment": "إجمالي الاستثمار",
+      "totalReturns": "إجمالي العوائد",
+      "avgInvestment": "متوسط الاستثمار",
+      "profitableInvestors": "المستثمرون الربحاء",
+      "avgROI": "متوسط عائد الاستثمار"
+    },
+    "sections": {
+      "investorPortfolio": "محفظة المستثمر"
+    }
+  }
+
+},
+ 
+  "investor": {
+  "dashboard": {
+    "title": "لوحة التحكم  ",
+    "subtitle": "تابع استثماراتك العقارية وعوائدك",
+    "portfolioValue": "إجمالي قيمة المحفظة",
+    "pleaseLoginToViewYourInvestmentPortfolio": "يرجى تسجيل الدخول لعرض محفظتك الاستثمارية.",
+    "loginNow": "تسجيل الدخول الآن",
+    "loadingYourPortfolio": "جاري تحميل محفظتك...",
+    "totalLabel": "الإجمالي",
+    "investedLabel": "المستثمر",
+    "monthlyLabel": "شهري",
+    "activeLabel": "النشطة",
+    "expectedReturns": "العوائد المتوقعة",
+    "totalInvested": "إجمالي المبلغ المستثمر",
+    "propertiesInvested": "العقارات المستثمر بها",
+    "balanceBreakdown": "توزيع الرصيد",
+    "investedInProperties": "مستثمر في العقارات",
+    "properties": "عقارات",
+    "availableCash": "الرصيد المتاح",
+    "readyToInvest": "جاهز للاستثمار",
+    "portfolioAllocation": "توزيع المحفظة",
+    "invested": "مستثمر",
+    "performanceMetrics": "مؤشرات الأداء",
+    "monthlyReturnRate": "معدل العائد الشهري",
+    "expectedMonthlyGrowth": "النمو الشهري المتوقع",
+    "annualProjection": "التوقع السنوي",
+    "projectedYearlyReturns": "العوائد السنوية المتوقعة",
+    "annualReturnOnInvestment": "العائد السنوي على الاستثمار",
+    "myPropertyHoldings": "ممتلكاتي العقارية",
+    "exploreMoreProperties": "استكشاف عقارات أخرى",
+    "youHaveNotInvestedInAnyPropertiesYet": "لم تستثمر في أي عقار بعد",
+    "browseOpportunities": "تصفح الفرص",
+    "monthlyYield": "عائد شهري",
+    "ownership": "نسبة الملكية",
+    "tokensOwned": "التوكنات المملوكة",
+    "investment": "الاستثمار",
+    "monthlyReturn": "العائد الشهري",
+    "annualReturn": "العائد السنوي",
+    "recentTransactions": "آخر المعاملات",
+    "viewAll": "عرض الكل",
+    "noTransactionsYet": "لا توجد معاملات حتى الآن",
+    "withdrawal": "-",
+    "deposit": "+",
+"returnOnInvestmentPotential": "العائد المحتمل على الاستثمار"
+  },
+  "wallet": {
+    "title": "محفظتي",
+    "subtitle": "أدر أموالك وتابع استثماراتك العقارية",
+    "loginRequired": "يرجى تسجيل الدخول لعرض المحفظة.",
+    "loading": "جاري تحميل المحفظة…",
+    "usingDemoData": "يتم استخدام بيانات تجريبية - واجهة المحفظة غير متوفرة حالياً",
+    "totalValueLabel": "إجمالي القيمة",
+    "totalValueDesc": "الرصيد النقدي + الاستثمارات",
+    "availableCashLabel": "الرصيد المتاح",
+    "availableCashDesc": "جاهز للاستثمار",
+    "investedValueLabel": "قيمة الاستثمارات",
+    "investedValueDesc": "{{count}} عقارات",
+    "walletIdLabel": "معرّف المحفظة",
+    "noBalanceTitle": "لا يوجد رصيد متاح",
+    "noBalanceBody": "تحتاج إلى رصيد للاستثمار في العقارات. للتجربة، اضغط أدناه للحصول على 1,000,000 ريال.",
+    "getTestBalance": "الحصول على رصيد تجريبي (1M SAR)",
+    "testBalanceFailed": "فشل في تهيئة الرصيد التجريبي",
+    "manageFundsTitle": "إدارة الأموال",
+    "amountLabel": "المبلغ (ريال)",
+    "deposit": "إيداع",
+    "withdraw": "سحب",
+    "depositFailed": "فشل الإيداع. يرجى المحاولة مرة أخرى.",
+    "withdrawFailed": "فشل السحب. يرجى المحاولة مرة أخرى.",
+    "mockNote": "ملاحظة: نظام المدفوعات تجريبي فقط لعرض الفكرة في نسخة MVP",
+    "myHoldingsTitle": "ممتلكاتي",
+    "holdingsTitle": "ممتلكاتي",
+    "noHoldingsTitle": "لا توجد ممتلكات بعد. ابدأ بالاستثمار في العقارات!",
+    "holdingTokensOwned": "التوكنات المملوكة:",
+    "holdingTokenPrice": "سعر التوكن:",
+    "holdingTotalValue": "إجمالي القيمة",
+    "recentTransactionsTitle": "آخر المعاملات",
+    "transactionsTitle": "آخر المعاملات",
+    "noTransactions": "لا توجد معاملات حتى الآن.",
+   "transactionType": {
+  "deposit": "إيداع",
+  "withdraw": "سحب",
+  "purchase": "شراء"
+}
+   },
+  "deeds": {
+    "title": "صكوكي الرقمية",
+    "subtitle": "صكوك الملكية الرقمية",
+    "loginRequired": "يرجى تسجيل الدخول لعرض الصكوك.",
+    "userIdMissing": "لم يتم العثور على رقم المستخدم. يرجى تسجيل الدخول مرة أخرى.",
+    "loadFailed": "فشل في تحميل الصكوك",
+    "loading": "جاري تحميل الصكوك...",
+    "errorTryAgain": "إعادة المحاولة",
+    "errorLoginAgain": "تسجيل الدخول مرة أخرى",
+    "emptyErrorTitle": "لا توجد صكوك متاحة",
+    "emptyErrorBody": "تعذر تحميل الصكوك. يرجى تحديث الصفحة أو تسجيل الدخول مرة أخرى.",
+    "statsTotalDeeds": "إجمالي الصكوك",
+    "statsIssuedDeeds": "الصكوك الصادرة",
+    "statsTotalOwnership": "إجمالي نسبة الملكية",
+    "emptyTitle": "لا توجد صكوك بعد",
+    "emptyBody": "ستظهر هنا صكوك الملكية الرقمية بعد إصدارها لاستثماراتك.",
+    "cardTokens": "التوكنات المملوكة",
+    "cardOwnership": "نسبة الملكية",
+    "cardIssuedDate": "تاريخ الإصدار",
+    "issuedDatePending": "قيد الانتظار",
+    "downloadPdf": "تحميل الصك بصيغة PDF",
+    "statusIssued": "صادر",
+    "statusPending": "قيد الموافقة",
+    "statusRevoked": "ملغى",
+    "statusTransferred": "منقول",
+    "modalTitle": "صك ملكية رقمي",
+    "modalHeaderMain": "صك ملكية رقمي – Estathub",
+    "modalSubtitle": "صك ملكية رقمي",
+    "detailPropertyTitle": "بيانات العقار",
+    "detailTitle": "العنوان:",
+    "detailLocation": "الموقع:",
+    "detailMunicipality": "البلدية:",
+    "detailDistrict": "الحي:",
+    "detailOwnershipTitle": "تفاصيل الملكية",
+    "detailOwnershipDetails": "تفاصيل الملكية",
+    "detailDeedNumber": "رقم الصك:",
+    "detailOwnedTokens": "التوكنات المملوكة:",
+    "detailOwnershipPct": "نسبة الملكية:",
+    "detailStatus": "الحالة:",
+    "detailIssuedDate": "تاريخ الإصدار:",
+    "sectionProperty": "بيانات العقار",
+    "sectionOwnership": "بيانات الملكية",
+    "sectionIssue": "بيانات الإصدار",
+    "planNumber": "رقم المخطط:",
+    "parcelNumber": "رقم القطعة:",
+    "city": "المدينة:",
+    "area": "المساحة:",
+    "propertyType": "نوع العقار:",
+    "ownerName": "اسم المالك:",
+    "ownerNationalId": "رقم الهوية (مخفي):",
+    "acquisitionDate": "تاريخ التملك:",
+    "issuingAuthority": "جهة الإصدار:",
+    "digitalRegistryNumber": "رقم السجل العقاري الرقمي:",
+    "blockchainSystem": "نظام البلوكشين:",
+    "blockchainSystemValue": "شبكة بلوكشين خاصة عبر منصة Estathub",
+    "digitalSeal": "وثيقة رقمية موثقة بالبلوكتشين – Estathub Digital Certificate",
+    "disclaimer": "هذه وثيقة ملكية رقمية مبنية على شبكة بلوكشين خاصة عبر منصة Estathub، وليست بديلاً عن الصك الصادر من الهيئة العامة للعقار أو السجل العيني للعقار.",
+    "qrTitle": "رمز QR للتحقق",
+    "qrDescription": "امسح الرمز للتحقق من صحة الصك",
+    "blockchainTitle": "التحقق من البلوكشين",
+    "blockchainTxId": "معرّف العملية:",
+    "modalDownloadPdf": "تحميل الصك بصيغة PDF",
+    "modalClose": "إغلاق"
+  }
+  },
+    "owner": {
+    "dashboard": {
+      "title": "مرحباً بعودتك أيها المالك العقاري!",
+      "subtitle": "قم بإدارة محفظتك العقارية وتابع تقدّم عمليات التوكنة",
+      "loginRequired": "يرجى تسجيل الدخول لعرض لوحة تحكم المالك.",
+      "loginCta": "تسجيل الدخول الآن",
+      "loading": "جاري تحميل لوحة تحكم المالك...",
+      "loadFailed": "فشل في تحميل بيانات لوحة تحكم المالك",
+      "ctaNewProperty": "تقديم عقار جديد",
+      "stats": {
+        "totalProperties": { "title": "إجمالي العقارات", "caption": "كل الطلبات المقدمة" },
+        "approvedProperties": { "title": "العقارات المعتمدة", "caption": "معروضة حالياً على المنصة" },
+        "pendingProperties": { "title": "قيد المراجعة", "caption": "بانتظار الموافقة" },
+        "totalRevenue": { "title": "إجمالي العوائد", "caption": "من عمليات التوكنة" },
+        "monthlyYield": { "title": "متوسط العائد الشهري", "caption": "العوائد المتوقعة" }
+      },
+      "propertiesSection": {
+        "title": "عقاراتك",
+        "viewAll": "عرض الكل",
+        "emptyTitle": "لم تقم بتقديم أي عقار بعد",
+        "emptyCta": "قدّم أول عقار لك",
+        "progressLabel": "%{{percent}} ممول"
+      },
+      "propertyStatus": {
+        "approved": "معتمد",
+        "pending": "قيد المراجعة",
+        "rejected": "مرفوض"
+      },
+      "metrics": {
+        "raised": "المبلغ المجمع",
+        "target": "المستهدف",
+        "tokensSold": "التوكنات المباعة",
+        "yield": "العائد",
+        "fundingProgress": "نسبة التمويل"
+      },
+      "actions": {
+        "view": "عرض",
+        "edit": "تعديل"
+      },
+      "statusMessages": {
+        "pending": "بانتظار موافقة المسؤول - سيتم مراجعة عقارك قريباً",
+        "rejected": "تم رفض العقار - يرجى المراجعة وإعادة التقديم بعد التصحيح"
+      }
+    },
+    "properties": {
+      "title": "عقاراتي",
+      "subtitle": "إدارة ومتابعة طلبات عقاراتك",
+      "ctaNewProperty": "تقديم عقار جديد",
+      "filters": {
+        "all": "الكل",
+        "approved": "معتمد",
+        "pending": "قيد المراجعة",
+        "rejected": "مرفوض"
+      },
+      "defaultLocation": "الرياض، المملكة العربية السعودية",
+      "noDescription": "لا يوجد وصف متاح",
+      "metrics": {
+        "targetAmount": "المبلغ المستهدف",
+        "investors": "المستثمرون",
+        "raised": "المبلغ المجمع",
+        "yield": "العائد",
+        "fundingProgress": "نسبة التمويل"
+      },
+      "statusMessages": {
+        "pending": {
+          "title": "قيد المراجعة",
+          "subtitle": "تم التقديم بتاريخ {{date}}"
+        },
+        "rejected": {
+          "title": "مرفوض"
+        },
+        "approved": {
+          "title": "نشط ويستقبل الاستثمارات",
+          "subtitle": "تمت الموافقة بتاريخ {{date}}"
+        }
+      },
+      "actions": {
+        "viewDetails": "عرض التفاصيل",
+        "edit": "تعديل"
+      },
+      "empty": {
+        "title": "لا توجد عقارات",
+        "bodyAll": "لم تقم بتقديم أي عقار بعد",
+        "bodyFiltered": "لا توجد عقارات بحالة {{status}}",
+        "cta": "قدّم أول عقار لك"
+      }
+    },
+    "newProperty": {
+      "pageTitle": "تقديم عقار جديد",
+      "pageSubtitle": "أكمل جميع الخطوات لتقديم عقارك للتوكنة",
+      "backToProperties": "الرجوع إلى العقارات",
+      "steps": {
+        "1": { "label": "التحقق القانوني" },
+        "2": { "label": "المواصفات الفنية" },
+        "3": { "label": "البيانات المالية والتوكنة" },
+        "4": { "label": "معلومات المالك" },
+        "5": { "label": "الالتزام والاتفاقيات" }
+      },
+      "step1": {
+        "title": "التحقق القانوني",
+  "subtitle": "ملكية العقار والمستندات القانونية",
+  "infoBoxTitle": "المستندات المطلوبة",
+  "infoBoxBody": "يرجى رفع جميع المستندات القانونية المطلوبة بصيغة PDF أو صورة (بحد أقصى 10MB لكل ملف) وبجودة واضحة وصالحة.",
+  "ownershipTypeLabel": "نوع الملكية",
+  "ownershipTypePlaceholder": "اختر نوع الملكية",
+  "deedNumberLabel": "رقم الصك",
+  "deedDateLabel": "تاريخ الصك",
+  "deedAuthorityLabel": "جهة إصدار الصك",
+  "uploadButton": "رفع المستندات",
+  "propertyNameLabel": "اسم العقار",
+  "propertyTypeLabel": "نوع العقار",
+  "locationLabel": "الموقع",
+  "areaLabel": "مساحة العقار (م²)",
+  "buildingAgeLabel": "عمر المبنى (بالسنوات)",
+  "descriptionLabel": "الوصف",
+  "nextButtonLabel": "التالي",
+  "propertyTypeApartment": "شقة",
+  "propertyTypeVilla": "فيلا",
+  "propertyTypeDuplex": "شقة دوبلكس",
+  "propertyTypeOffice": "مكتب",
+  "propertyTypeBuilding": "عمارة",
+  "propertyTypeWarehouse": "مستودع",
+  "propertyTypeLand": "أرض",
+  "propertyTypeCommercial": "مساحة تجارية",
+  "propertyTypePlaceholder": "اختر نوع العقار",
+  "landAreaPlaceholder": "مثال: 500",
+  "builtAreaPlaceholder": "مثال: 350",
+  "buildingAgePlaceholder": "مثال: 5",
+  "floorsCountPlaceholder": "مثال: 2",
+  "unitsCountPlaceholder": "مثال: 1",
+  "cityPlaceholder": "مثال: الرياض",
+  "districtPlaceholder": "مثال: العليا",
+  "municipalityPlaceholder": "مثال: أمانة الرياض",
+  "gpsLatitudePlaceholder": "مثال: 24.7136",
+  "gpsLongitudePlaceholder": "مثال: 46.6753",
+  "propertyDescriptionPlaceholder": "اكتب وصفًا تفصيليًا للعقار (حد أدنى 100 حرف)",
+  "uploadImagesLabel": "اضغط لرفع صور العقار",
+  "uploadingImagesLabel": "جاري رفع الصور...",
+  "imagesFormatsHint": "JPG, PNG, WEBP (بحد أقصى 5MB لكل صورة)",
+  "propertyDeedDocument": "صك الملكية",
+  "sitePlanDocument": "مخطط الموقع",
+  "buildingPermit": "رخصة البناء",
+  "electricityBill": "فاتورة الكهرباء",
+  "waterBill": "فاتورة المياه (اختياري)",
+  "ownerIdDocument": "هوية المالك",
+  "deedNumberPlaceholder": "أدخل رقم الصك",
+"deedAuthorityPlaceholder": "مثال: وزارة العدل - الرياض"
+},
+      "step2": {
+  "title": "المواصفات الفنية",
+  "subtitle": "بيانات العقار والموقع",
+  "propertyTypeLabel": "نوع العقار",
+  "propertyTypePlaceholder": "اختر نوع العقار",
+  "propertyTypes": {
+    "residentialVilla": "فيلا سكنية",
+    "residentialApartment": "شقة سكنية",
+    "residentialCompound": "مجمع سكني",
+    "commercialOffice": "مكتب تجاري",
+    "commercialRetail": "محل تجاري",
+    "commercialWarehouse": "مستودع تجاري",
+    "mixedUse": "استخدام مختلط",
+    "landResidential": "أرض سكنية",
+    "landCommercial": "أرض تجارية",
+    "agricultural": "زراعي",
+    "industrial": "صناعي"
+  },
+  "landAreaLabel": "مساحة الأرض (م²)",
+  "builtAreaLabel": "مساحة البناء (م²)",
+  "buildingAgeLabel": "عمر البناء (بالسنوات)",
+  "floorsCountLabel": "عدد الطوابق",
+  "unitsCountLabel": "عدد الوحدات",
+  "propertyConditionLabel": "حالة العقار",
+
+  "locationInformationTitle": "معلومات الموقع",
+  "cityLabel": "المدينة",
+  "districtLabel": "الحي",
+  "municipalityLabel": "البلدية",
+  "gpsLatitudeLabel": "خط العرض (GPS)",
+  "gpsLongitudeLabel": "خط الطول (GPS)",
+
+  "propertyDescriptionLabel": "وصف العقار",
+  "propertyImagesLabel": "صور العقار",
+
+  "propertyTypePlaceholder": "اختر نوع العقار",
+  "landAreaPlaceholder": "مثال: 500",
+  "builtAreaPlaceholder": "مثال: 350",
+  "buildingAgePlaceholder": "مثال: 5",
+  "floorsCountPlaceholder": "مثال: 2",
+  "unitsCountPlaceholder": "مثال: 1",
+  "cityPlaceholder": "مثال: الرياض",
+  "districtPlaceholder": "مثال: العليا",
+  "municipalityPlaceholder": "مثال: أمانة الرياض",
+  "gpsLatitudePlaceholder": "مثال: 24.7136",
+  "gpsLongitudePlaceholder": "مثال: 46.6753",
+  "propertyDescriptionPlaceholder": "اكتب وصفًا تفصيليًا للعقار (حد أدنى 100 حرف)",
+
+  "uploadImagesLabel": "اضغط لرفع صور العقار",
+  "uploadingImagesLabel": "جاري رفع الصور...",
+  "imagesFormatsHint": "JPG, PNG, WEBP (بحد أقصى 5MB لكل صورة)",
+  "propertyConditionPlaceholder": "اختر حالة العقار",
+"propertyImagesRangeLabel": "صور العقار ({{min}}-{{max}} مطلوبة)",
+"descriptionCounter": "{{count}} / {{min}} كحد أدنى",
+"imageErrorMax": "يمكن رفع {{max}} صور كحد أقصى",
+"imageErrorTooLarge": "الملف {{file}} حجمه كبير جداً. الحد الأقصى 5MB لكل صورة.",
+"imageUploadFailed": "فشل في رفع الصور",
+"mainImageBadge": "الصورة الرئيسية"
+      },
+     "step3": {
+  "title": "البيانات المالية والتوكنة",
+  "subtitle": "تقييم العقار وهيكل التوكنات والعوائد المتوقعة",
+
+  "infoBoxTitle": "هيكل التوكنة",
+  "infoBoxBody": "قم بتحديد كيفية ترميز العقار: إجمالي عدد التوكنات، سعر التوكن، ونسبة الملكية التي ترغب بالاحتفاظ بها.",
+
+  "marketValueLabel": "القيمة السوقية (ريال)",
+  "valuationReportLabel": "تقرير التقييم",
+  "tokenizationStructureTitle": "هيكل التوكنة",
+
+  "tokenDistributionSummaryTitle": "ملخص توزيع التوكنات",
+  "expectedReturnsTitle": "العوائد المتوقعة",
+
+  "roiConsistencyCheckTitle": "فحص توافق العائد",
+  "roiConsistencyCheckBody": "العائد الشهري × 12 = {{monthly}}٪. إذا كان هذا بعيدًا عن العائد السنوي {{annual}}٪، يرجى مراجعة المدخلات."
+},
+      "step4": {
+        "title": "معلومات المالك",
+        "subtitle": "بيانات التواصل والملكية"
+      },
+      "step5": {
+        "title": "الالتزام والاتفاقيات",
+        "subtitle": "الإقرارات والاتفاقيات النظامية"
+      },
+      "nav": {
+        "next": "التالي",
+        "back": " رجوع",
+        "submit": "تقديم العقار",
+        "submitting": "جاري تقديم العقار...",
+        "saveDraft": "حفظ مسودة"
+      },
+      "validation": {
+      "ownershipTypeRequired": "يجب اختيار نوع الملكية",
+      "deedNumberRequired": "يجب إدخال رقم الصك",
+      "deedDateRequired": "يجب إدخال تاريخ الصك",
+      "deedAuthorityRequired": "يجب إدخال جهة إصدار الصك",
+      "deedDocumentRequired": "يجب رفع نسخة من صك الملكية",
+      "sitePlanRequired": "يجب رفع مخطط الموقع",
+      "buildingPermitRequired": "يجب رفع رخصة البناء",
+      "electricityBillRequired": "يجب رفع فاتورة الكهرباء",
+      "ownerIdRequired": "يجب رفع هوية المالك",
+
+      "propertyTypeRequired": "يجب اختيار نوع العقار",
+      "landAreaRequired": "يجب إدخال مساحة الأرض بشكل صحيح",
+      "builtAreaRequired": "يجب إدخال مساحة البناء بشكل صحيح",
+      "buildingAgeRequired": "يجب إدخال عمر المبنى",
+      "floorsCountRequired": "يجب إدخال عدد الطوابق",
+      "unitsCountRequired": "يجب إدخال عدد الوحدات",
+      "propertyConditionRequired": "يجب اختيار حالة العقار",
+      "cityRequired": "يجب إدخال المدينة",
+      "districtRequired": "يجب إدخال الحي",
+      "municipalityRequired": "يجب إدخال اسم الأمانة / البلدية",
+      "descriptionMin": "وصف العقار يجب ألا يقل عن 100 حرف",
+      "imagesMin": "يجب رفع 3 صور على الأقل للعقار",
+
+      "marketValueRequired": "يجب إدخال القيمة السوقية للعقار",
+      "valuationReportRequired": "يجب رفع تقرير التقييم",
+      "totalTokensRequired": "يجب إدخال إجمالي عدد التوكنات",
+      "tokenPriceRequired": "يجب إدخال سعر التوكن",
+      "expectedRoiRequired": "يجب إدخال العائد السنوي المتوقع",
+      "expectedMonthlyYieldRequired": "يجب إدخال العائد الشهري المتوقع",
+
+      "ownerNameRequired": "يجب إدخال اسم المالك",
+      "nationalIdOrCrRequired": "يجب إدخال الهوية الوطنية أو السجل التجاري",
+      "ownerPhoneRequired": "يجب إدخال رقم الجوال",
+      "ownerEmailRequired": "يجب إدخال البريد الإلكتروني",
+      "ownerIbanRequired": "يجب إدخال رقم الآيبان",
+      "commercialRegistrationRequired": "يجب إدخال رقم السجل التجاري",
+      "authorizedPersonNameRequired": "يجب إدخال اسم الشخص المخوّل",
+      "authorizedPersonIdRequired": "يجب إدخال هوية الشخص المخوّل",
+
+      "declarationRequired": "يجب الموافقة على هذا الإقرار للمتابعة"
+    }
+    },
+    "map": {
+      "tipLabel": "ملاحظة",
+      "tipText": "اضغط على الخريطة أو اسحب المؤشر لتحديد موقع العقار",
+      "coordinatesLabel": "الإحداثيات"
+    }
+  
+},
+"fileUpload": {
+    "uploading": "جاري رفع الملف...",
+    "clickToUpload": "اضغط لرفع الملف أو اسحبه وأفلته هنا",
+    "acceptedFormats": "{{formats}} (بحد أقصى {{max}})",
+    "documentUploaded": "تم رفع المستند",
+    "imageUploaded": "تم رفع الصورة",
+    "uploadSuccessful": "تم الرفع بنجاح",
+    "errorTooLarge": "حجم الملف كبير جداً. الحد الأقصى هو {{max}}",
+    "errorInvalidType": "نوع الملف غير مدعوم. الأنواع المسموحة: {{accepted}}",
+    "errorUploadFailed": "فشل في رفع الملف. يرجى المحاولة مرة أخرى."
+  },
+    "subtitle": "صكوك الملكية الرقمية",
+    "loginRequired": "يرجى تسجيل الدخول لعرض الصكوك.",
+    "userIdMissing": "لم يتم العثور على رقم المستخدم. يرجى تسجيل الدخول مرة أخرى.",
+    "loadFailed": "فشل في تحميل الصكوك",
+    "loading": "جاري تحميل الصكوك...",
+    "errorTryAgain": "إعادة المحاولة",
+    "errorLoginAgain": "تسجيل الدخول مرة أخرى",
+    "emptyErrorTitle": "لا توجد صكوك متاحة",
+    "emptyErrorBody": "تعذر تحميل الصكوك. يرجى تحديث الصفحة أو تسجيل الدخول مرة أخرى.",
+    "statsTotalDeeds": "إجمالي الصكوك",
+    "statsIssuedDeeds": "الصكوك الصادرة",
+    "statsTotalOwnership": "إجمالي نسبة الملكية",
+    "emptyTitle": "لا توجد صكوك بعد",
+    "emptyBody": "ستظهر هنا صكوك الملكية الرقمية بعد إصدارها لاستثماراتك.",
+    "cardTokens": "التوكنات المملوكة",
+    "cardOwnership": "نسبة الملكية",
+    "cardIssuedDate": "تاريخ الإصدار",
+    "issuedDatePending": "قيد الانتظار",
+    "downloadPdf": "تحميل الصك بصيغة PDF",
+    "statusIssued": "صادر",
+    "statusPending": "قيد الموافقة",
+    "statusRevoked": "ملغى",
+    "statusTransferred": "منقول",
+    "modalTitle": "صك ملكية رقمي",
+    "modalSubtitle": "صك ملكية رقمي",
+    "detailPropertyTitle": "بيانات العقار",
+    "detailTitle": "العنوان:",
+    "detailLocation": "الموقع:",
+    "detailMunicipality": "البلدية:",
+    "detailDistrict": "الحي:",
+    "detailOwnershipTitle": "بيانات الملكية",
+    "detailDeedNumber": "رقم الصك:",
+    "detailOwnedTokens": "التوكنات المملوكة:",
+    "detailOwnershipPct": "نسبة الملكية:",
+    "detailStatus": "الحالة:",
+    "detailIssuedDate": "تاريخ الإصدار:",
+    "qrTitle": "رمز QR للتحقق",
+    "qrDescription": "امسح الرمز للتحقق من صحة الصك",
+    "blockchainTitle": "التحقق من البلوكشين",
+    "blockchainTxId": "معرّف العملية:",
+    "modalDownloadPdf": "تحميل الصك بصيغة PDF",
+    "modalClose": "إغلاق", 
+    
+   "certificate": {
+    "detailOwnershipPct": "نسبة الملكية:",
+    "detailStatus": "الحالة:",
+    "detailIssuedDate": "تاريخ الإصدار:",
+    "qrTitle": "رمز QR للتحقق",
+    "qrDescription": "امسح الرمز للتحقق من صحة الشهادة",
+    "blockchainTitle": "التحقق من البلوكشين",
+    "blockchainTxId": "معرّف العملية:",
+    "modalDownloadPdf": "تحميل الشهادة بصيغة PDF",
+    "modalClose": "إغلاق"
+  },
+  "blockchainExplorer": {
+    "title": "  سجل بانه العقاري بستخدام البلوكشين",
+    "subtitle": "عرض تفاعلي لجميع الأحداث والعمليات على سلسلة الكتل",
+    "loading": "جاري تحميل أحداث سلسلة الكتل...",
+    "error": "حدث خطأ أثناء تحميل أحداث سلسلة الكتل",
+    "tryAgain": "حاول مرة أخرى",
+    "noEvents": "لا توجد أحداث مسجلة على سلسلة الكتل حتى الآن",
+    "noTokenMints": "لا توجد أحداث إنشاء توكن مسجلة حتى الآن",
+    "tabs": {
+      "timeline": "الخط الزمني",
+      "properties": "العقارات",
+      "certificates": "الصكوك",
+      "transactions": "المعاملات"
+    },
+    "kpiCards": {
+      "totalEvents": "إجمالي الصفقات",
+      "totalProperties": "إجمالي العقارات",
+      "totalCertificates": "إجمالي الصكوك",
+      "totalTransactions": "إجمالي المعاملات",
+      "uniqueOwners": "المالكون",
+      "uniqueInvestors": "المستثمرون ",
+      "totalBlockchainLinkedRecords": "إجمالي السجلات المرتبطة بالبلوكشين"
+    },
+    "regulatorView": {
+      "title": "واجهة المنظم (تجريبية)",
+      "description": "عرض مفصل لجميع الأحداث والعمليات على سلسلة الكتل مع معلومات إضافية للمنظمين",
+      "details": "عرض بيانات البلوكشين (بدون كشف الهوية) مع معلومات أعمق للجهات التنظيمية.",
+      "enable": "تفعيل واجهة المنظم",
+      "disable": "تعطيل واجهة المنظم"
+    },
+    "status": {
+      "on": "واجهة المنظم: تشغيل",
+      "off": "واجهة المنظم: إيقاف",
+      "verified": "موثّق على البلوكشين"
+    },
+    "auditTrail": "سجل تدقيق العقار",
+    "actions": {
+      "refresh": "تحديث البيانات",
+      "tryAgain": "حاول مرة أخرى"
+    },
+    "eventTypes": {
+      "all": "الكل",
+      "propertyCreated": "إضافة عقار",
+      "propertyUpdated": "تحديث عقار",
+      "tokensMinted": "سك رموز",
+      "certificateIssued": "إصدار شهادة",
+      "ownershipTransferred": "تحويل ملكية"
+    },
+    "details": {
+      "immutableAudit": "سجل مراجعة لا يُحذف"
+    }
+  }
+}

@@ -1,0 +1,75 @@
+{
+  "financialTokenization": "Financial Tokenization",
+  "valuationTokenStructure": "Valuation & Token Structure",
+  "tokenizationStructure": "Tokenization Structure",
+  "defineTokenizedProperty": "Define how this property will be tokenized: total tokens, token price, and the percentage of tokens you wish to retain.",
+  "marketValue": "Market Value (SAR)",
+  "valuationReport": "Valuation Report",
+  "tokenDistributionSummary": "Token Distribution Summary",
+  "expectedReturns": "Expected Returns",
+  "roiConsistencyCheck": "ROI Consistency Check",
+  "tokenPrice": "Token Price (SAR)",
+  
+  "blockchainExplorer": {
+    "title": "Blockchain Explorer",
+    "subtitle": "Interactive view of all blockchain events and transactions",
+    "loading": "Loading blockchain events...",
+    "error": "Error loading blockchain events",
+    "emptyStates": {
+      "noEvents": "No blockchain events found",
+      "noProperties": "No properties found on the blockchain",
+      "noCertificates": "No certificates found on the blockchain",
+      "noTransactions": "No transactions found on the blockchain",
+      "noMintEvents": "No token mint events have been recorded yet"
+    },
+    "table": {
+      "type": "Type",
+      "user": "User",
+      "amount": "Amount",
+      "blockchainTx": "Blockchain Tx",
+      "notes": "Notes",
+      "timestamp": "Timestamp",
+      "details": "Details",
+      "property": "Property",
+      "certificate": "Certificate",
+      "transaction": "Transaction"
+    },
+    "transaction": {
+      "title": "Transaction",
+      "type": "Type",
+      "user": "User",
+      "amount": "Amount",
+      "tokens": "tokens",
+      "currency": "SAR",
+      "notes": "Notes",
+      "blockchain": "Blockchain",
+      "txId": "Transaction ID",
+      "timestamp": "Timestamp",
+      "block": "Block",
+      "pending": "Pending...",
+      "mintedFor": "Minted for",
+      "unknownInvestor": "Unknown investor",
+      "pendingConfirmation": "Pending blockchain confirmation"
+    },
+    "status": {
+      "confirmed": "Confirmed on Blockchain",
+      "verified": "Verified"
+    },
+    "auditTrail": "Part of immutable audit trail",
+    "transactionTypes": {
+      "TOKEN_MINT": "Token Mint",
+      "TOKENS_MINTED": "Tokens Minted",
+      "PROPERTY_CREATED": "Property Created",
+      "PROPERTY_UPDATED": "Property Updated",
+      "CERTIFICATE_ISSUED": "Certificate Issued",
+      "DEED_ISSUED": "Deed Issued",
+      "TRANSFER": "Transfer",
+      "OWNERSHIP_TRANSFER": "Ownership Transfer"
+    },
+    "exampleEvent": {
+      "title": "Example Event Details",
+      "description": "Parsed `details` fields from a single on-chain event. This is how the UI derives property names, user names, and deed references.",
+      "noEvents": "No events available yet"
+    }
+  }
+}

@@ -1,0 +1,20 @@
+{
+  "brand": "Estathub",
+  "login": "تسجيل الدخول",
+  "logout": "تسجيل الخروج",
+  "dashboard": "لوحة التحكم",
+  "reviewProperties": " الفرص الاستثمارية",
+  "properties": "العقارات",
+  "opportunities": "الفرص الاستثمارية",
+  "blockchain": "البلوكشين",
+  "blockchainExplorer": "مستكشف البلوكشين",
+  "user": {
+    "roleBadge": "الصلاحية",
+    "tenant": "المنشأة"
+  },
+  "language": {
+    "label": "اللغة",
+    "en": "EN",
+    "ar": "AR"
+  }
+}

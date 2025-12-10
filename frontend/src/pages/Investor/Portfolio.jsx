@@ -4,6 +4,8 @@ import {
   Wallet, TrendingUp, Building2, ArrowUpCircle, ArrowDownCircle, 
   Loader2, AlertCircle, DollarSign, PieChart, History 
 } from 'lucide-react'
+import { useTranslation } from 'react-i18next'
+
 
 export default function Portfolio() {
   const [loading, setLoading] = useState(true)
@@ -11,6 +13,8 @@ export default function Portfolio() {
   const [wallet, setWallet] = useState(null)
   const [amount, setAmount] = useState(100)
   const [actionLoading, setActionLoading] = useState(false)
+  const { t } = useTranslation('pages')
+  const { t: tCommon } = useTranslation('common')
 
   async function load() {
     try {
@@ -21,7 +25,7 @@ export default function Portfolio() {
     } catch (e) {
       console.warn('Portfolio wallet API failed, using fallback:', e)
       setWallet({ cashBalance: 0, investedValue: 0, holdings: [], transactions: [] }) // Fallback
-      setError('Using demo data - wallet API unavailable')
+      setError(t('investor.wallet.usingDemoData'))
     } finally {
       setLoading(false)
     }
@@ -36,8 +40,7 @@ export default function Portfolio() {
       <div className="flex items-center justify-center py-12">
         <div className="text-center space-y-4">
           <Wallet className="mx-auto text-gray-400" size={64} />
-          <div className="text-gray-600">Please login to view your wallet.</div>
-        </div>
+<div className="text-gray-600">{t('investor.wallet.loginRequired')}</div>        </div>
       </div>
     )
   }
@@ -47,7 +50,7 @@ export default function Portfolio() {
       <div className="flex items-center justify-center py-12">
         <div className="text-center space-y-3">
           <Loader2 className="animate-spin text-emerald-600 mx-auto" size={40} />
-          <div className="text-gray-600">Loading wallet…</div>
+          <div className="text-gray-600">{t('investor.wallet.loading')}</div>
         </div>
       </div>
     )
@@ -64,15 +67,15 @@ export default function Portfolio() {
     )
   }
 
- const safeWallet = wallet || { cashBalance: 0, investedValue: 0 }
+ const safeWallet = wallet || { cashBalance: 0, investedValue: 0, holdings: [], transactions: [] }
  const totalValue = safeWallet.cashBalance + safeWallet.investedValue
 
   return (
     <div className="space-y-6">
       {/* Header */}
       <div className="space-y-2">
-        <h1 className="text-3xl font-bold text-gray-900">My Wallet</h1>
-        <p className="text-gray-600">Manage your funds and track your real estate investments</p>
+        <h1 className="text-3xl font-bold text-gray-900">{t('investor.wallet.title')}</h1>
+        <p className="text-gray-600">{t('investor.wallet.subtitle')}</p>
       </div>
 
       {/* Error Alert */}
@@ -91,35 +94,35 @@ export default function Portfolio() {
           <div className="flex items-center justify-between mb-4">
             <div className="flex items-center gap-2">
               <DollarSign size={24} />
-              <span className="text-emerald-100">Total Value</span>
+              <span className="text-emerald-100">{t('investor.wallet.totalValueLabel')}</span>
             </div>
           </div>
-          <div className="text-3xl font-bold mb-1">{totalValue.toLocaleString()} SAR</div>
-          <div className="text-emerald-100 text-sm">Cash + Investments</div>
+          <div className="text-3xl font-bold mb-1">{totalValue.toLocaleString()} {tCommon('currency.sar')}</div>
+          <div className="text-emerald-100 text-sm">{t('investor.wallet.totalValueDesc')}</div>
         </div>
 
         <div className="bg-white border border-gray-200 rounded-xl p-6 shadow-sm">
           <div className="flex items-center gap-2 text-gray-500 mb-4">
             <Wallet size={20} />
-            <span>Available Cash</span>
+            <span>{t('investor.wallet.availableCashLabel')}</span>
           </div>
-        <div className="text-3xl font-bold text-gray-900 mb-1">{safeWallet.cashBalance.toLocaleString()} SAR</div>
-        <div className="text-gray-500 text-sm">Ready to invest</div>
+          <div className="text-3xl font-bold text-gray-900 mb-1">{safeWallet.cashBalance.toLocaleString()} {tCommon('currency.sar')}</div>
+          <div className="text-gray-500 text-sm">{t('investor.wallet.availableCashDesc')}</div>
         </div>
 
         <div className="bg-white border border-gray-200 rounded-xl p-6 shadow-sm">
           <div className="flex items-center gap-2 text-gray-500 mb-4">
             <PieChart size={20} />
-            <span>Invested Value</span>
+            <span>{t('investor.wallet.investedValueLabel')}</span>
           </div>
-          <div className="text-3xl font-bold text-gray-900 mb-1">{wallet.investedValue.toLocaleString()} SAR</div>
-          <div className="text-gray-500 text-sm">{wallet.holdings?.length || 0} properties</div>
+          <div className="text-3xl font-bold text-gray-900 mb-1">{safeWallet.investedValue.toLocaleString()} {tCommon('currency.sar')}</div>
+          <div className="text-gray-500 text-sm">{t('investor.wallet.investedValueDesc', { count: safeWallet.holdings?.length || 0 })}</div>
         </div>
       </div>
 
       {/* Wallet ID Card */}
       <div className="bg-gray-50 border border-gray-200 rounded-xl p-4">
-        <div className="text-sm text-gray-500 mb-1">Wallet ID</div>
+        <div className="text-sm text-gray-500 mb-1">{t('investor.wallet.walletIdLabel')}</div>
        <div className="font-mono text-sm text-gray-900 break-all">{safeWallet.walletId || 'DEMO-WALLET-ID'}</div>
       </div>
 
@@ -129,9 +132,9 @@ export default function Portfolio() {
           <div className="flex items-start gap-3">
             <AlertCircle className="text-yellow-600 flex-shrink-0 mt-0.5" size={20} />
             <div className="flex-1">
-              <h3 className="font-semibold text-yellow-900 mb-1">No Balance Available</h3>
+              <h3 className="font-semibold text-yellow-900 mb-1">{t('investor.wallet.noBalanceTitle')}</h3>
               <p className="text-sm text-yellow-700 mb-3">
-                You need funds to invest in properties. For testing, click below to get 1,000,000 SAR.
+                {t('investor.wallet.noBalanceBody')}
               </p>
               <button
                 disabled={actionLoading}
@@ -145,7 +148,7 @@ export default function Portfolio() {
                     })
                     await load()
                   } catch (e) {
-                    setError('Failed to initialize test balance')
+                    setError(t('investor.wallet.testBalanceFailed'))
                   } finally {
                     setActionLoading(false)
                   }
@@ -153,7 +156,7 @@ export default function Portfolio() {
                 className="px-4 py-2 bg-yellow-600 hover:bg-yellow-700 disabled:bg-gray-300 text-white rounded-lg font-medium transition-colors flex items-center gap-2"
               >
                 {actionLoading ? <Loader2 size={16} className="animate-spin" /> : <DollarSign size={16} />}
-                Get Test Balance (1M SAR)
+                {t('investor.wallet.getTestBalance')}
               </button>
             </div>
           </div>
@@ -162,15 +165,16 @@ export default function Portfolio() {
 
       {/* Deposit/Withdraw Section */}
       <div className="bg-white border border-gray-200 rounded-xl p-6">
-        <h2 className="text-xl font-semibold text-gray-900 mb-4">Manage Funds</h2>
+        <h2 className="text-xl font-semibold text-gray-900 mb-4">{t('investor.wallet.manageFundsTitle')}</h2>
         <div className="flex flex-col sm:flex-row gap-4">
           <div className="flex-1">
-            <label className="block text-sm font-medium text-gray-700 mb-2">Amount (SAR)</label>
+            <label className="block text-sm font-medium text-gray-700 mb-2" htmlFor="amount-input">{t('investor.wallet.amountLabel')}</label>
             <input 
               type="number" 
               min={1} 
               value={amount}
               onChange={e => setAmount(Number(e.target.value))}
+              id="amount-input"
               className="border border-gray-300 rounded-lg w-full px-4 py-2.5 focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500" 
             />
           </div>
@@ -188,7 +192,7 @@ export default function Portfolio() {
                   })
                   await load()
                 } catch { 
-                  setError('Deposit failed. Please try again.') 
+                  setError(t('investor.wallet.depositFailed')) 
                 } finally {
                   setActionLoading(false)
                 }
@@ -196,7 +200,7 @@ export default function Portfolio() {
               className="flex items-center gap-2 px-6 py-2.5 rounded-lg bg-emerald-600 hover:bg-emerald-700 disabled:bg-gray-300 text-white font-medium transition-colors"
             >
               <ArrowUpCircle size={18} />
-              Deposit
+              {t('investor.wallet.deposit')}
             </button>
             <button
               disabled={actionLoading}
@@ -211,7 +215,7 @@ export default function Portfolio() {
                   })
                   await load()
                 } catch { 
-                  setError('Withdraw failed. Please try again.') 
+                  setError(t('investor.wallet.withdrawFailed')) 
                 } finally {
                   setActionLoading(false)
                 }
@@ -219,18 +223,18 @@ export default function Portfolio() {
               className="flex items-center gap-2 px-6 py-2.5 rounded-lg bg-gray-700 hover:bg-gray-800 disabled:bg-gray-300 text-white font-medium transition-colors"
             >
               <ArrowDownCircle size={18} />
-              Withdraw
+              {t('investor.wallet.withdraw')}
             </button>
           </div>
         </div>
-        <p className="text-sm text-gray-500 mt-3">Note: This is a mock payment system for MVP demonstration</p>
+        <p className="text-sm text-gray-500 mt-3">{ t('investor.wallet.mockNote')}</p>
       </div>
 
       {/* Holdings Section */}
       <div className="bg-white border border-gray-200 rounded-xl p-6">
         <div className="flex items-center gap-2 mb-4">
           <Building2 size={24} className="text-gray-700" />
-          <h2 className="text-xl font-semibold text-gray-900">My Holdings</h2>
+          <h2 className="text-xl font-semibold text-gray-900">{t('investor.wallet.myHoldingsTitle')}</h2>
         </div>
         {safeWallet.holdings?.length ? (
           <div className="space-y-3">
@@ -239,18 +243,18 @@ export default function Portfolio() {
                 <div className="flex justify-between items-start mb-2">
                   <div className="font-semibold text-gray-900">{h.title}</div>
                   <div className="text-right">
-                    <div className="font-bold text-gray-900">{h.value.toLocaleString()} SAR</div>
-                    <div className="text-xs text-gray-500">Total Value</div>
+                    <div className="font-bold text-gray-900">{h.value.toLocaleString()} {t('investor.wallet.totalValueDesc')}</div>
+                    <div className="text-xs text-gray-500">{t('investor.wallet.totalValueDesc')}</div>
                   </div>
                 </div>
                 <div className="grid grid-cols-2 gap-4 text-sm">
                   <div>
-                    <span className="text-gray-500">Tokens Owned: </span>
+                    <span className="text-gray-500">{ t('investor.wallet.holdingTokensOwned')}: </span>
                     <span className="font-medium text-gray-900">{h.tokens}</span>
                   </div>
                   <div>
-                    <span className="text-gray-500">Token Price: </span>
-                    <span className="font-medium text-gray-900">{h.tokenPrice.toLocaleString()} SAR</span>
+                    <span className="text-gray-500">{t('investor.wallet.holdingTokenPrice')}: </span>
+                    <span className="font-medium text-gray-900">{h.tokenPrice.toLocaleString()} {tCommon('currency.sar')}</span>
                   </div>
                 </div>
               </div>
@@ -258,8 +262,8 @@ export default function Portfolio() {
           </div>
         ) : (
           <div className="text-center py-8 text-gray-500">
-            <Building2 className="mx-auto mb-2 text-gray-300" size={48} />
-            <div>No holdings yet. Start investing in properties!</div>
+            <Building2 className="mx-auto mb 2 text-gray-300" size={48} />
+              <div>{  t('investor.wallet.noHoldingsTitle')}</div>
           </div>
         )}
       </div>
@@ -268,17 +272,24 @@ export default function Portfolio() {
       <div className="bg-white border border-gray-200 rounded-xl p-6">
         <div className="flex items-center gap-2 mb-4">
           <History size={24} className="text-gray-700" />
-          <h2 className="text-xl font-semibold text-gray-900">Recent Transactions</h2>
+          <h2 className="text-xl font-semibold text-gray-900">{t('investor.wallet.recentTransactionsTitle')}</h2>
         </div>
        {safeWallet.transactions?.length ? (
           <div className="space-y-2">
-            {safeWallet.transactions.map(t => {
-              const isDeposit = t.type === 'DEPOSIT'
-              const isWithdraw = t.type === 'WITHDRAW'
-              const isPurchase = t.type === 'PURCHASE'
+            {safeWallet.transactions.map(tx => {
+              const typeUpper = (tx.type || '').toUpperCase()
+              const isDeposit = typeUpper === 'DEPOSIT'
+              const isWithdraw = typeUpper === 'WITHDRAW' || typeUpper === 'WITHDRAWAL'
+              const isPurchase = typeUpper === 'PURCHASE'
+
+              const rawType = (tx.type || '').toLowerCase()
+              const normalizedKey =
+                rawType === 'withdrawal' ? 'withdraw' :
+                rawType === 'deposit' ? 'deposit' :
+                rawType === 'purchase' ? 'purchase' : rawType
               
               return (
-                <div key={t.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors">
+                <div key={tx.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors">
                   <div className="flex items-center gap-3">
                     <div className={`w-10 h-10 rounded-full flex items-center justify-center ${
                       isDeposit ? 'bg-emerald-100' : isWithdraw ? 'bg-red-100' : 'bg-blue-100'
@@ -288,14 +299,14 @@ export default function Portfolio() {
                        <Building2 className="text-blue-600" size={20} />}
                     </div>
                     <div>
-                      <div className="font-medium text-gray-900 capitalize">{t.type.toLowerCase()}</div>
-                      <div className="text-xs text-gray-500">{new Date(t.createdAt).toLocaleString()}</div>
+                      <div className="font-medium text-gray-900 capitalize">{t(`investor.wallet.transactionType.${normalizedKey}`)}</div>
+                      <div className="text-xs text-gray-500">{new Date(tx.createdAt).toLocaleString()}</div>
                     </div>
                   </div>
                   <div className={`font-semibold ${
                     isDeposit ? 'text-emerald-600' : isWithdraw ? 'text-red-600' : 'text-blue-600'
                   }`}>
-                    {isDeposit ? '+' : '-'}{t.amount.toLocaleString()} SAR
+                    {isDeposit ? '+' : '-'}{tx.amount.toLocaleString()} {tCommon('currency.sar')}
                   </div>
                 </div>
               )
@@ -304,7 +315,7 @@ export default function Portfolio() {
         ) : (
           <div className="text-center py-8 text-gray-500">
             <History className="mx-auto mb-2 text-gray-300" size={48} />
-            <div>No transactions yet.</div>
+            <div>{t('investor.wallet.noTransactions')}</div>
           </div>
         )}
       </div>

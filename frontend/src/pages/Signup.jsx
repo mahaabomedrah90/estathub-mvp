@@ -2,6 +2,7 @@ import React, { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { fetchJson, setToken } from '../lib/api'
 import { Building2, Mail, Lock, AlertCircle, Loader2, UserPlus, User, Building, Eye, EyeOff } from 'lucide-react'
+import { useTranslation } from 'react-i18next'
 
 export default function Signup() {
   const [formData, setFormData] = useState({
@@ -17,35 +18,38 @@ export default function Signup() {
   const [showPassword, setShowPassword] = useState(false)
   const [showConfirmPassword, setShowConfirmPassword] = useState(false)
   const navigate = useNavigate()
+const { t, i18n } = useTranslation('pages')
+const isRtl = i18n.dir() === 'rtl'  
 
-  const handleInputChange = (e) => {
-    const { name, value } = e.target
-    setFormData(prev => ({ ...prev, [name]: value }))
+ const handleInputChange = (e) => {
+  const { name, value } = e.target
+  setFormData(prev => ({ ...prev, [name]: value }))
+}
+
+const validateForm = () => {
+  if (!formData.email || !formData.password || !formData.name) {
+    setError(t('auth.signup.errorRequired'))
+    return false
   }
 
-  const validateForm = () => {
-    if (!formData.email || !formData.password || !formData.name) {
-      setError('Please fill in all required fields')
-      return false
-    }
-    
-    if (formData.password.length < 8) {
-      setError('Password must be at least 8 characters long')
-      return false
-    }
-    
-    if (formData.password !== formData.confirmPassword) {
-      setError('Passwords do not match')
-      return false
-    }
-    
-    if (!formData.email.includes('@')) {
-      setError('Please enter a valid email address')
-      return false
-    }
-    
-    return true
+  if (formData.password.length < 8) {
+    setError(t('auth.signup.errorPasswordLength'))
+    return false
   }
+
+  if (formData.password !== formData.confirmPassword) {
+    setError(t('auth.signup.errorPasswordMismatch'))
+    return false
+  }
+
+  if (!formData.email.includes('@')) {
+    setError(t('auth.signup.errorEmailInvalid'))
+    return false
+  }
+
+  return true
+}
+
 
   async function onSubmit(e) {
     e.preventDefault()
@@ -74,7 +78,7 @@ export default function Signup() {
         throw new Error('Invalid response from server')
       }
       
-      setToken(res.token)
+      setToken(res.token);
       
       // Store user data from server response
       const userRole = (res.user?.role || 'INVESTOR').toUpperCase()
@@ -101,26 +105,31 @@ export default function Signup() {
   }
 
   return (
-    <div className="min-h-[calc(100vh-200px)] flex items-center justify-center py-12 px-4">
-      <div className="w-full max-w-md">
+   <div className="min-h-[calc(100vh-200px)] flex items-center justify-center py-12 px-2 sm:px-4">
+  <div className="w-full max-w-3xl">
         {/* Logo and Header */}
         <div className="text-center mb-8">
           <div className="flex items-center justify-center gap-2 mb-4">
             <Building2 className="text-emerald-600" size={40} />
             <span className="text-3xl font-bold text-gray-900">Estathub</span>
           </div>
-          <h1 className="text-2xl font-bold text-gray-900 mb-2">Create Account</h1>
-          <p className="text-gray-600">Join Estathub and start investing in real estate</p>
+      <h1 className="text-2xl font-bold text-gray-900 mb-2">
+  {t('auth.signup.title')}
+</h1>
+<p className="text-gray-600">
+  {t('auth.signup.subtitle')}
+</p>
         </div>
 
         {/* Signup Form Card */}
         <div className="bg-white border border-gray-200 rounded-xl shadow-lg p-8">
           <form onSubmit={onSubmit} className="space-y-4">
             {/* Name Field */}
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Full Name *
+          
+             <label className="block text-sm font-medium text-gray-700 mb-2">
+                {t('auth.signup.nameLabel')}
               </label>
+
               <div className="relative">
                 <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                   <User className="text-gray-400" size={20} />
@@ -130,17 +139,16 @@ export default function Signup() {
                   name="name"
                   value={formData.name}
                   onChange={handleInputChange}
-                  className="border border-gray-300 rounded-lg w-full pl-10 pr-4 py-3 focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 transition-colors"
-                  placeholder="John Doe"
+                  className="border border-gray-300 rounded-lg w-full pl-10 pr-4 py-3 focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 transition-colors block text-sm font-medium text-gray-700 mb-2"
+                  placeholder={t('auth.signup.namePlaceholder')}
                   required
-                />
-              </div>
+                /> 
             </div>
 
             {/* Email Field */}
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
-                Email Address *
+                {t('auth.signup.emailLabel')} 
               </label>
               <div className="relative">
                 <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
@@ -151,8 +159,8 @@ export default function Signup() {
                   name="email"
                   value={formData.email}
                   onChange={handleInputChange}
-                  className="border border-gray-300 rounded-lg w-full pl-10 pr-4 py-3 focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 transition-colors"
-                  placeholder="you@example.com"
+                  className="border border-gray-300 rounded-lg w-full pl-10 pr-4 py-3 focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 transition-colors block text-sm font-medium text-gray-700 mb-2"
+                  placeholder={t('auth.signup.emailPlaceholder')}
                   required
                 />
               </div>
@@ -161,7 +169,7 @@ export default function Signup() {
             {/* Password Field */}
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
-                Password *
+                {t('auth.signup.passwordLabel')} 
               </label>
               <div className="relative">
                 <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
@@ -172,8 +180,8 @@ export default function Signup() {
                   name="password"
                   value={formData.password}
                   onChange={handleInputChange}
-                  className="border border-gray-300 rounded-lg w-full pl-10 pr-12 py-3 focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 transition-colors"
-                  placeholder="Min. 8 characters"
+                  className="border border-gray-300 rounded-lg w-full pl-10 pr-12 py-3 focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 transition-colors block text-sm font-medium text-gray-700 mb-2"
+                  placeholder={t('auth.signup.passwordPlaceholder')}
                   required
                 />
                 <button
@@ -189,7 +197,7 @@ export default function Signup() {
             {/* Confirm Password Field */}
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
-                Confirm Password *
+                {t('auth.signup.confirmPasswordLabel')} 
               </label>
               <div className="relative">
                 <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
@@ -200,8 +208,8 @@ export default function Signup() {
                   name="confirmPassword"
                   value={formData.confirmPassword}
                   onChange={handleInputChange}
-                  className="border border-gray-300 rounded-lg w-full pl-10 pr-12 py-3 focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 transition-colors"
-                  placeholder="Confirm your password"
+                  className="border border-gray-300 rounded-lg w-full pl-10 pr-12 py-3 focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 transition-colors block text-sm font-medium text-gray-700 mb-2"
+                  placeholder={t('auth.signup.confirmPasswordPlaceholder')}
                   required
                 />
                 <button
@@ -217,8 +225,8 @@ export default function Signup() {
             {/* Tenant Name Field */}
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
-                Company/Organization Name
-              </label>
+  {t('auth.signup.tenantLabel')}
+</label>
               <div className="relative">
                 <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                   <Building className="text-gray-400" size={20} />
@@ -228,8 +236,8 @@ export default function Signup() {
                   name="tenantName"
                   value={formData.tenantName}
                   onChange={handleInputChange}
-                  className="border border-gray-300 rounded-lg w-full pl-10 pr-4 py-3 focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 transition-colors"
-                  placeholder="Your company name (optional)"
+                  className="border border-gray-300 rounded-lg w-full pl-10 pr-4 py-3 focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 transition-colors block text-sm font-medium text-gray-700 mb-2"
+                 placeholder={t('auth.signup.tenantPlaceholder')}
                 />
               </div>
             </div>
@@ -237,7 +245,7 @@ export default function Signup() {
             {/* Role Selection */}
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
-                Account Type
+                {t('auth.signup.accountTypeLabel')}
               </label>
               <div className="grid grid-cols-3 gap-2">
                 <button
@@ -249,7 +257,7 @@ export default function Signup() {
                       : 'border-gray-300 text-gray-600 hover:border-gray-400'
                   }`}
                 >
-                  Investor
+                  {t('auth.signup.roleInvestor')}
                 </button>
                 <button
                   type="button"
@@ -260,7 +268,7 @@ export default function Signup() {
                       : 'border-gray-300 text-gray-600 hover:border-gray-400'
                   }`}
                 >
-                  Owner
+                  {t('auth.signup.roleOwner')}
                 </button>
                 <button
                   type="button"
@@ -271,7 +279,7 @@ export default function Signup() {
                       : 'border-gray-300 text-gray-600 hover:border-gray-400'
                   }`}
                 >
-                  Admin
+                  {t('auth.signup.roleAdmin')}
                 </button>
               </div>
             </div>
@@ -289,16 +297,16 @@ export default function Signup() {
               className="w-full flex items-center justify-center gap-2 rounded-lg bg-emerald-600 hover:bg-emerald-700 disabled:bg-gray-300 disabled:cursor-not-allowed text-white px-4 py-3 font-semibold transition-colors"
             >
               {loading ? (
-                <>
-                  <Loader2 className="animate-spin" size={20} />
-                  <span>Creating Account...</span>
-                </>
-              ) : (
-                <>
-                  <UserPlus size={20} />
-                  <span>Create Account</span>
-                </>
-              )}
+  <>
+    <Loader2 className="animate-spin" size={20} />
+    <span>{t('auth.signup.creatingAccount')}</span>
+  </>
+) : (
+  <>
+    <UserPlus size={20} />
+    <span>{t('auth.signup.submit')}</span>
+  </>
+)}
             </button>
           </form>
         </div>
@@ -306,12 +314,12 @@ export default function Signup() {
         {/* Footer Links */}
         <div className="mt-6 text-center text-sm text-gray-600">
           <p>
-            Already have an account? {' '}
+            {t('auth.signup.footerQuestion')} {' '}
             <button 
               onClick={() => navigate('/login')}
               className="text-emerald-600 hover:text-emerald-700 font-medium"
             >
-              Sign in
+                {t('auth.signup.footerLogin')}
             </button>
           </p>
         </div>
