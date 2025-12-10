@@ -1,0 +1,16 @@
+{
+  "tabs": {
+    "timeline": "Timeline",
+    "properties": "Properties",
+    "certificates": "Certificates",
+    "transactions": "Transactions"
+  },
+  "empty": {
+    "timeline": "No blockchain events yet. When properties are registered or tokens are minted, they will appear here."
+  },
+  "loading": "Loading blockchain data...",
+  "error": "Failed to load blockchain data",
+  "actions": {
+    "tryAgain": "Try Again"
+  }
+}

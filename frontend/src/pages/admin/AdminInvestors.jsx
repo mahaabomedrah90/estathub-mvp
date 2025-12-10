@@ -4,8 +4,13 @@ import {
   Activity, Target, Calendar, Award, AlertCircle, CheckCircle, Eye
 } from 'lucide-react'
 import { authHeader, fetchJson, getToken } from '../../lib/api'
+import { useTranslation } from 'react-i18next';
+
+
 
 export default function OwnerInvestors() {
+  const { t, i18n } = useTranslation('pages');
+  const { t: tCommon } = useTranslation('common');
   const [loading, setLoading] = useState(true)
   const [investors, setInvestors] = useState([])
   const [selectedInvestor, setSelectedInvestor] = useState(null)
@@ -18,6 +23,8 @@ export default function OwnerInvestors() {
     profitableInvestors: 0,
     avgROI: 0
   })
+
+  const isArabic = i18n.language === 'ar'
 
   useEffect(() => {
     loadInvestorData()
@@ -332,60 +339,83 @@ const property = inv.property || {}
       <div className="flex items-center justify-center py-12">
         <div className="text-center space-y-4">
           <AlertCircle className="mx-auto text-gray-400" size={64} />
-          <div className="text-gray-600">Please login as admin to view investor insights.</div>
+              <div className="text-gray-600">
+                {isArabic
+                  ? 'هذه الصفحة متاحة للمسؤولين فقط.'
+                  : 'This page is only available for administrators.'}
+              </div>
         </div>
       </div>
     )
   }
 
-  if (loading) {
-    return (
-      <div className="flex items-center justify-center py-12">
-        <div className="text-center space-y-3">
-          <Activity className="animate-spin text-blue-600 mx-auto" size={40} />
-          <div className="text-gray-600">Loading investor data...</div>
+ if (loading) {
+  return (
+    <div className="flex items-center justify-center py-12">
+      <div className="text-center space-y-3">
+        <div className="text-gray-600">
+          {isArabic ? 'جاري تحميل بيانات المستثمرين...' : 'Loading investor data...'}
         </div>
       </div>
-    )
-  }
+    </div>
+  );
+}
 
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-bold text-gray-900">Investor Insights</h1>
-        <p className="text-gray-600 mt-1">Comprehensive analysis of investor performance and portfolio health</p>
+        <h1 className="text-2xl font-bold text-gray-900">
+          {isArabic ? 'إدارة المستثمرين' : 'Investor Management'}
+        </h1>
+        <p className="text-gray-600 mt-1">
+          {isArabic
+            ? 'إدارة وتحليل أنشطة المحافظ الاستثمارية للمستثمرين.'
+            : 'Manage and analyze investors and their investment portfolios.'}
+        </p>
       </div>
 
       {/* Analytics Overview */}
       <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-6 gap-4">
         <div className="bg-white rounded-lg p-4 border shadow">
           <Users className="text-blue-600 mb-2" size={20} />
-          <p className="text-xs text-gray-600">Total Investors</p>
+          <p className="text-xs text-gray-600">
+            {isArabic ? 'إجمالي المستثمرين' : 'Total Investors'}
+          </p>
           <h3 className="text-xl font-bold text-gray-900">{analytics.totalInvestors}</h3>
         </div>
         <div className="bg-white rounded-lg p-4 border shadow">
           <DollarSign className="text-emerald-600 mb-2" size={20} />
-          <p className="text-xs text-gray-600">Total Investment</p>
+          <p className="text-xs text-gray-600">
+            {isArabic ? 'إجمالي الاستثمار' : 'Total Investment'}
+          </p>
           <h3 className="text-xl font-bold text-gray-900">{formatCurrency(analytics.totalInvestment)}</h3>
         </div>
         <div className="bg-white rounded-lg p-4 border shadow">
           <TrendingUp className="text-purple-600 mb-2" size={20} />
-          <p className="text-xs text-gray-600">Total Returns</p>
+          <p className="text-xs text-gray-600">
+            {isArabic ? 'إجمالي العوائد' : 'Total Returns'}
+          </p>
           <h3 className="text-xl font-bold text-gray-900">{formatCurrency(analytics.totalReturns)}</h3>
         </div>
         <div className="bg-white rounded-lg p-4 border shadow">
           <Activity className="text-amber-600 mb-2" size={20} />
-          <p className="text-xs text-gray-600">Avg Investment</p>
+          <p className="text-xs text-gray-600">
+            {isArabic ? 'متوسط الاستثمار' : 'Avg. Investment'}
+          </p>
           <h3 className="text-xl font-bold text-gray-900">{formatCurrency(analytics.avgInvestment)}</h3>
         </div>
         <div className="bg-white rounded-lg p-4 border shadow">
           <Target className="text-green-600 mb-2" size={20} />
-          <p className="text-xs text-gray-600">Profitable Investors</p>
+          <p className="text-xs text-gray-600">
+            {isArabic ? 'المستثمرون المربحون' : 'Profitable Investors'}
+          </p>
           <h3 className="text-xl font-bold text-gray-900">{analytics.profitableInvestors}</h3>
         </div>
         <div className="bg-white rounded-lg p-4 border shadow">
           <Award className="text-indigo-600 mb-2" size={20} />
-          <p className="text-xs text-gray-600">Avg ROI</p>
+          <p className="text-xs text-gray-600">
+            {isArabic ? 'متوسط العائد' : 'Avg. ROI'}
+          </p>
           <h3 className="text-xl font-bold text-gray-900">{analytics.avgROI.toFixed(1)}%</h3>
         </div>
       </div>
@@ -393,20 +423,38 @@ const property = inv.property || {}
       {/* Investors Table */}
       <div className="bg-white rounded-lg border shadow overflow-hidden">
         <div className="px-6 py-4 border-b border-gray-200">
-          <h2 className="text-lg font-semibold text-gray-900">Investor Portfolio Analysis</h2>
+          <h2 className="text-lg font-semibold text-gray-900">
+            {isArabic ? 'محفظة المستثمر' : 'Investor Portfolio'}
+          </h2>
         </div>
         <div className="overflow-x-auto">
           <table className="w-full">
             <thead className="bg-gray-50 border-b">
               <tr>
-                <th className="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase">Investor</th>
-                <th className="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase">Properties</th>
-                <th className="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase">Total Investment</th>
-                <th className="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase">Total Returns</th>
-                <th className="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase">ROI</th>
-                <th className="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase">Risk Level</th>
-                <th className="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase">Performance</th>
-                <th className="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase">Actions</th>
+                <th className="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase">
+                  {isArabic ? 'اسم المستثمر' : 'Investor Name'}
+                </th>
+                <th className="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase">
+                  {isArabic ? 'العقارات' : 'Properties'}
+                </th>
+                <th className="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase">
+                  {isArabic ? 'إجمالي الاستثمار' : 'Total Investment'}
+                </th>
+                <th className="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase">
+                  {isArabic ? 'إجمالي العوائد' : 'Total Returns'}
+                </th>
+                <th className="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase">
+                  {isArabic ? 'العائد على الاستثمار' : 'ROI'}
+                </th>
+                <th className="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase">
+                  {isArabic ? 'الحالة' : 'Status'}
+                </th>
+                <th className="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase">
+                  {isArabic ? 'الأداء' : 'Performance'}
+                </th>
+                <th className="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase">
+                  {isArabic ? 'الإجراءات' : 'Actions'}
+                </th>
               </tr>
             </thead>
             <tbody className="divide-y">
@@ -435,7 +483,7 @@ const property = inv.property || {}
                             {investor.email}
                           </div>
                           <div className="text-xs text-gray-400">
-                            Joined {formatDate(investor.joinDate)}
+                            {tCommon('date.joinedOn', { date: formatDate(investor.joinDate) })}
                           </div>
                         </div>
                       </div>
@@ -443,10 +491,11 @@ const property = inv.property || {}
                     <td className="px-6 py-4">
                       <div className="space-y-1">
                         <div className="text-sm font-medium text-gray-900">
-                          {investor.propertiesCount} Properties
+                          {investor.propertiesCount} {t('admin.investors.columns.properties')}
                         </div>
                         <div className="text-xs text-gray-500">
-                          {investor.totalTokens} Tokens
+                          {investor.totalTokens}{' '}
+                          {i18n.language === 'ar' ? 'عدد التوكنات' : 'Tokens'}
                         </div>
                       </div>
                     </td>
@@ -504,7 +553,7 @@ const property = inv.property || {}
                         className="text-blue-600 hover:text-blue-800 text-sm font-medium flex items-center space-x-1"
                       >
                         <Eye size={14} />
-                        <span>Details</span>
+                        <span>{i18n.language === 'ar' ? 'التفاصيل' : 'Details'}</span>
                       </button>
                     </td>
                   </tr>
@@ -545,25 +594,33 @@ const property = inv.property || {}
               {/* Quick Stats */}
               <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                 <div className="bg-gray-50 rounded-lg p-4">
-                  <p className="text-xs text-gray-600">Total Investment</p>
+                  <p className="text-xs text-gray-600">
+                    {i18n.language === 'ar' ? 'إجمالي الاستثمار' : 'Total Investment'}
+                  </p>
                   <p className="text-lg font-semibold text-gray-900">
                     {formatCurrency(selectedInvestor.totalInvestment)}
                   </p>
                 </div>
                 <div className="bg-gray-50 rounded-lg p-4">
-                  <p className="text-xs text-gray-600">Total Returns</p>
+                  <p className="text-xs text-gray-600">
+                    {i18n.language === 'ar' ? 'إجمالي العوائد' : 'Total Returns'}
+                  </p>
                   <p className="text-lg font-semibold text-purple-600">
                     {formatCurrency(selectedInvestor.totalReturns)}
                   </p>
                 </div>
                 <div className="bg-gray-50 rounded-lg p-4">
-                  <p className="text-xs text-gray-600">ROI</p>
+                  <p className="text-xs text-gray-600">
+                    {i18n.language === 'ar' ? 'العائد على الاستثمار' : 'ROI'}
+                  </p>
                   <p className="text-lg font-semibold text-emerald-600">
                     {selectedInvestor.roi.toFixed(1)}%
                   </p>
                 </div>
                 <div className="bg-gray-50 rounded-lg p-4">
-                  <p className="text-xs text-gray-600">Properties</p>
+                  <p className="text-xs text-gray-600">
+                    {i18n.language === 'ar' ? 'عدد العقارات' : 'Properties'}
+                  </p>
                   <p className="text-lg font-semibold text-blue-600">
                     {selectedInvestor.propertiesCount}
                   </p>
@@ -572,7 +629,9 @@ const property = inv.property || {}
 
               {/* Portfolio Details */}
               <div>
-                <h4 className="text-md font-semibold text-gray-900 mb-3">Portfolio Details</h4>
+                <h4 className="text-md font-semibold text-gray-900 mb-3">
+                  {i18n.language === 'ar' ? 'تفاصيل المحفظة' : 'Portfolio Details'}
+                </h4>
                 <div className="space-y-3">
                   {selectedInvestor.portfolio.map((property, index) => (
                     <div key={index} className="border border-gray-200 rounded-lg p-4">
@@ -584,23 +643,31 @@ const property = inv.property || {}
                           </div>
                           <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
                             <div>
-                              <p className="text-gray-600">Investment</p>
+                              <p className="text-gray-600">
+                                {i18n.language === 'ar' ? 'الاستثمار' : 'Investment'}
+                              </p>
                               <p className="font-medium text-emerald-600">
                                 {formatCurrency(property.investment)}
                               </p>
                             </div>
                             <div>
-                              <p className="text-gray-600">Returns</p>
+                              <p className="text-gray-600">
+                                {i18n.language === 'ar' ? 'العوائد' : 'Returns'}
+                              </p>
                               <p className="font-medium text-purple-600">
                                 {formatCurrency(property.returns)}
                               </p>
                             </div>
                             <div>
-                              <p className="text-gray-600">Tokens</p>
+                              <p className="text-gray-600">
+                                {i18n.language === 'ar' ? 'عدد التوكنات' : 'Tokens'}
+                              </p>
                               <p className="font-medium text-blue-600">{property.tokens}</p>
                             </div>
                             <div>
-                              <p className="text-gray-600">Performance</p>
+                              <p className="text-gray-600">
+                                {i18n.language === 'ar' ? 'الأداء' : 'Performance'}
+                              </p>
                               <span className={`inline-flex px-2 py-1 text-xs font-medium rounded-full ${
                                 property.performance === 'excellent' ? 'bg-emerald-50 text-emerald-600' :
                                 property.performance === 'good' ? 'bg-green-50 text-green-600' :
@@ -620,18 +687,26 @@ const property = inv.property || {}
 
               {/* Blockchain Info */}
               <div>
-                <h4 className="text-md font-semibold text-gray-900 mb-3">Blockchain Information</h4>
+                <h4 className="text-md font-semibold text-gray-900 mb-3">
+                  {i18n.language === 'ar' ? 'بيانات البلوكشين' : 'Blockchain Info'}
+                </h4>
                 <div className="bg-gray-50 rounded-lg p-4 space-y-2">
                   <div className="flex justify-between text-sm">
-                    <span className="text-gray-600">Wallet Address:</span>
+                    <span className="text-gray-600">
+                      {i18n.language === 'ar' ? 'عنوان المحفظة' : 'Wallet Address'}:
+                    </span>
                     <span className="font-mono text-gray-900">{selectedInvestor.walletAddress}</span>
                   </div>
                   <div className="flex justify-between text-sm">
-                    <span className="text-gray-600">Transaction Count:</span>
+                    <span className="text-gray-600">
+                      {i18n.language === 'ar' ? 'عدد المعاملات' : 'Transaction Count'}:
+                    </span>
                     <span className="font-medium text-gray-900">{selectedInvestor.transactionCount}</span>
                   </div>
                   <div className="flex justify-between text-sm">
-                    <span className="text-gray-600">Smart Contract Interactions:</span>
+                    <span className="text-gray-600">
+                      {i18n.language === 'ar' ? 'تفاعلات العقود الذكية' : 'Smart contract interactions'}:
+                    </span>
                     <span className="font-medium text-gray-900">{selectedInvestor.smartContractInteractions}</span>
                   </div>
                 </div>

@@ -1,40 +1,44 @@
 import React from 'react'
 import { FileCheck, Shield, AlertCircle, CheckCircle2 } from 'lucide-react'
+import { useTranslation } from 'react-i18next';
 
 export default function Step5Compliance({ formData, onChange, errors = {} }) {
+  const { t } = useTranslation('pages');
   const handleChange = (field, value) => {
     onChange({ ...formData, [field]: value })
   }
 
-  const declarations = [
+
+
+    const declarations = [
     {
       id: 'declarationPropertyAccuracy',
-      title: 'Property Information Accuracy',
-      titleAr: 'دقة معلومات العقار',
-      description: 'I declare that all information provided about the property, including ownership documents, measurements, and financial details, is accurate and truthful.',
-      descriptionAr: 'أقر بأن جميع المعلومات المقدمة عن العقار، بما في ذلك مستندات الملكية والقياسات والتفاصيل المالية، دقيقة وصحيحة.'
+      title: t('declarationPropertyAccuracyTitle'),
+      titleAr: t('declarationPropertyAccuracyTitleAr'),
+      description: t('declarationPropertyAccuracyDescription'),
+      descriptionAr: t('declarationPropertyAccuracyDescriptionAr'),
     },
     {
       id: 'declarationLegalResponsibility',
-      title: 'Legal Responsibility',
-      titleAr: 'المسؤولية القانونية',
-      description: 'I understand and accept full legal responsibility for the accuracy of all submitted information and documents. I acknowledge that providing false information may result in legal consequences.',
-      descriptionAr: 'أتفهم وأقبل المسؤولية القانونية الكاملة عن دقة جميع المعلومات والمستندات المقدمة. وأقر بأن تقديم معلومات كاذبة قد يؤدي إلى عواقب قانونية.'
+      title: t('declarationLegalResponsibilityTitle'),
+      titleAr: t('declarationLegalResponsibilityTitleAr'),
+      description: t('declarationLegalResponsibilityDescription'),
+      descriptionAr: t('declarationLegalResponsibilityDescriptionAr'),
     },
     {
       id: 'declarationTokenizationApproval',
-      title: 'Tokenization Approval',
-      titleAr: 'الموافقة على التوكنة',
-      description: 'I authorize the tokenization of my property on the blockchain platform and understand that tokens will represent fractional ownership of the property.',
-      descriptionAr: 'أوافق على توكنة عقاري على منصة البلوكشين وأتفهم أن الرموز ستمثل ملكية جزئية للعقار.'
+      title: t('declarationTokenizationApprovalTitle'),
+      titleAr: t('declarationTokenizationApprovalTitleAr'),
+      description: t('declarationTokenizationApprovalDescription'),
+      descriptionAr: t('declarationTokenizationApprovalDescriptionAr'),
     },
     {
       id: 'declarationDocumentSharingApproval',
-      title: 'Document Sharing Approval',
-      titleAr: 'الموافقة على مشاركة المستندات',
-      description: 'I consent to sharing property documents and information with verified investors and platform administrators for due diligence purposes.',
-      descriptionAr: 'أوافق على مشاركة مستندات ومعلومات العقار مع المستثمرين المعتمدين ومسؤولي المنصة لأغراض العناية الواجبة.'
-    }
+      title: t('declarationDocumentSharingApprovalTitle'),
+      titleAr: t('declarationDocumentSharingApprovalTitleAr'),
+      description: t('declarationDocumentSharingApprovalDescription'),
+      descriptionAr: t('declarationDocumentSharingApprovalDescriptionAr'),
+    },
   ]
 
   const allAccepted = declarations.every(d => formData[d.id] === true)
@@ -47,8 +51,8 @@ export default function Step5Compliance({ formData, onChange, errors = {} }) {
           <FileCheck className="text-green-600" size={24} />
         </div>
         <div>
-          <h2 className="text-2xl font-bold text-gray-900">Compliance & Agreements</h2>
-          <p className="text-sm text-gray-600">الامتثال والموافقات - Legal declarations and agreements</p>
+          <h2 className="text-2xl font-bold text-gray-900">{t('complianceAgreements')}</h2>
+          <p className="text-sm text-gray-600">{t('legalDeclarationsAgreements')}</p>
         </div>
       </div>
 
@@ -56,8 +60,8 @@ export default function Step5Compliance({ formData, onChange, errors = {} }) {
       <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 flex items-start gap-3">
         <AlertCircle className="text-blue-600 flex-shrink-0 mt-0.5" size={20} />
         <div className="text-sm text-blue-800">
-          <p className="font-medium mb-1">Required Declarations</p>
-          <p>Please read and accept all declarations below. All declarations are mandatory to submit your property for tokenization.</p>
+          <p className="font-medium mb-1">{t('requiredDeclarations')}</p>
+          <p>{t('readAcceptDeclarations')}</p>
         </div>
       </div>
 
@@ -92,13 +96,13 @@ export default function Step5Compliance({ formData, onChange, errors = {} }) {
               <div className="flex-1">
                 <div className="flex items-center gap-2 mb-2">
                   <span className="text-sm font-medium text-gray-500">
-                    Declaration {index + 1}
+                    {t('declaration')} {index + 1}
                   </span>
                   {formData[declaration.id] && (
-                    <span className="px-2 py-0.5 bg-green-600 text-white text-xs rounded-full">
-                      Accepted
-                    </span>
-                  )}
+  <span className="px-2 py-0.5 bg-green-600 text-white text-xs rounded-full">
+    {t('declarationAccepted')}
+  </span>
+)}
                 </div>
 
                 <h3 className="text-lg font-semibold text-gray-900 mb-1">
@@ -141,12 +145,12 @@ export default function Step5Compliance({ formData, onChange, errors = {} }) {
           )}
           <div>
             <h3 className={`font-semibold mb-2 ${allAccepted ? 'text-green-900' : 'text-amber-900'}`}>
-              {allAccepted ? 'All Declarations Accepted ✓' : 'Action Required'}
+              {allAccepted ? t('allDeclarationsAccepted') : t('actionRequired')}
             </h3>
             <p className={`text-sm ${allAccepted ? 'text-green-800' : 'text-amber-800'}`}>
               {allAccepted
-                ? 'You have accepted all required declarations. You can now proceed to submit your property for review.'
-                : 'Please accept all declarations above to proceed with your property submission.'}
+                ? t('acceptedAllRequiredDeclarations') :
+                t('acceptDeclarations')}
             </p>
           </div>
         </div>
@@ -157,19 +161,19 @@ export default function Step5Compliance({ formData, onChange, errors = {} }) {
         <div className="flex items-start gap-3">
           <Shield className="text-gray-600 flex-shrink-0 mt-0.5" size={20} />
           <div className="text-sm text-gray-700">
-            <p className="font-medium mb-2">Legal Notice</p>
+            <p className="font-medium mb-2">{t('legalNotice')}</p>
             <p className="mb-2">
-              By submitting this property for tokenization, you agree to:
+              {t('submitPropertyTokenization')}
             </p>
             <ul className="list-disc list-inside space-y-1 text-gray-600">
-              <li>Comply with all Saudi Arabian real estate and securities regulations</li>
-              <li>Allow platform administrators to verify all submitted information</li>
-              <li>Maintain accurate property records and update information as needed</li>
-              <li>Distribute rental income to token holders according to the agreed schedule</li>
-              <li>Pay any applicable platform fees and transaction costs</li>
+              <li>{t('complySaudiRealEstate')}</li>
+              <li>{t('allowPlatformAdmin')}</li>
+              <li>{t('maintainPropertyRecords')}</li>
+              <li>{t('distributeRentalIncome')}</li>
+              <li>{t('payPlatformFees')}</li>
             </ul>
             <p className="mt-3 text-xs text-gray-500">
-              This platform operates in accordance with Saudi Arabian laws and regulations. All transactions are recorded on the blockchain for transparency and security.
+              {t('platformOperatesSaudiLaws')}
             </p>
           </div>
         </div>
@@ -184,10 +188,10 @@ export default function Step5Compliance({ formData, onChange, errors = {} }) {
             </div>
             <div>
               <h3 className="text-lg font-semibold text-emerald-900 mb-1">
-                Ready to Submit
+                  {t('readyToSubmit')}
               </h3>
               <p className="text-sm text-emerald-800">
-                Your property submission is complete. Click "Submit Property" to send it for admin review.
+                {t('propertySubmissionComplete')}
               </p>
             </div>
           </div>

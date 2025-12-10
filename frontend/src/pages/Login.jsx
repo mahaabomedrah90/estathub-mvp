@@ -2,15 +2,18 @@ import React, { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { fetchJson, setToken } from '../lib/api'
 import { Building2, Mail, Lock, AlertCircle, Loader2, UserPlus } from 'lucide-react'
+import { useTranslation } from 'react-i18next'
 
 export default function Login() {
+  const { t, i18n } = useTranslation('pages')
+  const isRtl = i18n.dir() === 'rtl'
   const [email, setEmail] = useState('admin@estathub.local')
   const [password, setPassword] = useState('Demo123!')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
   const navigate = useNavigate()
 
-  async function onSubmit(e) {
+  async function onSubmit(e) {    
     e.preventDefault()
     setError('')
     setLoading(true)
@@ -33,8 +36,9 @@ export default function Login() {
       setToken(res.token)
       
       // Store user data from server response
-      const userRole = (res.user?.role || 'INVESTOR').toUpperCase()
-      localStorage.setItem('role', userRole.toLowerCase()) // Store in lowercase for frontend
+      const rawRole = (res.user?.role || 'INVESTOR')
+      const userRole = String(rawRole).toLowerCase() // normalize
+      localStorage.setItem('role', userRole)
       localStorage.setItem('userId', res.user?.id || '')
       localStorage.setItem('userName', res.user?.name || res.user?.email || '')
       localStorage.setItem('tenantName', res.user?.tenant?.name || '')
@@ -50,21 +54,24 @@ export default function Login() {
       })
       
       // Navigate based on role from server
-      const redirectUrl = userRole === 'admin' 
-        ? '/admin/overview'
-        : userRole === 'owner'
-        ? '/owner/dashboard'
-        : '/investor/dashboard'
+      const redirectUrl =
+        userRole === 'admin'
+          ? '/admin/overview'
+          : userRole === 'owner'
+          ? '/owner/dashboard'
+          : userRole === 'regulator'
+          ? '/regulator/overview'
+          : '/investor/dashboard'
       
       console.log('🚀 Redirecting to:', redirectUrl)
       
       // Use React Router for navigation
       navigate(redirectUrl)
     } catch (err) {
-      console.error('❌ Login error:', err)
-      setError('Login failed. Please check your credentials and try again.')
-      setLoading(false)
-    }
+  console.error('❌ Login error:', err)
+  setError(err.message || t('auth.login.errorInvalid'))
+  setLoading(false)
+}
   }
 
   return (
@@ -76,46 +83,52 @@ export default function Login() {
             <Building2 className="text-emerald-600" size={40} />
             <span className="text-3xl font-bold text-gray-900">Estathub</span>
           </div>
-          <h1 className="text-2xl font-bold text-gray-900 mb-2">Welcome Back</h1>
-          <p className="text-gray-600">Sign in to access your investment portfolio</p>
+         <h1 className="text-2xl font-bold text-gray-900 mb-2">
+            {t('auth.login.welcomeBack')}
+          </h1>
+          <p className="text-gray-600">
+            {t('auth.login.subtitle')}
+          </p>
         </div>
 
         {/* Login Form Card */}
         <div className="bg-white border border-gray-200 rounded-xl shadow-lg p-8">
           <form onSubmit={onSubmit} className="space-y-5">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Email Address
+              <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-2">
+                {t('auth.login.emailLabel')}
               </label>
               <div className="relative">
                 <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                   <Mail className="text-gray-400" size={20} />
                 </div>
                 <input
+                  id="email"
                   type="email"
                   value={email}
                   onChange={e => setEmail(e.target.value)}
                   className="border border-gray-300 rounded-lg w-full pl-10 pr-4 py-3 focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 transition-colors"
-                  placeholder="you@example.com"
+                  placeholder={t('auth.login.emailPlaceholder')}
                   required
                 />
               </div>
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-               Password
-                  </label>
-                  <div className="relative">
-                  <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+              <label htmlFor="password" className="block text-sm font-medium text-gray-700 mb-2">
+                {t('auth.login.passwordLabel')}
+              </label>
+              <div className="relative">
+                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                   <Lock className="text-gray-400" size={20} />
-                  </div>
+                </div>
                   <input
+                  id="password"
                   type="password"
                   value={password}
                   onChange={e => setPassword(e.target.value)}
                   className="border border-gray-300 rounded-lg w-full pl-10 pr-4 py-3 focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 transition-colors"
-                  placeholder="********"
+                  placeholder={t('auth.login.passwordPlaceholder')}
                   required
                 />
               </div>
@@ -136,12 +149,12 @@ export default function Login() {
               {loading ? (
                 <>
                   <Loader2 className="animate-spin" size={20} />
-                  <span>Signing in...</span>
+                  <span>{t('auth.login.signingIn')}</span>
                 </>
               ) : (
                 <>
                   <Lock size={20} />
-                  <span>Sign In</span>
+                  <span>{t('auth.login.signIn')}</span>  
                 </>
               )}
             </button>
@@ -150,12 +163,12 @@ export default function Login() {
           {/* Demo Notice */}
           <div className="mt-6 p-4 bg-blue-50 border border-blue-200 rounded-lg">
           <p className="text-sm text-blue-800 font-medium mb-2">
-          <strong>Demo Credentials:</strong>
+          <strong>{t('auth.login.demoCredentials')}</strong>
           </p>
           <div className="text-xs text-blue-700 space-y-1">
-          <p><strong>Admin:</strong> admin@estathub.local / Demo123!</p>
-          <p><strong>Investor:</strong> investor@estathub.local / Demo123!</p>
-          <p><strong>Owner:</strong> owner@estathub.local / Demo123!</p>
+          <p><strong>{t('auth.login.adminUser')}:</strong> admin@estathub.local / Demo123!</p>
+          <p><strong>{t('auth.login.investorUser')}:</strong> investor@estathub.local / Demo123!</p>
+          <p><strong>{t('auth.login.ownerUser')}:</strong> owner@estathub.local / Demo123!</p>
           </div>
           </div>
         </div>
@@ -163,12 +176,12 @@ export default function Login() {
         {/* Footer Links */}
         <div className="mt-6 text-center text-sm text-gray-600">
           <p>
-            Don't have an account? {' '}
+            {t('auth.login.noAccount')} {' '}
            <button 
             onClick={() => navigate('/signup')}
             className="text-emerald-600 hover:text-emerald-700 font-medium"
           >
-            Sign up
+            {t('auth.login.signupLink')}
           </button>
           </p>
         </div>

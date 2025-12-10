@@ -1,0 +1,20 @@
+{
+  "brand": "Estathub",
+  "login": "Login",
+  "logout": "Logout",
+  "dashboard": "Dashboard",
+  "reviewProperties": "Review Properties",
+  "properties": "Properties",
+  "opportunities": "Opportunities",
+  "blockchain": "Blockchain",
+  "blockchainExplorer": "Blockchain Explorer",
+  "user": {
+    "roleBadge": "Role",
+    "tenant": "Tenant"
+  },
+  "language": {
+    "label": "Language",
+    "en": "EN",
+    "ar": "AR" 
+  }
+}

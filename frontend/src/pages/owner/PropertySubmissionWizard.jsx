@@ -2,7 +2,7 @@ import React, { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { ArrowLeft, ArrowRight, Save, Send, CheckCircle2, Loader } from 'lucide-react'
 import { fetchJson, authHeader, PayoutSchedule, OwnerType } from '../../lib/api'
-
+import { useTranslation } from 'react-i18next';
 // Import step components
 import Step1LegalVerification from './steps/Step1LegalVerification'
 import Step2TechnicalSpec from './steps/Step2TechnicalSpec'
@@ -11,15 +11,16 @@ import Step4OwnerInfo from './steps/Step4OwnerInfo'
 import Step5Compliance from './steps/Step5Compliance'
 
 const STEPS = [
-  { id: 1, title: 'Legal Verification', component: Step1LegalVerification },
-  { id: 2, title: 'Technical Specification', component: Step2TechnicalSpec },
-  { id: 3, title: 'Financial & Tokenization', component: Step3Financial },
-  { id: 4, title: 'Owner Information', component: Step4OwnerInfo },
-  { id: 5, title: 'Compliance & Agreements', component: Step5Compliance }
-]
+  { id: 1, key: '1', component: Step1LegalVerification },
+  { id: 2, key: '2', component: Step2TechnicalSpec },
+  { id: 3, key: '3', component: Step3Financial },
+  { id: 4, key: '4', component: Step4OwnerInfo },
+  { id: 5, key: '5', component: Step5Compliance }
+];
 
 export default function PropertySubmissionWizard() {
-  const navigate = useNavigate()
+  const { t } = useTranslation('pages');
+  const navigate = useNavigate();
   const [currentStep, setCurrentStep] = useState(1)
   const [loading, setLoading] = useState(false)
   const [errors, setErrors] = useState({})
@@ -86,64 +87,64 @@ export default function PropertySubmissionWizard() {
     const newErrors = {}
 
     if (step === 1) {
-      if (!formData.ownershipType) newErrors.ownershipType = 'Ownership type is required'
-      if (!formData.deedNumber) newErrors.deedNumber = 'Deed number is required'
-      if (!formData.deedDate) newErrors.deedDate = 'Deed date is required'
-      if (!formData.deedAuthority) newErrors.deedAuthority = 'Deed authority is required'
-      if (!formData.deedDocumentUrl) newErrors.deedDocumentUrl = 'Deed document is required'
-      if (!formData.sitePlanDocumentUrl) newErrors.sitePlanDocumentUrl = 'Site plan is required'
-      if (!formData.buildingPermitUrl) newErrors.buildingPermitUrl = 'Building permit is required'
-      if (!formData.electricityBillUrl) newErrors.electricityBillUrl = 'Electricity bill is required'
-      if (!formData.ownerIdDocumentUrl) newErrors.ownerIdDocumentUrl = 'Owner ID is required'
+      if (!formData.ownershipType) newErrors.ownershipType = t('owner.newProperty.validation.ownershipTypeRequired')
+      if (!formData.deedNumber) newErrors.deedNumber = t('owner.newProperty.validation.deedNumberRequired')
+      if (!formData.deedDate) newErrors.deedDate = t('owner.newProperty.validation.deedDateRequired')
+      if (!formData.deedAuthority) newErrors.deedAuthority = t('owner.newProperty.validation.deedAuthorityRequired')
+      if (!formData.deedDocumentUrl) newErrors.deedDocumentUrl = t('owner.newProperty.validation.deedDocumentRequired')
+      if (!formData.sitePlanDocumentUrl) newErrors.sitePlanDocumentUrl = t('owner.newProperty.validation.sitePlanRequired')
+      if (!formData.buildingPermitUrl) newErrors.buildingPermitUrl = t('owner.newProperty.validation.buildingPermitRequired')
+      if (!formData.electricityBillUrl) newErrors.electricityBillUrl = t('owner.newProperty.validation.electricityBillRequired')
+      if (!formData.ownerIdDocumentUrl) newErrors.ownerIdDocumentUrl = t('owner.newProperty.validation.ownerIdRequired')
     }
 
     if (step === 2) {
-      if (!formData.propertyType) newErrors.propertyType = 'Property type is required'
-      if (!formData.landArea || Number(formData.landArea) <= 0) newErrors.landArea = 'Valid land area is required'
-      if (!formData.builtArea || Number(formData.builtArea) <= 0) newErrors.builtArea = 'Valid built area is required'
-      if (!formData.buildingAge) newErrors.buildingAge = 'Building age is required'
-      if (!formData.floorsCount) newErrors.floorsCount = 'Number of floors is required'
-      if (!formData.unitsCount) newErrors.unitsCount = 'Number of units is required'
-      if (!formData.propertyCondition) newErrors.propertyCondition = 'Property condition is required'
-      if (!formData.city) newErrors.city = 'City is required'
-      if (!formData.district) newErrors.district = 'District is required'
-      if (!formData.municipality) newErrors.municipality = 'Municipality is required'
+      if (!formData.propertyType) newErrors.propertyType = t('owner.newProperty.validation.propertyTypeRequired')
+      if (!formData.landArea || Number(formData.landArea) <= 0) newErrors.landArea = t('owner.newProperty.validation.landAreaRequired')
+      if (!formData.builtArea || Number(formData.builtArea) <= 0) newErrors.builtArea = t('owner.newProperty.validation.builtAreaRequired')
+      if (!formData.buildingAge) newErrors.buildingAge = t('owner.newProperty.validation.buildingAgeRequired')
+      if (!formData.floorsCount) newErrors.floorsCount = t('owner.newProperty.validation.floorsCountRequired')
+      if (!formData.unitsCount) newErrors.unitsCount = t('owner.newProperty.validation.unitsCountRequired')
+      if (!formData.propertyCondition) newErrors.propertyCondition = t('owner.newProperty.validation.propertyConditionRequired')
+      if (!formData.city) newErrors.city = t('owner.newProperty.validation.cityRequired')
+      if (!formData.district) newErrors.district = t('owner.newProperty.validation.districtRequired')
+      if (!formData.municipality) newErrors.municipality = t('owner.newProperty.validation.municipalityRequired')
       if (!formData.propertyDescription || formData.propertyDescription.length < 100) {
-        newErrors.propertyDescription = 'Description must be at least 100 characters'
+        newErrors.propertyDescription = t('owner.newProperty.validation.descriptionMin')
       }
       if (!formData.mainImagesUrls || formData.mainImagesUrls.length < 3) {
-        newErrors.mainImagesUrls = 'At least 3 property images are required'
+        newErrors.mainImagesUrls = t('owner.newProperty.validation.imagesMin')
       }
     }
 
     if (step === 3) {
-      if (!formData.marketValue || Number(formData.marketValue) <= 0) newErrors.marketValue = 'Market value is required'
-      if (!formData.valuationReportUrl) newErrors.valuationReportUrl = 'Valuation report is required'
-      if (!formData.totalTokens || Number(formData.totalTokens) <= 0) newErrors.totalTokens = 'Total tokens is required'
-      if (!formData.tokenPrice || Number(formData.tokenPrice) <= 0) newErrors.tokenPrice = 'Token price is required'
-      if (!formData.expectedROI) newErrors.expectedROI = 'Expected ROI is required'
-      if (!formData.expectedMonthlyYield) newErrors.expectedMonthlyYield = 'Expected monthly yield is required'
+      if (!formData.marketValue || Number(formData.marketValue) <= 0) newErrors.marketValue = t('owner.newProperty.validation.marketValueRequired')
+      if (!formData.valuationReportUrl) newErrors.valuationReportUrl = t('owner.newProperty.validation.valuationReportRequired')
+      if (!formData.totalTokens || Number(formData.totalTokens) <= 0) newErrors.totalTokens = t('owner.newProperty.validation.totalTokensRequired')
+      if (!formData.tokenPrice || Number(formData.tokenPrice) <= 0) newErrors.tokenPrice = t('owner.newProperty.validation.tokenPriceRequired')
+      if (!formData.expectedROI) newErrors.expectedROI = t('owner.newProperty.validation.expectedRoiRequired')
+      if (!formData.expectedMonthlyYield) newErrors.expectedMonthlyYield = t('owner.newProperty.validation.expectedMonthlyYieldRequired')
     }
 
     if (step === 4) {
-      if (!formData.ownerName) newErrors.ownerName = 'Owner name is required'
-      if (!formData.nationalIdOrCR) newErrors.nationalIdOrCR = 'National ID or CR is required'
-      if (!formData.ownerPhone) newErrors.ownerPhone = 'Phone number is required'
-      if (!formData.ownerEmail) newErrors.ownerEmail = 'Email is required'
-      if (!formData.ownerIban) newErrors.ownerIban = 'IBAN is required'
+      if (!formData.ownerName) newErrors.ownerName = t('owner.newProperty.validation.ownerNameRequired')
+      if (!formData.nationalIdOrCR) newErrors.nationalIdOrCR = t('owner.newProperty.validation.nationalIdOrCrRequired')
+      if (!formData.ownerPhone) newErrors.ownerPhone = t('owner.newProperty.validation.ownerPhoneRequired')
+      if (!formData.ownerEmail) newErrors.ownerEmail = t('owner.newProperty.validation.ownerEmailRequired')
+      if (!formData.ownerIban) newErrors.ownerIban = t('owner.newProperty.validation.ownerIbanRequired')
       
       if (formData.ownerType === OwnerType.COMPANY) {
-        if (!formData.commercialRegistration) newErrors.commercialRegistration = 'Commercial registration is required'
-        if (!formData.authorizedPersonName) newErrors.authorizedPersonName = 'Authorized person name is required'
-        if (!formData.authorizedPersonId) newErrors.authorizedPersonId = 'Authorized person ID is required'
+        if (!formData.commercialRegistration) newErrors.commercialRegistration = t('owner.newProperty.validation.commercialRegistrationRequired')
+        if (!formData.authorizedPersonName) newErrors.authorizedPersonName = t('owner.newProperty.validation.authorizedPersonNameRequired')
+        if (!formData.authorizedPersonId) newErrors.authorizedPersonId = t('owner.newProperty.validation.authorizedPersonIdRequired')
       }
     }
 
     if (step === 5) {
-      if (!formData.declarationPropertyAccuracy) newErrors.declarationPropertyAccuracy = 'This declaration is required'
-      if (!formData.declarationLegalResponsibility) newErrors.declarationLegalResponsibility = 'This declaration is required'
-      if (!formData.declarationTokenizationApproval) newErrors.declarationTokenizationApproval = 'This declaration is required'
-      if (!formData.declarationDocumentSharingApproval) newErrors.declarationDocumentSharingApproval = 'This declaration is required'
+      if (!formData.declarationPropertyAccuracy) newErrors.declarationPropertyAccuracy = t('owner.newProperty.validation.declarationRequired')
+      if (!formData.declarationLegalResponsibility) newErrors.declarationLegalResponsibility = t('owner.newProperty.validation.declarationRequired')
+      if (!formData.declarationTokenizationApproval) newErrors.declarationTokenizationApproval = t('owner.newProperty.validation.declarationRequired')
+      if (!formData.declarationDocumentSharingApproval) newErrors.declarationDocumentSharingApproval = t('owner.newProperty.validation.declarationRequired')
     }
 
     setErrors(newErrors)
@@ -217,15 +218,19 @@ export default function PropertySubmissionWizard() {
       <div className="max-w-4xl mx-auto px-4">
         {/* Header */}
         <div className="mb-8">
-          <button
-            onClick={() => navigate('/owner/properties')}
-            className="flex items-center gap-2 text-gray-600 hover:text-gray-900 mb-4"
-          >
-            <ArrowLeft size={20} />
-            <span>Back to Properties</span>
-          </button>
-          <h1 className="text-3xl font-bold text-gray-900">Submit New Property</h1>
-          <p className="text-gray-600 mt-2">Complete all steps to submit your property for tokenization</p>
+         <button
+  onClick={() => navigate('/owner/properties')}
+  className="flex items-center gap-2 text-gray-600 hover:text-gray-900 mb-4"
+>
+  <ArrowLeft size={20} />
+  <span>{t('owner.newProperty.backToProperties')}</span>
+</button>
+<h1 className="text-3xl font-bold text-gray-900">
+  {t('owner.newProperty.pageTitle')}
+</h1>
+<p className="text-gray-600 mt-2">
+  {t('owner.newProperty.pageSubtitle')}
+</p>
         </div>
 
         {/* Progress Indicator */}
@@ -245,11 +250,13 @@ export default function PropertySubmissionWizard() {
                   >
                     {currentStep > step.id ? <CheckCircle2 size={20} /> : step.id}
                   </div>
-                  <span className={`text-xs mt-2 text-center ${
-                    currentStep === step.id ? 'text-emerald-600 font-medium' : 'text-gray-600'
-                  }`}>
-                    {step.title}
-                  </span>
+                  <span
+  className={`text-xs mt-2 text-center ${
+    currentStep === step.id ? 'text-emerald-600 font-medium' : 'text-gray-600'
+  }`}
+>
+  {t(`owner.newProperty.steps.${step.key}.label`)}
+</span>
                 </div>
                 {index < STEPS.length - 1 && (
                   <div className={`flex-1 h-1 mx-2 ${
@@ -292,8 +299,8 @@ export default function PropertySubmissionWizard() {
             disabled={currentStep === 1}
             className="flex items-center gap-2 px-6 py-3 border border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
           >
-            <ArrowLeft size={20} />
-            Previous
+            <ArrowRight size={20} />
+  {t('owner.newProperty.nav.back')}
           </button>
 
           <button
@@ -301,8 +308,8 @@ export default function PropertySubmissionWizard() {
             disabled={loading}
             className="flex items-center gap-2 px-6 py-3 border border-emerald-600 text-emerald-600 rounded-lg hover:bg-emerald-50 transition-colors"
           >
-            <Save size={20} />
-            Save Draft
+           <Save size={20} />
+  {t('owner.newProperty.nav.saveDraft')} {/* add this key */}
           </button>
 
           {currentStep < STEPS.length ? (
@@ -310,8 +317,8 @@ export default function PropertySubmissionWizard() {
               onClick={handleNext}
               className="flex items-center gap-2 px-6 py-3 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 transition-colors"
             >
-              Next
-              <ArrowRight size={20} />
+              {t('owner.newProperty.nav.next')}
+  <ArrowLeft size={20} />
             </button>
           ) : (
             <button
@@ -319,17 +326,17 @@ export default function PropertySubmissionWizard() {
               disabled={loading}
               className="flex items-center gap-2 px-6 py-3 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
             >
-              {loading ? (
-                <>
-                  <Loader className="animate-spin" size={20} />
-                  Submitting...
-                </>
-              ) : (
-                <>
-                  <Send size={20} />
-                  Submit Property
-                </>
-              )}
+             {loading ? (
+  <>
+    <Loader className="animate-spin" size={20} />
+    {t('owner.newProperty.nav.submitting')}
+  </>
+) : (
+  <>
+    <Send size={20} />
+    {t('owner.newProperty.nav.submit')}
+  </>
+)}
             </button>
           )}
         </div>

@@ -4,6 +4,8 @@ import {
   Building2, Plus, Edit2, Save, X, Loader2, AlertCircle, 
   CheckCircle2, TrendingUp, Coins, MapPin, Upload, Image as ImageIcon, Map 
 } from 'lucide-react'
+import { useTranslation } from 'react-i18next';
+
 
 export default function Admin() {
   const [properties, setProperties] = useState([])
@@ -13,6 +15,7 @@ export default function Admin() {
   const [showForm, setShowForm] = useState(false)
   const [editingId, setEditingId] = useState(null)
   const [submitting, setSubmitting] = useState(false)
+  const { t } = useTranslation('pages');
   
   // Form state
   const [formData, setFormData] = useState({
@@ -110,7 +113,7 @@ export default function Admin() {
           headers: { 'Content-Type': 'application/json', ...authHeader() },
           body: JSON.stringify(payload)
         })
-        setSuccess('Property updated successfully!')
+        setSuccess(t('admin.management.success'))
       } else {
         // Create new property
         await fetchJson('/api/properties', {
@@ -118,7 +121,7 @@ export default function Admin() {
           headers: { 'Content-Type': 'application/json', ...authHeader() },
           body: JSON.stringify(payload)
         })
-        setSuccess('Property created successfully!')
+        setSuccess(t('admin.management.success'))
       }
 
       await loadProperties()
@@ -139,7 +142,9 @@ export default function Admin() {
       <div className="flex items-center justify-center py-12">
         <div className="text-center space-y-4">
           <Building2 className="mx-auto text-gray-400" size={64} />
-          <div className="text-gray-600">Please login to access the admin panel.</div>
+          <div className="text-gray-600">
+  {t('admin.management.loginRequired')}
+</div>
         </div>
       </div>
     )
@@ -150,8 +155,12 @@ export default function Admin() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold text-gray-900">Property Management</h1>
-          <p className="text-gray-600">Add and manage real estate investment opportunities</p>
+          <h1 className="text-3xl font-bold text-gray-900">
+  {t('admin.management.headerTitle')}
+</h1>
+<p className="text-gray-600">
+  {t('admin.management.headerSubtitle')}
+</p>
         </div>
         {!showForm && (
           <button
@@ -159,7 +168,7 @@ export default function Admin() {
             className="flex items-center gap-2 px-4 py-2.5 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white font-medium transition-colors"
           >
             <Plus size={20} />
-            <span>Add Property</span>
+            <span>{t('admin.management.form.buttons.addProperty')}</span>
           </button>
         )}
       </div>
@@ -199,14 +208,14 @@ export default function Admin() {
               {/* Property Name */}
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Property Name *
+                  {t('admin.management.form.labels.name')}
                 </label>
                 <input
                   type="text"
                   value={formData.name}
                   onChange={e => handleInputChange('name', e.target.value)}
                   className="border border-gray-300 rounded-lg w-full px-4 py-2.5 focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
-                  placeholder="e.g., Luxury Villa in Riyadh"
+                  placeholder={t('admin.management.form.placeholders.name')}
                   required
                 />
               </div>
@@ -214,14 +223,14 @@ export default function Admin() {
               {/* Location */}
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Location *
+                  {t('admin.management.form.labels.location')}
                 </label>
                 <input
                   type="text"
                   value={formData.location}
                   onChange={e => handleInputChange('location', e.target.value)}
                   className="border border-gray-300 rounded-lg w-full px-4 py-2.5 focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
-                  placeholder="e.g., Riyadh, Saudi Arabia"
+                  placeholder={t('admin.management.form.placeholders.location')}
                   required
                 />
               </div>
@@ -229,7 +238,7 @@ export default function Admin() {
               {/* Latitude */}
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Latitude
+                    {t('admin.management.form.labels.latitude')}
                 </label>
                 <div className="relative">
                   <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
@@ -241,7 +250,7 @@ export default function Admin() {
                     value={formData.latitude}
                     onChange={e => handleInputChange('latitude', e.target.value)}
                     className="border border-gray-300 rounded-lg w-full pl-10 pr-4 py-2.5 focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
-                    placeholder="e.g., 24.7136"
+                    placeholder={t('admin.management.form.placeholders.latitude')}
                   />
                 </div>
               </div>
@@ -249,7 +258,7 @@ export default function Admin() {
               {/* Longitude */}
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Longitude
+                  {t('admin.management.form.labels.longitude')}
                 </label>
                 <div className="relative">
                   <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
@@ -261,18 +270,18 @@ export default function Admin() {
                     value={formData.longitude}
                     onChange={e => handleInputChange('longitude', e.target.value)}
                     className="border border-gray-300 rounded-lg w-full pl-10 pr-4 py-2.5 focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
-                    placeholder="e.g., 46.6753"
+                    placeholder=  {t('admin.management.form.placeholders.longitude')}
                   />
                 </div>
                 <p className="text-xs text-gray-500 mt-1">
-                  Tip: Get coordinates from <a href="https://www.google.com/maps" target="_blank" rel="noopener noreferrer" className="text-emerald-600 hover:underline">Google Maps</a> by right-clicking on the location
+                  {t('admin.management.form.tips.coords')}
                 </p>
               </div>
 
               {/* Token Price */}
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Token Price (SAR) *
+                  {t('admin.management.form.labels.tokenPrice')}
                 </label>
                 <input
                   type="number"
@@ -281,7 +290,7 @@ export default function Admin() {
                   value={formData.tokenPrice}
                   onChange={e => handleInputChange('tokenPrice', e.target.value)}
                   className="border border-gray-300 rounded-lg w-full px-4 py-2.5 focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
-                  placeholder="e.g., 1000"
+                  placeholder={t('admin.management.form.placeholders.tokenPrice')}
                   required
                 />
               </div>
@@ -289,7 +298,7 @@ export default function Admin() {
               {/* Total Tokens */}
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Total Tokens *
+                  {t('admin.management.form.labels.totalTokens')}
                 </label>
                 <input
                   type="number"
@@ -297,7 +306,7 @@ export default function Admin() {
                   value={formData.totalTokens}
                   onChange={e => handleInputChange('totalTokens', e.target.value)}
                   className="border border-gray-300 rounded-lg w-full px-4 py-2.5 focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
-                  placeholder="e.g., 1000"
+                  placeholder={t('admin.management.form.placeholders.totalTokens')}
                   required
                 />
               </div>
@@ -305,7 +314,7 @@ export default function Admin() {
               {/* Monthly Yield */}
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Monthly Yield (%) *
+                  {t('admin.management.form.labels.monthlyYield')}
                 </label>
                 <input
                   type="number"
@@ -315,7 +324,7 @@ export default function Admin() {
                   value={formData.monthlyYield}
                   onChange={e => handleInputChange('monthlyYield', e.target.value)}
                   className="border border-gray-300 rounded-lg w-full px-4 py-2.5 focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
-                  placeholder="e.g., 2.5"
+                  placeholder={t('admin.management.form.placeholders.monthlyYield')}
                   required
                 />
               </div>
@@ -324,13 +333,13 @@ export default function Admin() {
             {/* Description */}
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
-                Description
+                {t('admin.management.form.labels.description')}
               </label>
               <textarea
                 value={formData.description}
                 onChange={e => handleInputChange('description', e.target.value)}
                 className="border border-gray-300 rounded-lg w-full px-4 py-2.5 focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
-                placeholder="Describe the property and investment opportunity..."
+                placeholder={t('admin.management.form.placeholders.description')}
                 rows={4}
               />
             </div>
@@ -338,7 +347,7 @@ export default function Admin() {
             {/* Image URL */}
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
-                Property Image URL
+                {t('admin.management.form.labels.imageUrl')}
               </label>
               <div className="space-y-3">
                 <div className="flex gap-2">
@@ -351,13 +360,13 @@ export default function Admin() {
                       value={formData.imageUrl}
                       onChange={e => handleInputChange('imageUrl', e.target.value)}
                       className="border border-gray-300 rounded-lg w-full pl-10 pr-4 py-2.5 focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
-                      placeholder="https://example.com/property-image.jpg"
+                      placeholder={t('admin.management.form.placeholders.imageUrl')}
                     />
                   </div>
                 </div>
                 {formData.imageUrl && (
                   <div className="border border-gray-200 rounded-lg p-3 bg-gray-50">
-                    <div className="text-sm text-gray-600 mb-2">Image Preview:</div>
+                    <div className="text-sm text-gray-600 mb-2">{t('admin.management.form.tips.imagePreview')}</div>
                     <div className="relative w-full h-48 bg-gray-200 rounded-lg overflow-hidden">
                       <img 
                         src={formData.imageUrl} 
@@ -371,14 +380,14 @@ export default function Admin() {
                       <div className="absolute inset-0 hidden items-center justify-center bg-gray-100">
                         <div className="text-center text-gray-500">
                           <ImageIcon className="mx-auto mb-2" size={32} />
-                          <div className="text-sm">Invalid image URL</div>
+                          <div className="text-sm">{t('admin.management.form.tips.invalidImageUrl')}</div>
                         </div>
                       </div>
                     </div>
                   </div>
                 )}
                 <p className="text-xs text-gray-500">
-                  Tip: You can use free image hosting services like Imgur, Cloudinary, or upload to your own server.
+                  {t('admin.management.form.tips.imageUrl')}
                 </p>
               </div>
             </div>
@@ -393,12 +402,12 @@ export default function Admin() {
                 {submitting ? (
                   <>
                     <Loader2 className="animate-spin" size={20} />
-                    <span>Saving...</span>
+                    <span>{t('admin.management.form.buttons.saving')}</span>
                   </>
                 ) : (
                   <>
                     <Save size={20} />
-                    <span>{editingId ? 'Update Property' : 'Create Property'}</span>
+                    <span>{editingId ? t('admin.management.form.buttons.update') : t('admin.management.form.buttons.create')}</span>
                   </>
                 )}
               </button>
@@ -407,7 +416,7 @@ export default function Admin() {
                 onClick={resetForm}
                 className="px-6 py-2.5 rounded-lg border border-gray-300 hover:bg-gray-50 text-gray-700 font-medium transition-colors"
               >
-                Cancel
+                {t('admin.management.form.buttons.cancel')}
               </button>
             </div>
           </form>
@@ -416,19 +425,19 @@ export default function Admin() {
 
       {/* Properties List */}
       <div className="bg-white border border-gray-200 rounded-xl p-6">
-        <h2 className="text-xl font-semibold text-gray-900 mb-4">Existing Properties</h2>
+        <h2 className="text-xl font-semibold text-gray-900 mb-4">{t('admin.management.list.title')}</h2>
         
         {loading ? (
           <div className="flex items-center justify-center py-12">
             <div className="text-center space-y-3">
               <Loader2 className="animate-spin text-emerald-600 mx-auto" size={40} />
-              <div className="text-gray-600">Loading properties...</div>
+                  <div className="text-gray-600">{t('admin.management.list.loading')}</div>
             </div>
           </div>
         ) : properties.length === 0 ? (
           <div className="text-center py-12 text-gray-500">
             <Building2 className="mx-auto mb-2 text-gray-300" size={48} />
-            <div>No properties yet. Add your first property to get started!</div>
+            <div>{t('admin.management.list.noProperties')}</div>
           </div>
         ) : (
           <div className="space-y-4">
@@ -475,7 +484,7 @@ export default function Admin() {
                           className="flex items-center gap-2 px-3 py-1.5 rounded-lg border border-gray-300 hover:bg-gray-50 text-gray-700 text-sm font-medium transition-colors"
                         >
                           <Edit2 size={16} />
-                          <span>Edit</span>
+                          <span> {t('admin.management.list.edit')}</span>
                         </button>
                       </div>
 
@@ -483,7 +492,7 @@ export default function Admin() {
                         <div className="bg-gray-50 rounded-lg p-3">
                           <div className="flex items-center gap-1 text-gray-500 text-xs mb-1">
                             <Coins size={14} />
-                            <span>Token Price</span>
+                            <span>{t('admin.management.list.tokenPrice')}</span>
                           </div>
                           <div className="font-semibold text-gray-900">{tokenPrice.toLocaleString()} SAR</div>
                         </div>
@@ -491,18 +500,18 @@ export default function Admin() {
                         <div className="bg-emerald-50 rounded-lg p-3">
                           <div className="flex items-center gap-1 text-emerald-600 text-xs mb-1">
                             <TrendingUp size={14} />
-                            <span>Monthly Yield</span>
+                            <span>{t('admin.management.list.monthlyYield')}</span>
                           </div>
                           <div className="font-semibold text-emerald-700">{monthlyYield}%</div>
                         </div>
 
                         <div className="bg-blue-50 rounded-lg p-3">
-                          <div className="text-blue-600 text-xs mb-1">Total Tokens</div>
+                          <div className="text-blue-600 text-xs mb-1">{t('admin.management.list.totalTokens')}</div>
                           <div className="font-semibold text-blue-700">{totalTokens.toLocaleString()}</div>
                         </div>
 
                         <div className="bg-purple-50 rounded-lg p-3">
-                          <div className="text-purple-600 text-xs mb-1">Sold</div>
+                          <div className="text-purple-600 text-xs mb-1">{t('admin.management.list.sold')}</div>
                           <div className="font-semibold text-purple-700">{percentageSold}%</div>
                         </div>
                       </div>

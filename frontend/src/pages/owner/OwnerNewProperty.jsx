@@ -2,9 +2,13 @@ import React, { useState, useEffect, useRef } from "react";
 import { MapPin, Upload, X } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { api, authHeader, ApiError, fetchJson, getToken } from '../../lib/api';
+import { useTranslation } from 'react-i18next'
+
 
 
 const OwnerNewProperty = () => {
+    const { t } = useTranslation('pages')
+  const { t: tCommon } = useTranslation('common')
   const navigate = useNavigate();
   const [step, setStep] = useState(1);
   const [loading, setLoading] = useState(false);
@@ -356,9 +360,9 @@ const OwnerNewProperty = () => {
 
   return (
     <div className="max-w-4xl mx-auto mt-12 bg-white shadow-md rounded-xl p-8">
-      <h1 className="text-2xl font-semibold text-center mb-8">
-        Submit New Property
-      </h1>
+     <h1 className="text-2xl font-semibold text-center mb-2">
+    {t('owner.newProperty.pageTitle')}
+  </h1>
 
       {/* Step Indicator */}
       <div className="flex justify-center mb-10">
@@ -376,11 +380,11 @@ const OwnerNewProperty = () => {
         {step === 1 && (
           <div>
             <h2 className="text-lg font-semibold mb-4">
-              Step 1: Basic Information
+              {t('owner.newProperty.step1.title')}
             </h2>
 
             <label className="block mb-2 font-medium">
-              Property Name <span className="text-red-500">*</span>
+              {t('owner.newProperty.step1.propertyNameLabel')} <span className="text-red-500">*</span>
             </label>
             <input
               type="text"
@@ -401,7 +405,7 @@ const OwnerNewProperty = () => {
  )}
 
             <label className="block mt-4 mb-2 font-medium">
-              Property Type <span className="text-red-500">*</span>
+              {t('owner.newProperty.step1.propertyTypeLabel')} <span className="text-red-500">*</span>
             </label>
            <select
                 name="propertyType"
@@ -410,20 +414,21 @@ const OwnerNewProperty = () => {
                 required
                 className="w-full border border-gray-300 rounded-lg p-3"
               >
-                <option value="">Select property type</option>
-                <option value="APARTMENT">Apartment</option>
-                <option value="VILLA">Villa</option>
-                <option value="DUPLEX">Duplex Apartment</option>
-                <option value="OFFICE">Office</option>
-                <option value="BUILDING">Building</option>
-                <option value="WAREHOUSE">Warehouse</option>
-                <option value="LAND">Land</option>
-                <option value="COMMERCIAL">Commercial Space</option>
+                <option value="">{t('owner.newProperty.step1.propertyTypePlaceholder')}</option>
+
+                <option value="APARTMENT">{t('owner.newProperty.step1.propertyTypeApartment')}</option>
+                <option value="VILLA">{t('owner.newProperty.step1.propertyTypeVilla')}</option>
+                <option value="DUPLEX">{t('owner.newProperty.step1.propertyTypeDuplex')}</option>
+                <option value="OFFICE">{t('owner.newProperty.step1.propertyTypeOffice')}</option>
+                <option value="BUILDING">{t('owner.newProperty.step1.propertyTypeBuilding')}</option>
+                <option value="WAREHOUSE">{t('owner.newProperty.step1.propertyTypeWarehouse')}</option>
+                <option value="LAND">{t('owner.newProperty.step1.propertyTypeLand')}</option>
+                <option value="COMMERCIAL">{t('owner.newProperty.step1.propertyTypeCommercial')}</option>
               </select>
 
 
             <label className="block mt-4 mb-2 font-medium">
-              Location <span className="text-red-500">*</span>
+              {t('owner.newProperty.step1.locationLabel')} <span className="text-red-500">*</span>
             </label>
             <div className="space-y-2">
               <input
@@ -460,7 +465,7 @@ const OwnerNewProperty = () => {
             </div>
 
             <label className="block mt-4 mb-2 font-medium">
-              Property Size (m²) <span className="text-red-500">*</span>
+                {t('owner.newProperty.step1.areaLabel')} <span className="text-red-500">*</span>
             </label>
             <input
               type="number"
@@ -475,7 +480,7 @@ const OwnerNewProperty = () => {
             />
 
             <label className="block mt-4 mb-2 font-medium">
-              Building Age (years) <span className="text-red-500">*</span>
+                {t('owner.newProperty.step1.buildingAgeLabel')} <span className="text-red-500">*</span>
             </label>
             <input
               type="number"
@@ -491,7 +496,7 @@ const OwnerNewProperty = () => {
             />
 
             <label className="block mt-4 mb-2 font-medium">
-              Description
+                {t('owner.newProperty.step1.descriptionLabel')}
             </label>
             <textarea
               name="description"
@@ -508,7 +513,7 @@ const OwnerNewProperty = () => {
                 onClick={nextStep}
                 className="bg-emerald-600 text-white px-6 py-2 rounded-lg"
               >
-                Next →
+                {t('owner.newProperty.step1.nextButtonLabel')} →
               </button>
             </div>
           </div>
@@ -516,10 +521,12 @@ const OwnerNewProperty = () => {
 
         {step === 2 && (
           <div>
-            <h2 className="text-lg font-semibold mb-4">Step 2: Financials</h2>
+            <h2 className="text-lg font-semibold mb-4">
+                {t('owner.newProperty.step2.title')}
+            </h2>
 
             <label className="block mb-2 font-medium">
-              Property Value (SAR) <span className="text-red-500">*</span>
+                {t('owner.newProperty.step2.propertyValueLabel')} <span className="text-red-500">*</span>
               <span className="text-sm text-gray-500 ml-2">
                 (Min: {minInvestment.toLocaleString()} SAR, Max: {maxInvestment.toLocaleString()} SAR)
               </span>
@@ -545,7 +552,7 @@ const OwnerNewProperty = () => {
             )}
 
             <label className="block mt-4 mb-2 font-medium">
-              Expected ROI (%) <span className="text-red-500">*</span>
+                {t('owner.newProperty.step2.expectedROILabel')} <span className="text-red-500">*</span>
             </label>
             <input
               type="number"
@@ -569,7 +576,7 @@ const OwnerNewProperty = () => {
             <div className="grid grid-cols-2 gap-4 mt-4">
               <div>
                 <label className="block mb-2 font-medium">
-                  Total Tokens <span className="text-red-500">*</span>
+                  {t('owner.newProperty.step2.totalTokensLabel')} <span className="text-red-500">*</span>
                 </label>
                 <input
                   type="number"
@@ -592,7 +599,7 @@ const OwnerNewProperty = () => {
               </div>
               <div>
                 <label className="block mb-2 font-medium">
-                  Token Price (SAR) <span className="text-red-500">*</span>
+                    {t('owner.newProperty.step2.tokenPriceLabel')} <span className="text-red-500">*</span>
                   <span className="text-sm text-gray-500 block">
                     (Range: {minInvestment.toLocaleString()} - {maxInvestment.toLocaleString()} SAR per token)
                   </span>
@@ -608,27 +615,27 @@ const OwnerNewProperty = () => {
                   max={maxInvestment}
                   step={0.01}
                  className={`w-full border rounded-lg p-3 ${
- validationErrors.tokenPrice
- ? 'border-red-500 bg-red-50'
- : 'border-gray-300'
- }`}
- />
- {validationErrors.tokenPrice && (
- <p className="text-red-600 text-sm mt-1 font-medium">{validationErrors.tokenPrice}</p>
- )}
- </div>
- </div>
- {/* Investment Limits Info */}
- <div className="mt-4 p-3 bg-blue-50 border border-blue-200 rounded-lg">
- <p className="text-sm text-blue-800">
- <strong>Investment Limits:</strong> Investors can invest between {minInvestment.toLocaleString()} SAR and {maxInvestment.toLocaleString()} SAR per transaction.
- <br />
- <strong>Token Price Guidance:</strong> Set token price between {minInvestment.toLocaleString()} SAR and {maxInvestment.toLocaleString()} SAR to allow single-token purchases.
- </p>
+            validationErrors.tokenPrice
+            ? 'border-red-500 bg-red-50'
+            : 'border-gray-300'
+            }`}
+            />
+            {validationErrors.tokenPrice && (
+            <p className="text-red-600 text-sm mt-1 font-medium">{validationErrors.tokenPrice}</p>
+            )}
             </div>
+            </div>
+            {/* Investment Limits Info */}
+            <div className="mt-4 p-3 bg-blue-50 border border-blue-200 rounded-lg">
+            <p className="text-sm text-blue-800">
+            <strong>Investment Limits:</strong> Investors can invest between {minInvestment.toLocaleString()} SAR and {maxInvestment.toLocaleString()} SAR per transaction.
+            <br />
+            <strong>Token Price Guidance:</strong> Set token price between {minInvestment.toLocaleString()} SAR and {maxInvestment.toLocaleString()} SAR to allow single-token purchases.
+            </p>
+                        </div>
 
             <label className="block mt-4 mb-2 font-medium">
-              Monthly Yield (%)
+                {t('owner.newProperty.step2.monthlyYieldLabel')}
             </label>
             <input
               type="number"
@@ -651,7 +658,7 @@ const OwnerNewProperty = () => {
             
 
             <label className="block mt-4 mb-2 font-medium">
-              Property Image
+                {t('owner.newProperty.step2.propertyImageLabel')}
             </label>
             <div className="space-y-3">
               {!imagePreview ? (
@@ -695,20 +702,43 @@ const OwnerNewProperty = () => {
               )}
             </div>
 
-            <div className="flex justify-between mt-6">
+                        <div className="flex justify-between mt-6">
               <button
                 type="button"
                 onClick={prevStep}
-                className="text-gray-600 px-6 py-2 rounded-lg border"
+                disabled={loading}
+                className="text-gray-600 px-6 py-2 rounded-lg border disabled:opacity-50"
               >
-                ← Back
+                {t('owner.newProperty.step3.backButtonLabel')} ←
               </button>
               <button
-                type="button"
-                onClick={nextStep}
-                className="bg-emerald-600 text-white px-6 py-2 rounded-lg"
+                type="submit"
+                disabled={loading}
+                className="bg-emerald-600 hover:bg-emerald-700 text-white px-6 py-2 rounded-lg disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
               >
-                Next →
+                {loading ? (
+                  <>
+                    <svg className="animate-spin h-5 w-5" viewBox="0 0 24 24">
+                      <circle
+                        className="opacity-25"
+                        cx="12"
+                        cy="12"
+                        r="10"
+                        stroke="currentColor"
+                        strokeWidth="4"
+                        fill="none"
+                      />
+                      <path
+                        className="opacity-75"
+                        fill="currentColor"
+                        d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                      />
+                    </svg>
+                    {t('owner.newProperty.step3.submittingLabel')}
+                  </>
+                ) : (
+                  t('owner.newProperty.step3.submitButtonLabel')
+                )}
               </button>
             </div>
           </div>
@@ -717,11 +747,11 @@ const OwnerNewProperty = () => {
         {step === 3 && (
           <div>
             <h2 className="text-lg font-semibold mb-4">
-              Step 3: Contact Information
+                {t('owner.newProperty.step3.title')}
             </h2>
 
             <label className="block mb-2 font-medium">
-              Full Name <span className="text-red-500">*</span>
+                {t('owner.newProperty.step3.fullNameLabel')} <span className="text-red-500">*</span>
             </label>
             <input
               type="text"
@@ -742,7 +772,7 @@ const OwnerNewProperty = () => {
  )}
 
             <label className="block mt-4 mb-2 font-medium">
-              Email Address <span className="text-red-500">*</span>
+                {t('owner.newProperty.step3.emailLabel')} <span className="text-red-500">*</span>
             </label>
             <input
               type="email"
@@ -762,7 +792,7 @@ const OwnerNewProperty = () => {
  )}
 
             <label className="block mt-4 mb-2 font-medium">
-              Phone Number <span className="text-red-500">*</span>
+                {t('owner.newProperty.step3.phoneNumberLabel')} <span className="text-red-500">*</span>
             </label>
             <input
               type="tel"
@@ -784,7 +814,7 @@ const OwnerNewProperty = () => {
  )}
 
             <label className="block mt-4 mb-2 font-medium">
-              Sale Type <span className="text-red-500">*</span>
+                {t('owner.newProperty.step3.saleTypeLabel')} <span className="text-red-500">*</span>
             </label>
             <div className="flex gap-4">
               <label>
@@ -795,7 +825,7 @@ const OwnerNewProperty = () => {
                   checked={form.saleType === "SELL"}
                   onChange={handleChange}
                 />{" "}
-                Sell Property
+                {t('owner.newProperty.step3.sellPropertyLabel')}
               </label>
               <label>
                 <input
@@ -805,7 +835,7 @@ const OwnerNewProperty = () => {
                   checked={form.saleType === "LEASE"}
                   onChange={handleChange}
                 />{" "}
-                Long-term Lease
+                {t('owner.newProperty.step3.longTermLeaseLabel')}
               </label>
             </div>
 
@@ -822,25 +852,47 @@ const OwnerNewProperty = () => {
                 disabled={loading}
                 className="text-gray-600 px-6 py-2 rounded-lg border disabled:opacity-50"
               >
-                ← Back
+                {t('owner.newProperty.step3.backButtonLabel')} ←
               </button>
-              <button
-                type="submit"
-                disabled={loading}
-                className="bg-emerald-600 hover:bg-emerald-700 text-white px-6 py-2 rounded-lg disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
-              >
-                {loading ? (
-                  <>
+            <button
+  type="submit"
+  disabled={loading}
+  className="bg-emerald-600 hover:bg-emerald-700 text-white px-6 py-2 rounded-lg disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+>
+  {loading ? (
+    <>
+      <svg className="animate-spin h-5 w-5" viewBox="0 0 24 24">
+        <circle
+          className="opacity-25"
+          cx="12"
+          cy="12"
+          r="10"
+          stroke="currentColor"
+          strokeWidth="4"
+          fill="none"
+        />
+        <path
+          className="opacity-75"
+          fill="currentColor"
+          d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+        />
+      </svg>
+      {t('owner.newProperty.step3.submittingLabel')}
+    </>
+  ) : (
+    t('owner.newProperty.step3.submitButtonLabel')
+  )}
+</button>
                     <svg className="animate-spin h-5 w-5" viewBox="0 0 24 24">
                       <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
                       <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
                     </svg>
-                    Submitting...
-                  </>
+                    {t('owner.newProperty.step3.submittingLabel')}
+                
                 ) : (
-                  'Submit Property'
-                )}
-              </button>
+                    {t('owner.newProperty.step3.submitButtonLabel')}
+                )
+              
             </div>
           </div>
         )}

@@ -5,8 +5,11 @@ import {
   DollarSign, AlertCircle, BarChart3, Loader2, Eye, X, Shield
 } from 'lucide-react'
 import { authHeader, fetchJson, getToken } from '../../lib/api'
+import { useTranslation } from 'react-i18next'
 
 export default function AdminOverview() {
+  const { t, i18n } = useTranslation('pages')
+
   const navigate = useNavigate()
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
@@ -24,6 +27,14 @@ export default function AdminOverview() {
     monthlyGrowth: 0
   })
 
+  const formatDate = (value) => {
+    if (!value) return t('admin.overview.pending.unknownDate')
+    const d = new Date(value)
+    if (isNaN(d.getTime())) return t('admin.overview.pending.unknownDate')
+    const locale = i18n.language === 'ar' ? 'ar-SA' : 'en-US'
+    return d.toLocaleDateString(locale)
+  }
+
   useEffect(() => {
     loadAdminData()
   }, [])
@@ -34,7 +45,7 @@ export default function AdminOverview() {
       setError('')
       
       if (!getToken()) {
-        setError('Please login to view admin dashboard')
+        setError(t('admin.overview.loginRequired'))
         setLoading(false)
         return
       }
@@ -71,7 +82,7 @@ export default function AdminOverview() {
       })
     } catch (err) {
       console.error('Admin dashboard load error:', err)
-      setError(err.message || 'Failed to load dashboard data')
+      setError(err.message || t('admin.overview.loadError'))
     } finally {
       setLoading(false)
     }
@@ -93,7 +104,10 @@ export default function AdminOverview() {
       // Show success notification
       setNotification({
         type: 'success',
-        message: `Property ${action === 'approve' ? 'approved' : 'rejected'} successfully!`
+       message:
+  action === 'approve'
+    ? t('admin.overview.notificationApproved')
+    : t('admin.overview.notificationRejected')
       })
 
       // Reload data
@@ -102,7 +116,12 @@ export default function AdminOverview() {
       // Clear notification after 3 seconds
       setTimeout(() => setNotification(null), 3000)
     } catch (err) {
-      setError(err.message || `Failed to ${action} property`)
+      setError(
+  err.message ||
+  (action === 'approve'
+    ? t('admin.overview.notificationApproved')
+    : t('admin.overview.notificationRejected'))
+)
     } finally {
       setActionLoading(null)
     }
@@ -110,15 +129,15 @@ export default function AdminOverview() {
 
   const statCards = [
     {
-      title: 'Total Properties',
-      value: stats.totalProperties,
+      title: t('admin.overview.stat.totalProperties'),
+    value: stats.totalProperties,
       icon: Building2,
       bgColor: 'bg-blue-50',
       iconColor: 'text-blue-600',
-      change: '+12%'
+       change: t('admin.overview.stat.changeLabel', { value: '+12%' })
     },
     {
-      title: 'Approved Properties',
+      title: t('admin.overview.stat.approvedProperties'),
       value: stats.approvedProperties,
       icon: CheckCircle,
       bgColor: 'bg-green-50',
@@ -126,7 +145,8 @@ export default function AdminOverview() {
       change: '+8%'
     },
     {
-      title: 'Pending Review',
+        title: t('admin.overview.stat.pendingReview'),
+
       value: stats.pendingProperties,
       icon: Clock,
       bgColor: 'bg-yellow-50',
@@ -134,7 +154,7 @@ export default function AdminOverview() {
       change: '-2'
     },
     {
-      title: 'Active Investors',
+      title: t('admin.overview.stat.activeInvestors'),
       value: stats.activeInvestors,
       icon: Users,
       bgColor: 'bg-purple-50',
@@ -142,7 +162,7 @@ export default function AdminOverview() {
       change: '+15%'
     },
     {
-      title: 'Investment Volume',
+      title: t('admin.overview.stat.investmentVolume'),
       value: `SAR ${(stats.totalInvestmentVolume / 1000000).toFixed(1)}M`,
       icon: DollarSign,
       bgColor: 'bg-emerald-50',
@@ -150,7 +170,7 @@ export default function AdminOverview() {
       change: '+23.5%'
     },
     {
-      title: 'Monthly Growth',
+      title: t('admin.overview.stat.monthlyGrowth'),
       value: `${stats.monthlyGrowth}%`,
       icon: TrendingUp,
       bgColor: 'bg-indigo-50',
@@ -164,12 +184,12 @@ export default function AdminOverview() {
       <div className="flex items-center justify-center py-12">
         <div className="text-center space-y-4">
           <Shield className="mx-auto text-gray-400" size={64} />
-          <div className="text-gray-600">Please login as admin to view this dashboard.</div>
+          <div className="text-gray-600">{t('admin.overview.loginRequired')}</div>
           <button
             onClick={() => navigate('/login')}
             className="px-6 py-2.5 rounded-lg bg-blue-600 hover:bg-blue-700 text-white font-semibold transition-colors"
           >
-            Login Now
+            {t('admin.overview.loginCta')}
           </button>
         </div>
       </div>
@@ -181,7 +201,7 @@ export default function AdminOverview() {
       <div className="flex items-center justify-center py-12">
         <div className="text-center space-y-3">
           <Loader2 className="animate-spin text-blue-600 mx-auto" size={40} />
-          <div className="text-gray-600">Loading admin dashboard...</div>
+          <div className="text-gray-600">{t('admin.overview.loading')}</div>
         </div>
       </div>
     )
@@ -191,7 +211,7 @@ export default function AdminOverview() {
     return (
       <div className="bg-red-50 border border-red-200 rounded-lg p-4 flex items-center gap-2">
         <AlertCircle className="text-red-600" size={20} />
-        <span className="text-red-700">{error}</span>
+        <span className="text-red-700">{t('admin.overview.loadError')}</span>
       </div>
     )
   }
@@ -200,8 +220,8 @@ export default function AdminOverview() {
     <div className="space-y-6">
       {/* Header */}
       <div>
-        <h1 className="text-3xl font-bold text-gray-900">Platform Overview</h1>
-        <p className="text-gray-600">Monitor performance, review property submissions, and manage users</p>
+        <h1 className="text-3xl font-bold text-gray-900">{t('admin.overview.headerTitle')}</h1>
+        <p className="text-gray-600">{t('admin.overview.headerSubtitle')}</p>
       </div>
 
       {/* Notification */}
@@ -241,33 +261,34 @@ export default function AdminOverview() {
       <div className="bg-white/80 backdrop-blur-sm rounded-xl p-6 border border-white/20 shadow-lg">
         <div className="flex items-center justify-between mb-6">
           <div>
-            <h2 className="text-xl font-bold text-gray-900">Pending Property Approvals</h2>
-            <p className="text-sm text-gray-600 mt-1">{pendingProperties.length} properties awaiting review</p>
+            <h2 className="text-xl font-bold text-gray-900">{t('admin.overview.pending.title')}</h2>
+            <p className="text-sm text-gray-600 mt-1">{t('admin.overview.pending.subtitle', { count: pendingProperties.length })}</p>
           </div>
           <button 
             onClick={() => navigate('/admin/opportunities')}
             className="text-sm text-blue-600 hover:text-blue-700 font-medium"
           >
-            View All →
+             {t('admin.overview.pending.viewAll')}
+
           </button>
         </div>
         
         {pendingProperties.length === 0 ? (
           <div className="text-center py-8 bg-gray-50 rounded-lg">
             <CheckCircle className="mx-auto text-gray-400 mb-2" size={48} />
-            <div className="text-gray-600">No pending properties to review</div>
+            <div className="text-gray-600">{t('admin.overview.pending.emptyTitle')}</div>
           </div>
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full">
               <thead>
                 <tr className="border-b border-gray-200">
-                  <th className="text-left py-3 px-4 text-sm font-semibold text-gray-700">Property Title</th>
-                  <th className="text-left py-3 px-4 text-sm font-semibold text-gray-700">Owner</th>
-                  <th className="text-left py-3 px-4 text-sm font-semibold text-gray-700">Submitted</th>
-                  <th className="text-left py-3 px-4 text-sm font-semibold text-gray-700">Value</th>
-                  <th className="text-left py-3 px-4 text-sm font-semibold text-gray-700">Status</th>
-                  <th className="text-right py-3 px-4 text-sm font-semibold text-gray-700">Actions</th>
+                  <th className="text-left py-3 px-4 text-sm font-semibold text-gray-700">{t('admin.overview.pending.table.propertyTitle')}</th>
+                  <th className="text-left py-3 px-4 text-sm font-semibold text-gray-700">{t('admin.overview.pending.table.owner')}</th>
+                  <th className="text-left py-3 px-4 text-sm font-semibold text-gray-700">{t('admin.overview.pending.table.submitted')}</th>
+                  <th className="text-left py-3 px-4 text-sm font-semibold text-gray-700">{t('admin.overview.pending.table.value')}</th>
+                  <th className="text-left py-3 px-4 text-sm font-semibold text-gray-700">{t('admin.overview.pending.table.status')}</th>
+                  <th className="text-right py-3 px-4 text-sm font-semibold text-gray-700">{t('admin.overview.pending.table.actions')}</th>
                 </tr>
               </thead>
               <tbody>
@@ -279,32 +300,34 @@ export default function AdminOverview() {
                           <Building2 className="text-white" size={20} />
                         </div>
                         <div>
-                          <div className="font-medium text-gray-900">{property.name || property.title}</div>
+                          <div className="font-medium text-gray-900">
+                            {property.name || property.title}
+                            {property.propertyType && (
+                              <span className="text-xs text-gray-500 ml-1">
+                                ({t(`owner.newProperty.step2.propertyTypes.${property.propertyType}`, property.propertyType)})
+                              </span>
+                            )}
+                          </div>
                           <div className="text-xs text-gray-500">{property.location || 'Riyadh, SA'}</div>
                         </div>
                       </div>
                     </td>
                     <td className="py-4 px-4 text-sm text-gray-600">
-                      {property.ownerName || 'Property Owner'}
+                      {property.ownerName || t('admin.overview.pending.defaultOwner')}
+
                     </td>
                     <td className="py-4 px-4 text-sm text-gray-600">
-                      {new Date(property.createdAt).toLocaleDateString()}
+                      {formatDate(property.submittedDate || property.createdAt)}
                     </td>
                     <td className="py-4 px-4 text-sm font-medium text-gray-900">
-                      {((property.totalTokens || 0) * (property.tokenPrice || 0)).toLocaleString()} SAR
-                    </td>
-                    <td className="py-4 px-4">
-                      <span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold bg-yellow-100 text-yellow-700">
-                        <Clock size={12} className="mr-1" />
-                        Pending
-                      </span>
+                      {((property.totalTokens || 0) * (property.tokenPrice || 0)).toLocaleString()} {t('admin.overview.currency')}
                     </td>
                     <td className="py-4 px-4">
                       <div className="flex items-center justify-end gap-2">
                         <button
-                          onClick={() => navigate(`/properties/${property.id}`)}
+                          onClick={() => navigate(`/admin/properties/${property.id}`)}
                           className="p-2 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-colors"
-                          title="View Details"
+                          title={t('admin.overview.pending.viewDetailsTitle')}
                         >
                           <Eye size={18} />
                         </button>
@@ -318,7 +341,7 @@ export default function AdminOverview() {
                           ) : (
                             <CheckCircle size={14} />
                           )}
-                          Approve
+                          {t('admin.overview.pending.approve')}
                         </button>
                         <button
                           onClick={() => handlePropertyAction(property.id, 'reject')}
@@ -326,7 +349,7 @@ export default function AdminOverview() {
                           className="px-3 py-1.5 bg-red-600 hover:bg-red-700 disabled:bg-gray-300 text-white text-sm font-medium rounded-lg transition-colors flex items-center gap-1"
                         >
                           <X size={14} />
-                          Reject
+                          {t('admin.overview.pending.reject')}
                         </button>
                       </div>
                     </td>
@@ -341,7 +364,9 @@ export default function AdminOverview() {
       {/* Recent Activity Feed */}
       <div className="bg-white/80 backdrop-blur-sm rounded-xl p-6 border border-white/20 shadow-lg">
         <div className="flex items-center justify-between mb-6">
-          <h2 className="text-xl font-bold text-gray-900">Recent Platform Activity</h2>
+          <h2 className="text-xl font-bold text-gray-900">
+  {t('admin.overview.activity.title')}
+</h2>
         </div>
         <div className="space-y-3">
           {properties.slice(0, 5).map((property) => {
@@ -363,13 +388,19 @@ export default function AdminOverview() {
                 </div>
                 <div className="flex-1">
                   <p className="text-sm font-medium text-gray-900">
-                    {isApproved && <span className="text-green-600">Approved: </span>}
-                    {isPending && <span className="text-yellow-600">Submitted: </span>}
-                    {isRejected && <span className="text-red-600">Rejected: </span>}
+                    {isApproved && <span className="text-green-600">{t('admin.overview.approved')}: </span>}
+                    {isPending && <span className="text-yellow-600">{t('admin.overview.pending.statusPending')}: </span>}
+                    {isRejected && <span className="text-red-600">{t('admin.overview.rejected')}: </span>}
                     {property.name || property.title}
+                    {property.propertyType && (
+                      <span className="text-xs text-gray-500 ml-1">
+                        ({t(`owner.newProperty.step2.propertyTypes.${property.propertyType}`, property.propertyType)})
+                      </span>
+                    )}
                   </p>
                   <p className="text-xs text-gray-500 mt-0.5">
-                    {new Date(property.createdAt).toLocaleDateString()} • {((property.totalTokens || 0) * (property.tokenPrice || 0)).toLocaleString()} SAR
+                    {formatDate(property.submittedDate || property.createdAt)} 
+                    • {((property.totalTokens || 0) * (property.tokenPrice || 0)).toLocaleString()} {t('admin.overview.currency')}
                   </p>
                 </div>
               </div>

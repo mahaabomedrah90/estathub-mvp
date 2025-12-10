@@ -4,9 +4,12 @@ import {
   Building2, DollarSign, Users, TrendingUp, 
   Clock, CheckCircle, AlertCircle, Plus, Loader2, Eye, Edit2 
 } from 'lucide-react'
+import { useTranslation } from 'react-i18next'
 import { authHeader, fetchJson, getToken } from '../../lib/api'
 
 export default function OwnerDashboard() {
+  const { t } = useTranslation('pages')
+  const { t: tCommon } = useTranslation('common')
   const navigate = useNavigate()
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
@@ -30,7 +33,7 @@ export default function OwnerDashboard() {
       setError('')
       
       if (!getToken()) {
-        setError('Please login to view your dashboard')
+        setError(t('owner.dashboard.loginRequired'))
         setLoading(false)
         return
       }
@@ -45,8 +48,8 @@ export default function OwnerDashboard() {
       // Get current user's ID from localStorage
       const currentUserId = localStorage.getItem('userId')
       
-      // Filter to show only properties owned by this user
-      const ownerProperties = allProperties.filter(p => p.ownerId === currentUserId)
+      // Filter to show only properties owned by this user (exclude drafts)
+      const ownerProperties = allProperties.filter(p => p.ownerId === currentUserId && !p.isDraft)
       
       console.log(`🏠 Owner Dashboard: Showing ${ownerProperties.length} properties out of ${allProperties.length} total (Owner ID: ${currentUserId})`)
       
@@ -76,7 +79,7 @@ export default function OwnerDashboard() {
       })
     } catch (err) {
       console.error('Owner dashboard load error:', err)
-      setError(err.message || 'Failed to load dashboard data')
+      setError(err.message || t('owner.dashboard.loadFailed'))
     } finally {
       setLoading(false)
     }
@@ -96,12 +99,12 @@ export default function OwnerDashboard() {
       <div className="flex items-center justify-center py-12">
         <div className="text-center space-y-4">
           <Building2 className="mx-auto text-gray-400" size={64} />
-          <div className="text-gray-600">Please login to view your dashboard.</div>
+          <div className="text-gray-600">{t('owner.dashboard.loginRequired')}</div>
           <button
             onClick={() => navigate('/login')}
             className="px-6 py-2.5 rounded-lg bg-amber-600 hover:bg-amber-700 text-white font-semibold transition-colors"
           >
-            Login Now
+            {t('owner.dashboard.loginCta')}
           </button>
         </div>
       </div>
@@ -113,7 +116,7 @@ export default function OwnerDashboard() {
       <div className="flex items-center justify-center py-12">
         <div className="text-center space-y-3">
           <Loader2 className="animate-spin text-amber-600 mx-auto" size={40} />
-          <div className="text-gray-600">Loading your dashboard...</div>
+          <div className="text-gray-600">{t('owner.dashboard.loading')}</div>
         </div>
       </div>
     )
@@ -130,44 +133,44 @@ export default function OwnerDashboard() {
 
   const statCards = [
     {
-      title: 'Total Properties',
+      title: t('owner.dashboard.stats.totalProperties.title'),
       value: stats.totalProperties,
       icon: Building2,
       bgColor: 'bg-amber-50',
       iconColor: 'text-amber-600',
-      change: 'All submissions'
+      change: t('owner.dashboard.stats.totalProperties.caption')
     },
     {
-      title: 'Approved Properties',
+      title: t('owner.dashboard.stats.approvedProperties.title'),
       value: stats.approvedProperties,
       icon: CheckCircle,
       bgColor: 'bg-green-50',
       iconColor: 'text-green-600',
-      change: 'Live on platform'
+      change: t('owner.dashboard.stats.approvedProperties.caption')
     },
     {
-      title: 'Pending Review',
+      title: t('owner.dashboard.stats.pendingProperties.title'),
       value: stats.pendingProperties,
       icon: Clock,
       bgColor: 'bg-yellow-50',
       iconColor: 'text-yellow-600',
-      change: 'Awaiting approval'
+      change: t('owner.dashboard.stats.pendingProperties.caption')
     },
     {
-      title: 'Total Revenue',
-      value: `${(stats.totalRevenue / 1000).toFixed(0)}K SAR`,
+      title: t('owner.dashboard.stats.totalRevenue.title'),
+      value: `${(stats.totalRevenue / 1000).toFixed(0)}K ${tCommon('currency.sar')}`,
       icon: DollarSign,
       bgColor: 'bg-emerald-50',
       iconColor: 'text-emerald-600',
-      change: 'From tokenization'
+      change: t('owner.dashboard.stats.totalRevenue.caption')
     },
     {
-      title: 'Avg Monthly Yield',
+      title: t('owner.dashboard.stats.monthlyYield.title'),
       value: `${stats.monthlyYield.toFixed(1)}%`,
       icon: TrendingUp,
       bgColor: 'bg-purple-50',
       iconColor: 'text-purple-600',
-      change: 'Expected returns'
+      change: t('owner.dashboard.stats.monthlyYield.caption')
     },
   ]
 
@@ -177,9 +180,9 @@ export default function OwnerDashboard() {
       <div className="bg-gradient-to-br from-amber-500 to-orange-600 text-white rounded-2xl p-8 shadow-xl">
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-3xl font-bold mb-2">Welcome back, Property Owner! 👋</h1>
+            <h1 className="text-3xl font-bold mb-2">{t('owner.dashboard.title')}</h1>
             <p className="text-amber-100 text-lg">
-              Manage your real estate portfolio and track tokenization progress
+              {t('owner.dashboard.subtitle')}
             </p>
           </div>
           <button
@@ -187,7 +190,7 @@ export default function OwnerDashboard() {
             className="flex items-center gap-2 px-6 py-3 bg-white text-amber-600 rounded-xl font-semibold hover:bg-amber-50 transition-all hover:scale-105 shadow-lg"
           >
             <Plus size={20} />
-            Submit New Property
+            {t('owner.dashboard.ctaNewProperty')}
           </button>
         </div>
       </div>
@@ -219,25 +222,25 @@ export default function OwnerDashboard() {
       {/* Properties Overview */}
       <div className="bg-white/80 backdrop-blur-sm rounded-xl p-6 border border-white/20 shadow-lg">
         <div className="flex items-center justify-between mb-6">
-          <h2 className="text-xl font-bold text-gray-900">Your Properties</h2>
+          <h2 className="text-xl font-bold text-gray-900">{t('owner.dashboard.propertiesSection.title')}</h2>
           <button
             onClick={() => navigate('/owner/properties')}
             className="text-sm text-amber-600 hover:text-amber-700 font-medium"
           >
-            View All →
+            {t('owner.dashboard.propertiesSection.viewAll')} →
           </button>
         </div>
         
         {properties.length === 0 ? (
           <div className="text-center py-12 bg-gray-50 rounded-lg">
             <Building2 className="mx-auto text-gray-400 mb-3" size={48} />
-            <div className="text-gray-600 mb-4">No properties submitted yet</div>
+            <div className="text-gray-600 mb-4">{t('owner.dashboard.propertiesSection.emptyTitle')}</div>
             <button
               onClick={() => navigate('/owner/properties/new')}
               className="inline-flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-amber-500 to-orange-600 text-white rounded-xl font-semibold hover:shadow-lg transition-all"
             >
               <Plus size={20} />
-              Submit Your First Property
+              {t('owner.dashboard.propertiesSection.emptyCta')}
             </button>
           </div>
         ) : (
@@ -265,27 +268,18 @@ export default function OwnerDashboard() {
                       <div className="flex-1">
                         <h3 className="font-semibold text-gray-900">{property.name || property.title}</h3>
                         <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-semibold mt-1 ${getStatusBadge(status)}`}>
-                          {status}
+                          {t(`owner.dashboard.propertyStatus.${status.toLowerCase()}`)}
                         </span>
                       </div>
                     </div>
                     <div className="flex items-center gap-2">
                       <button
                         onClick={() => navigate(`/properties/${property.id}`)}
-                        className="flex items-center gap-1 px-3 py-1.5 rounded-lg border border-gray-300 hover:bg-white text-gray-700 text-sm font-medium transition-colors"
+                        className="flex items-center gap-1 px-3 py-1.5 rounded-lg border border-gray-300 hover:bg.white text-gray-700 text-sm font-medium transition-colors"
                       >
                         <Eye size={16} />
-                        <span>View</span>
+                        <span>{t('owner.dashboard.actions.view')}</span>
                       </button>
-                      {status === 'REJECTED' && (
-                        <button
-                          onClick={() => navigate('/owner/properties')}
-                          className="flex items-center gap-1 px-3 py-1.5 rounded-lg bg-amber-600 hover:bg-amber-700 text-white text-sm font-medium transition-colors"
-                        >
-                          <Edit2 size={16} />
-                          <span>Edit</span>
-                        </button>
-                      )}
                     </div>
                   </div>
 
@@ -293,25 +287,26 @@ export default function OwnerDashboard() {
                     <>
                       <div className="grid grid-cols-4 gap-3 mb-3">
                         <div>
-                          <p className="text-xs text-gray-600">Raised</p>
+                          <p className="text-xs text-gray-600">{t('owner.dashboard.propertiesSection.progressLabel', { percent: progress.toFixed(1) })}</p>
                           <p className="text-sm font-semibold text-emerald-600">
-                            {raised.toLocaleString()} SAR
+                            {raised.toLocaleString()} {tCommon('currency.sar')}
                           </p>
                         </div>
                         <div>
-                          <p className="text-xs text-gray-600">Target</p>
+                          <p className="text-xs text-gray-600">{t('owner.dashboard.metrics.target')}</p>
+                          <span className="text-sm font-medium text-gray-700">{t('owner.dashboard.metrics.fundingProgress')}</span>
                           <p className="text-sm font-semibold text-gray-900">
-                            {targetAmount.toLocaleString()} SAR
+                            {targetAmount.toLocaleString()} {tCommon('currency.sar')}
                           </p>
                         </div>
                         <div>
-                          <p className="text-xs text-gray-600">Tokens Sold</p>
+                          <p className="text-xs text-gray-600">{t('owner.dashboard.metrics.tokensSold')}</p>
                           <p className="text-sm font-semibold text-blue-600">
                             {soldTokens} / {totalTokens}
                           </p>
                         </div>
                         <div>
-                          <p className="text-xs text-gray-600">Yield</p>
+                          <p className="text-xs text-gray-600">{t('owner.dashboard.metrics.yield')}</p>
                           <p className="text-sm font-semibold text-purple-600">
                             {property.monthlyYield || 0}%
                           </p>
@@ -332,14 +327,14 @@ export default function OwnerDashboard() {
                   {status === 'PENDING' && (
                     <div className="flex items-center gap-2 text-sm text-yellow-700 bg-yellow-50 p-3 rounded-lg">
                       <Clock size={16} />
-                      <span>Awaiting admin approval - Your property will be reviewed shortly</span>
+                      <span>{t('owner.dashboard.statusMessages.pending')}</span>
                     </div>
                   )}
 
                   {status === 'REJECTED' && (
                     <div className="flex items-center gap-2 text-sm text-red-700 bg-red-50 p-3 rounded-lg">
                       <AlertCircle size={16} />
-                      <span>Property was rejected - Please review and resubmit with corrections</span>
+                      <span>{t('owner.dashboard.statusMessages.rejected')}</span>
                     </div>
                   )}
                 </div>

@@ -2,8 +2,11 @@ import React, { useState, useEffect } from 'react'
 import { Save, AlertCircle, CheckCircle, Settings, Bell, Shield, Globe, Users, Eye, EyeOff } from 'lucide-react'
 import { authHeader, fetchJson, getToken } from '../../lib/api'
 import { defaultPermissions, navigationPermissions, updateNavigationVisibility } from '../../lib/api'
+import { useTranslation } from 'react-i18next';
 
 export default function AdminSettings() {
+  const { t, i18n } = useTranslation('pages');
+  const isArabic = i18n.language === 'ar'
   const [loading, setLoading] = useState(false)
   const [saving, setSaving] = useState(false)
   const [message, setMessage] = useState({ type: '', text: '' })
@@ -120,9 +123,9 @@ export default function AdminSettings() {
     <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
       <div className="mb-6 flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold text-gray-900">Admin Settings</h1>
+          <h1 className="text-3xl font-bold text-gray-900">{t('admin.settings.headerTitle')}</h1>
           <p className="mt-2 text-gray-600">
-            Configure global platform settings and admin preferences.
+            {t('admin.settings.headerSubtitle')}
           </p>
         </div>
         <button
@@ -133,12 +136,12 @@ export default function AdminSettings() {
           {saving ? (
             <>
               <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
-              Saving...
+              {isArabic ? 'جاري حفظ الإعدادات...' : 'Saving settings...'}
             </>
           ) : (
             <>
               <Save size={16} className="mr-2" />
-              Save Settings
+              {isArabic ? 'حفظ التغييرات' : 'Save changes'}
             </>
           )}
         </button>
@@ -165,14 +168,14 @@ export default function AdminSettings() {
           <div className="px-6 py-4 border-b border-gray-200">
             <div className="flex items-center">
               <Settings className="h-5 w-5 text-gray-500 mr-2" />
-              <h2 className="text-lg font-semibold text-gray-900">General Settings</h2>
+              <h2 className="text-lg font-semibold text-gray-900">{t('admin.settings.generalSettings')}</h2>
             </div>
           </div>
           <div className="p-6 space-y-6">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Platform Name
+                  {t('admin.settings.platformName')}
                 </label>
                 <input
                   type="text"
@@ -184,7 +187,7 @@ export default function AdminSettings() {
               
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Platform Fee (%)
+                  {t('admin.settings.platformFee')} (%)
                 </label>
                 <input
                   type="number"
@@ -199,7 +202,7 @@ export default function AdminSettings() {
 
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Minimum Investment (SAR)
+                  {t('admin.settings.minInvestment')} (SAR)
                 </label>
                 <input
                   type="number"
@@ -212,7 +215,7 @@ export default function AdminSettings() {
 
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Maximum Investment (SAR)
+                  {t('admin.settings.maxInvestment')} (SAR)
                 </label>
                 <input
                   type="number"
@@ -227,8 +230,8 @@ export default function AdminSettings() {
             <div className="space-y-4">
               <div className="flex items-center justify-between">
                 <div>
-                  <span className="text-sm font-medium text-gray-700">Maintenance Mode</span>
-                  <p className="text-sm text-gray-500">Temporarily disable user access to the platform</p>
+                  <span className="text-sm font-medium text-gray-700">{t('admin.settings.maintenanceMode')}</span>
+                  <p className="text-sm text-gray-500">{t('admin.settings.maintenanceModeDesc')}</p>
                 </div>
                 <button
                   onClick={() => updateSetting('general', 'maintenanceMode', !settings.general.maintenanceMode)}
@@ -236,7 +239,7 @@ export default function AdminSettings() {
                     settings.general.maintenanceMode ? 'bg-red-600' : 'bg-gray-200'
                   }`}
                 >
-                  <span className="sr-only">Toggle maintenance mode</span>
+                  <span className="sr-only">{t('admin.settings.toggleMaintenance')}</span>
                   <span
                     className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out ${
                       settings.general.maintenanceMode ? 'translate-x-5' : 'translate-x-0'
@@ -247,8 +250,8 @@ export default function AdminSettings() {
 
               <div className="flex items-center justify-between">
                 <div>
-                  <span className="text-sm font-medium text-gray-700">Allow New Registrations</span>
-                  <p className="text-sm text-gray-500">Enable or disable new user signups</p>
+                  <span className="text-sm font-medium text-gray-700">{t('admin.settings.allowNewRegistrations')}</span>
+                  <p className="text-sm text-gray-500">{t('admin.settings.allowNewRegistrationsDesc')}</p>
                 </div>
                 <button
                   onClick={() => updateSetting('general', 'allowNewRegistrations', !settings.general.allowNewRegistrations)}
@@ -256,7 +259,7 @@ export default function AdminSettings() {
                     settings.general.allowNewRegistrations ? 'bg-emerald-600' : 'bg-gray-200'
                   }`}
                 >
-                  <span className="sr-only">Toggle registrations</span>
+                  <span className="sr-only">{t('admin.settings.toggleRegistrations')}</span>
                   <span
                     className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out ${
                       settings.general.allowNewRegistrations ? 'translate-x-5' : 'translate-x-0'
@@ -267,8 +270,8 @@ export default function AdminSettings() {
 
               <div className="flex items-center justify-between">
                 <div>
-                  <span className="text-sm font-medium text-gray-700">Email Verification Required</span>
-                  <p className="text-sm text-gray-500">Require users to verify their email address</p>
+                  <span className="text-sm font-medium text-gray-700">{t('admin.settings.requireEmailVerification')}</span>
+                  <p className="text-sm text-gray-500">{t('admin.settings.requireEmailVerificationDesc')}</p>
                 </div>
                 <button
                   onClick={() => updateSetting('general', 'requireEmailVerification', !settings.general.requireEmailVerification)}
@@ -276,7 +279,7 @@ export default function AdminSettings() {
                     settings.general.requireEmailVerification ? 'bg-emerald-600' : 'bg-gray-200'
                   }`}
                 >
-                  <span className="sr-only">Toggle email verification</span>
+                  <span className="sr-only">{t('admin.settings.toggleEmailVerification')}</span>
                   <span
                     className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out ${
                       settings.general.requireEmailVerification ? 'translate-x-5' : 'translate-x-0'
@@ -293,13 +296,13 @@ export default function AdminSettings() {
           <div className="px-6 py-4 border-b border-gray-200">
             <div className="flex items-center">
               <Bell className="h-5 w-5 text-gray-500 mr-2" />
-              <h2 className="text-lg font-semibold text-gray-900">Notification Settings</h2>
+              <h2 className="text-lg font-semibold text-gray-900">{t('admin.settings.notifications')}</h2>
             </div>
           </div>
           <div className="p-6 space-y-6">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
-                Admin Email
+                {t('admin.settings.adminEmail')}
               </label>
               <input
                 type="email"
@@ -312,8 +315,8 @@ export default function AdminSettings() {
             <div className="space-y-4">
               <div className="flex items-center justify-between">
                 <div>
-                  <span className="text-sm font-medium text-gray-700">Email Notifications</span>
-                  <p className="text-sm text-gray-500">Receive email alerts for important events</p>
+                  <span className="text-sm font-medium text-gray-700">{t('admin.settings.emailNotifications')}</span>
+                  <p className="text-sm text-gray-500">{t('admin.settings.emailNotificationsDesc')}</p>
                 </div>
                 <button
                   onClick={() => updateSetting('notifications', 'emailNotifications', !settings.notifications.emailNotifications)}
@@ -321,7 +324,7 @@ export default function AdminSettings() {
                     settings.notifications.emailNotifications ? 'bg-emerald-600' : 'bg-gray-200'
                   }`}
                 >
-                  <span className="sr-only">Toggle email notifications</span>
+                  <span className="sr-only">{t('admin.settings.toggleEmailNotifications')}</span>
                   <span
                     className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out ${
                       settings.notifications.emailNotifications ? 'translate-x-5' : 'translate-x-0'
@@ -332,8 +335,8 @@ export default function AdminSettings() {
 
               <div className="flex items-center justify-between">
                 <div>
-                  <span className="text-sm font-medium text-gray-700">New Property Alerts</span>
-                  <p className="text-sm text-gray-500">Get notified when new properties are submitted</p>
+                  <span className="text-sm font-medium text-gray-700">{t('admin.settings.newPropertyAlerts')}</span>
+                  <p className="text-sm text-gray-500">{t('admin.settings.newPropertyAlertsDesc')}</p>
                 </div>
                 <button
                   onClick={() => updateSetting('notifications', 'newPropertyAlerts', !settings.notifications.newPropertyAlerts)}
@@ -341,7 +344,7 @@ export default function AdminSettings() {
                     settings.notifications.newPropertyAlerts ? 'bg-emerald-600' : 'bg-gray-200'
                   }`}
                 >
-                  <span className="sr-only">Toggle property alerts</span>
+                  <span className="sr-only">{t('admin.settings.togglePropertyAlerts')}</span>
                   <span
                     className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out ${
                       settings.notifications.newPropertyAlerts ? 'translate-x-5' : 'translate-x-0'
@@ -352,8 +355,8 @@ export default function AdminSettings() {
 
               <div className="flex items-center justify-between">
                 <div>
-                  <span className="text-sm font-medium text-gray-700">Investment Alerts</span>
-                  <p className="text-sm text-gray-500">Get notified of new investments</p>
+                  <span className="text-sm font-medium text-gray-700">{t('admin.settings.investmentAlerts')}</span>
+                  <p className="text-sm text-gray-500">{t('admin.settings.investmentAlertsDesc')}</p>
                 </div>
                 <button
                   onClick={() => updateSetting('notifications', 'investmentAlerts', !settings.notifications.investmentAlerts)}
@@ -361,7 +364,7 @@ export default function AdminSettings() {
                     settings.notifications.investmentAlerts ? 'bg-emerald-600' : 'bg-gray-200'
                   }`}
                 >
-                  <span className="sr-only">Toggle investment alerts</span>
+                  <span className="sr-only">{t('admin.settings.toggleInvestmentAlerts')}</span>
                   <span
                     className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out ${
                       settings.notifications.investmentAlerts ? 'translate-x-5' : 'translate-x-0'
@@ -372,8 +375,8 @@ export default function AdminSettings() {
 
               <div className="flex items-center justify-between">
                 <div>
-                  <span className="text-sm font-medium text-gray-700">System Alerts</span>
-                  <p className="text-sm text-gray-500">Receive critical system notifications</p>
+                  <span className="text-sm font-medium text-gray-700">{t('admin.settings.systemAlerts')}</span>
+                  <p className="text-sm text-gray-500">{t('admin.settings.systemAlertsDesc')}</p>
                 </div>
                 <button
                   onClick={() => updateSetting('notifications', 'systemAlerts', !settings.notifications.systemAlerts)}
@@ -381,7 +384,7 @@ export default function AdminSettings() {
                     settings.notifications.systemAlerts ? 'bg-emerald-600' : 'bg-gray-200'
                   }`}
                 >
-                  <span className="sr-only">Toggle system alerts</span>
+                  <span className="sr-only">{t('admin.settings.toggleSystemAlerts')}</span>
                   <span
                     className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out ${
                       settings.notifications.systemAlerts ? 'translate-x-5' : 'translate-x-0'
@@ -398,14 +401,14 @@ export default function AdminSettings() {
           <div className="px-6 py-4 border-b border-gray-200">
             <div className="flex items-center">
               <Shield className="h-5 w-5 text-gray-500 mr-2" />
-              <h2 className="text-lg font-semibold text-gray-900">Security Settings</h2>
+              <h2 className="text-lg font-semibold text-gray-900">{t('admin.settings.security')}</h2>
             </div>
           </div>
           <div className="p-6 space-y-6">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Session Timeout (hours)
+                  {t('admin.settings.sessionTimeout')}
                 </label>
                 <input
                   type="number"
@@ -419,7 +422,7 @@ export default function AdminSettings() {
 
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Max Login Attempts
+                  {t('admin.settings.maxLoginAttempts')}
                 </label>
                 <input
                   type="number"
@@ -433,7 +436,7 @@ export default function AdminSettings() {
 
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Minimum Password Length
+                  {t('admin.settings.passwordMinLength')}
                 </label>
                 <input
                   type="number"
@@ -449,8 +452,8 @@ export default function AdminSettings() {
             <div className="space-y-4">
               <div className="flex items-center justify-between">
                 <div>
-                  <span className="text-sm font-medium text-gray-700">Two-Factor Authentication</span>
-                  <p className="text-sm text-gray-500">Require 2FA for admin accounts</p>
+                  <span className="text-sm font-medium text-gray-700">{t('admin.settings.twoFactorAuth')}</span>
+                  <p className="text-sm text-gray-500">{t('admin.settings.twoFactorAuthDesc')}</p>
                 </div>
                 <button
                   onClick={() => updateSetting('security', 'twoFactorAuth', !settings.security.twoFactorAuth)}
@@ -458,7 +461,7 @@ export default function AdminSettings() {
                     settings.security.twoFactorAuth ? 'bg-emerald-600' : 'bg-gray-200'
                   }`}
                 >
-                  <span className="sr-only">Toggle 2FA</span>
+                  <span className="sr-only">{t('admin.settings.toggle2FA')}</span>
                   <span
                     className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out ${
                       settings.security.twoFactorAuth ? 'translate-x-5' : 'translate-x-0'
@@ -475,14 +478,14 @@ export default function AdminSettings() {
           <div className="px-6 py-4 border-b border-gray-200">
             <div className="flex items-center">
               <Globe className="h-5 w-5 text-gray-500 mr-2" />
-              <h2 className="text-lg font-semibold text-gray-900">Feature Settings</h2>
+              <h2 className="text-lg font-semibold text-gray-900">{t('admin.settings.features')}</h2>
             </div>
           </div>
           <div className="p-6 space-y-4">
             <div className="flex items-center justify-between">
               <div>
-                <span className="text-sm font-medium text-gray-700">QR Code Generation</span>
-                <p className="text-sm text-gray-500">Enable QR code features for properties</p>
+                <span className="text-sm font-medium text-gray-700">{t('admin.settings.qrCodeGeneration')}</span>
+                <p className="text-sm text-gray-500">{t('admin.settings.qrCodeGenerationDesc')}</p>
               </div>
               <button
                 onClick={() => updateSetting('features', 'enableQrCodes', !settings.features.enableQrCodes)}
@@ -490,7 +493,7 @@ export default function AdminSettings() {
                   settings.features.enableQrCodes ? 'bg-emerald-600' : 'bg-gray-200'
                 }`}
               >
-                <span className="sr-only">Toggle QR codes</span>
+                <span className="sr-only">{t('admin.settings.toggleQRCodes')}</span>
                 <span
                   className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out ${
                     settings.features.enableQrCodes ? 'translate-x-5' : 'translate-x-0'
@@ -501,8 +504,8 @@ export default function AdminSettings() {
 
             <div className="flex items-center justify-between">
               <div>
-                <span className="text-sm font-medium text-gray-700">Analytics Dashboard</span>
-                <p className="text-sm text-gray-500">Enable analytics and reporting features</p>
+                <span className="text-sm font-medium text-gray-700">{t('admin.settings.analyticsDashboard')}</span>
+                <p className="text-sm text-gray-500">{t('admin.settings.analyticsDashboardDesc')}</p>
               </div>
               <button
                 onClick={() => updateSetting('features', 'enableAnalytics', !settings.features.enableAnalytics)}
@@ -510,7 +513,7 @@ export default function AdminSettings() {
                   settings.features.enableAnalytics ? 'bg-emerald-600' : 'bg-gray-200'
                 }`}
               >
-                <span className="sr-only">Toggle analytics</span>
+                <span className="sr-only">{t('admin.settings.toggleAnalytics')}</span>
                 <span
                   className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out ${
                     settings.features.enableAnalytics ? 'translate-x-5' : 'translate-x-0'
@@ -521,8 +524,8 @@ export default function AdminSettings() {
 
             <div className="flex items-center justify-between">
               <div>
-                <span className="text-sm font-medium text-gray-700">Reports Generation</span>
-                <p className="text-sm text-gray-500">Allow admin to generate reports</p>
+                <span className="text-sm font-medium text-gray-700">{t('admin.settings.reportsGeneration')}</span>
+                <p className="text-sm text-gray-500">{t('admin.settings.reportsGenerationDesc')}</p>
               </div>
               <button
                 onClick={() => updateSetting('features', 'enableReports', !settings.features.enableReports)}
@@ -530,7 +533,7 @@ export default function AdminSettings() {
                   settings.features.enableReports ? 'bg-emerald-600' : 'bg-gray-200'
                 }`}
               >
-                <span className="sr-only">Toggle reports</span>
+                <span className="sr-only">{t('admin.settings.toggleReports')}</span>
                 <span
                   className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out ${
                     settings.features.enableReports ? 'translate-x-5' : 'translate-x-0'
@@ -541,8 +544,8 @@ export default function AdminSettings() {
 
             <div className="flex items-center justify-between">
               <div>
-                <span className="text-sm font-medium text-gray-700">Messaging System</span>
-                <p className="text-sm text-gray-500">Enable user-to-user messaging</p>
+                <span className="text-sm font-medium text-gray-700">{t('admin.settings.messagingSystem')}</span>
+                <p className="text-sm text-gray-500">{t('admin.settings.messagingSystemDesc')}</p>
               </div>
               <button
                 onClick={() => updateSetting('features', 'enableMessaging', !settings.features.enableMessaging)}
@@ -550,7 +553,7 @@ export default function AdminSettings() {
                   settings.features.enableMessaging ? 'bg-emerald-600' : 'bg-gray-200'
                 }`}
               >
-                <span className="sr-only">Toggle messaging</span>
+                <span className="sr-only">{t('admin.settings.toggleMessaging')}</span>
                 <span
                   className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out ${
                     settings.features.enableMessaging ? 'translate-x-5' : 'translate-x-0'
@@ -567,48 +570,62 @@ export default function AdminSettings() {
             <div className="flex items-center mb-6">
               <Shield className="text-emerald-600 mr-3" size={24} />
               <h3 className="text-lg leading-6 font-medium text-gray-900">
-                Role-Based Access Control
+                {t('admin.settings.roleBasedAccessControl')}
               </h3>
             </div>
 
             <div className="space-y-6">
               {/* Navigation Visibility */}
               <div>
-                <h4 className="text-md font-medium text-gray-900 mb-4">Navigation Visibility</h4>
+                <h4 className="text-md font-medium text-gray-900 mb-4">{t('admin.settings.navigationVisibility')}</h4>
                 <p className="text-sm text-gray-600 mb-4">
-                  Control which navigation items are visible to each role
+                  {t('admin.settings.navigationVisibilityDesc')}
                 </p>
 
-                {['investor', 'owner', 'admin'].map(role => (
-                  <div key={role} className="mb-6">
-                    <h5 className="text-sm font-medium text-gray-700 mb-3 capitalize">{role} Navigation</h5>
-                    <div className="space-y-2">
-                      {navigationPermissions.navbar[role].filter(item => item.configurable).map(item => (
-                        <div key={item.path} className="flex items-center justify-between py-2">
-                          <div>
-                            <span className="text-sm font-medium text-gray-700">{item.label}</span>
-                            <p className="text-xs text-gray-500">{item.path}</p>
-                          </div>
-                          <button
-                            onClick={() => toggleNavigationItem(role, item.path)}
-                            className={`relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:ring-offset-2 ${
-                              isNavigationItemDisabled(role, item.path) ? 'bg-gray-200' : 'bg-emerald-600'
-                            }`}
-                          >
-                            <span className="sr-only">Toggle {item.label}</span>
-                            <span
-                              className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out ${
-                                isNavigationItemDisabled(role, item.path) ? 'translate-x-0' : 'translate-x-5'
-                              }`}
-                            />
-                          </button>
-                        </div>
-                      ))}
+                {Object.entries(navigationPermissions.navbar).map(([role, items]) => {
+                  // Get the translated role name, defaulting to the role key if not found
+                  const roleName = t(`admin.settings.roles.${role}`, { defaultValue: role });
+                  return (
+                    <div key={role} className="mb-6">
+                      <h5 className="text-sm font-medium text-gray-700 mb-3">{roleName}</h5>
+                      <div className="space-y-2">
+                        {items.filter(item => item.configurable).map(item => {
+                          // Get the translated navigation item label
+                          const navKey = item.path.replace(/^\//, '').replace(/\//g, '.');
+                          const label = t(`admin.settings.navigation.${navKey}`, { defaultValue: item.label });
+                          
+                          return (
+                            <div key={item.path} className="flex items-center justify-between py-2">
+                              <div>
+                                <span className="text-sm font-medium text-gray-700">
+                                  {label}
+                                </span>
+                                <p className="text-xs text-gray-500">{item.path}</p>
+                              </div>
+                              <button
+                                onClick={() => toggleNavigationItem(role, item.path)}
+                                className={`relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:ring-offset-2 ${
+                                  isNavigationItemDisabled(role, item.path) ? 'bg-gray-200' : 'bg-emerald-600'
+                                }`}
+                                aria-label={t('admin.settings.toggleNavigation', { role: roleName })}
+                              >
+                                <span className="sr-only">
+                                  {t('admin.settings.toggleNavigation', { role: roleName })}
+                                </span>
+                                <span
+                                  className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out ${
+                                    isNavigationItemDisabled(role, item.path) ? 'translate-x-0' : 'translate-x-5'
+                                  }`}
+                                />
+                              </button>
+                            </div>
+                          );
+                        })}
+                      </div>
                     </div>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
-
             </div>
           </div>
         </div>

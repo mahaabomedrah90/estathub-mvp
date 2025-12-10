@@ -1,6 +1,7 @@
 import React, { useState, useRef } from 'react'
 import { Upload, X, FileText, CheckCircle2, AlertCircle, Loader } from 'lucide-react'
 import { formatFileSize, authHeader } from '../lib/api'
+import { useTranslation } from 'react-i18next';
 
 export default function FileUpload({ 
   label, 
@@ -13,6 +14,7 @@ export default function FileUpload({
   documentType,
   disabled = false
 }) {
+const { t } = useTranslation('pages');
   const [uploading, setUploading] = useState(false)
   const [error, setError] = useState('')
   const [preview, setPreview] = useState(value || '')
@@ -24,13 +26,16 @@ export default function FileUpload({
 
     if (file.size > maxSize) {
       setError(`File too large. Maximum size is ${formatFileSize(maxSize)}`)
+
       return
     }
 
     const fileExt = '.' + file.name.split('.').pop().toLowerCase()
     const acceptedTypes = accept.split(',')
     if (!acceptedTypes.includes(fileExt)) {
-      setError(`Invalid file type. Accepted: ${accept}`)
+     setError(
+  t('fileUpload.errorInvalidType', { accepted: accept })
+)
       return
     }
 
@@ -63,7 +68,7 @@ export default function FileUpload({
       onChange(data.fileUrl)
     } catch (err) {
       console.error('Upload error:', err)
-      setError('Failed to upload file. Please try again.')
+     setError(t('fileUpload.errorUploadFailed'))
     } finally {
       setUploading(false)
     }
@@ -101,18 +106,27 @@ export default function FileUpload({
             disabled={disabled || uploading}
           />
           
-          {uploading ? (
-            <div className="flex flex-col items-center gap-2">
-              <Loader className="animate-spin text-emerald-600" size={32} />
-              <p className="text-sm text-gray-600">Uploading...</p>
-            </div>
-          ) : (
-            <div className="flex flex-col items-center gap-2">
-              <Upload className="text-gray-400" size={32} />
-              <p className="text-sm text-gray-600">Click to upload or drag and drop</p>
-              <p className="text-xs text-gray-500">{accept.toUpperCase()} (Max {formatFileSize(maxSize)})</p>
-            </div>
-          )}
+        {uploading ? (
+  <div className="flex flex-col items-center gap-2">
+    <Loader className="animate-spin text-emerald-600" size={32} />
+    <p className="text-sm text-gray-600">
+      {t('fileUpload.uploading')}
+    </p>
+  </div>
+) : (
+  <div className="flex flex-col items-center gap-2">
+    <Upload className="text-gray-400" size={32} />
+    <p className="text-sm text-gray-600">
+      {t('fileUpload.clickToUpload')}
+    </p>
+    <p className="text-xs text-gray-500">
+      {t('fileUpload.acceptedFormats', {
+        formats: accept.toUpperCase(),
+        max: formatFileSize(maxSize)
+      })}
+    </p>
+  </div>
+)}
         </div>
       ) : (
         <div className="border border-gray-200 rounded-lg p-4 bg-white">
@@ -132,12 +146,16 @@ export default function FileUpload({
             <div className="flex-1 min-w-0">
               <div className="flex items-start justify-between gap-2">
                 <div className="flex-1 min-w-0">
-                  <p className="text-sm font-medium text-gray-900 truncate">
-                    {isPDF ? 'Document uploaded' : 'Image uploaded'}
-                  </p>
+                 <p className="text-sm font-medium text-gray-900 truncate">
+  {isPDF
+    ? t('fileUpload.documentUploaded')
+    : t('fileUpload.imageUploaded')}
+</p>
                   <div className="flex items-center gap-2 mt-1">
                     <CheckCircle2 className="text-green-600 flex-shrink-0" size={16} />
-                    <span className="text-xs text-green-600">Upload successful</span>
+                   <span className="text-xs text-green-600">
+  {t('fileUpload.uploadSuccessful')}
+</span>
                   </div>
                 </div>
                 

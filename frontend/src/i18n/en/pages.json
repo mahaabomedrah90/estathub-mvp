@@ -1,0 +1,1280 @@
+{"financialTokenization": "Financial Tokenization",
+  "valuationTokenStructure": "Valuation & Token Structure",
+  "tokenizationStructure": "Tokenization Structure",
+  "defineTokenizedProperty": "Define how this property will be tokenized: total tokens, token price, and the percentage of tokens you wish to retain.",
+  "marketValue": "Market Value (SAR)",
+  "valuationReport": "Valuation Report",
+  "tokenDistributionSummary": "Token Distribution Summary",
+  "expectedReturns": "Expected Returns",
+  "roiConsistencyCheck": "ROI Consistency Check",
+  "tokenPrice": "Token Price (SAR)",
+"totalTokens": "Total Tokens",
+"ownerRetainedPercentage": "Owner retained percentage (%)",
+"ownerRetainedPercentageDescription": "Percentage of tokens you want to retain for yourself (0–100%)",
+
+"expectedAnnualROI": "Expected Annual ROI (%)",
+"expectedMonthlyYield": "Expected Monthly Yield (%)",
+"monthlyYield": "Monthly yield",
+"roiDoesntMatch": "This doesn't match your annual ROI",
+
+"payoutSchedule": "Payout Schedule",
+
+"availableForSale": "Available for sale",
+"availableTokensLabel": "{{count}} tokens",
+"availableTokensValue": "Value: {{value}} SAR",
+
+"ownerRetained": "Owner retained",
+"retainedTokensLabel": "{{count}} tokens",
+"ownerRetainedValue": "Value: {{value}} SAR",
+"ownerInformationTitle": "Owner Information",
+"ownerInformationDescription": "Details about the property owner and contact/banking information.",
+
+"importantInformationTitle": "Important",
+"importantInformationDescription": "Please ensure owner details match official records. This information may be used for KYC and payout processing.",
+
+"ownerType": "Owner Type",
+"companyInformation": "Company Information",
+"personalInformation": "Personal Information",
+"companyName": "Company Name",
+"fullName": "Full Name",
+
+"commercialRegistration": "Commercial Registration",
+"nationalId": "National ID",
+"nationalIdMustBe10DigitsStartingWith1Or2": "National ID must be 10 digits starting with 1 or 2.",
+
+"commercialRegistrationNumber": "Commercial Registration Number",
+"authorizedPersonName": "Authorized Person Name",
+"authorizedPersonId": "Authorized Person ID",
+
+"contactInformation": "Contact Information",
+"phoneNumber": "Phone Number",
+"phoneNumberHint": "Enter valid Saudi phone number (05XXXXXXXX)",
+"emailAddress": "Email Address",
+
+"bankingInformation": "Banking Information",
+"payoutAccount": "Payout Account",
+"payoutAccountDescription": "This IBAN will be used to send your payouts from rental income and tokenization proceeds.",
+
+"iban": "IBAN",
+"ibanMustStartWithSAFollowedBy22Digits": "IBAN must start with SA followed by 22 digits.",
+
+"complianceAgreements": "Compliance & Agreements",
+"legalDeclarationsAgreements": "Legal declarations and platform agreements",
+
+"requiredDeclarations": "Required Declarations",
+"readAcceptDeclarations": "Please read the following declarations carefully and confirm your acceptance.",
+
+"declaration": "Declaration",
+"allDeclarationsAccepted": "All declarations accepted",
+"actionRequired": "Action required",
+"acceptedAllRequiredDeclarations": "You have accepted all required declarations for this property submission.",
+"acceptDeclarations": "Please review and accept all declarations above to proceed.",
+
+"legalNotice": "Legal Notice",
+"submitPropertyTokenization": "By submitting this property for tokenization on Estathub, you acknowledge and agree to the following:",
+
+"complySaudiRealEstate": "You will comply with all applicable Saudi real estate, financial, and anti‑money‑laundering regulations.",
+"allowPlatformAdmin": "You authorize the platform administrator to review your documents and property information for compliance.",
+"maintainPropertyRecords": "You will maintain accurate and up‑to‑date property records and notify the platform of any material changes.",
+"distributeRentalIncome": "You agree that rental income and tokenization proceeds will be distributed according to the token structure and platform policies.",
+"payPlatformFees": "You agree to pay any applicable platform fees and charges related to listing and tokenizing this property.",
+
+"platformOperatesSaudiLaws": "Estathub operates under Saudi laws and regulations. All disputes will be subject to the jurisdiction of the competent Saudi authorities.",
+
+"readyToSubmit": "You’re ready to submit your property",
+"propertySubmissionComplete": "All steps are complete and all declarations have been accepted. You can now submit your property for review.",
+"declarationAccepted": "Accepted",
+
+"declarationPropertyAccuracyTitle": "Accuracy of Property Information",
+"declarationPropertyAccuracyDescription": "I confirm that all property information and documents I have provided are accurate, complete, and reflect the actual status of the property.",
+
+"declarationLegalResponsibilityTitle": "Legal Responsibility",
+"declarationLegalResponsibilityDescription": "I understand that I am legally responsible for the accuracy of the information provided and for complying with all applicable laws and regulations.",
+
+"declarationTokenizationApprovalTitle": "Approval for Tokenization",
+"declarationTokenizationApprovalDescription": "I approve listing this property on Estathub and tokenizing it according to the platform’s structure, terms, and conditions.",
+
+"declarationDocumentSharingApprovalTitle": "Approval to Share Documents",
+"declarationDocumentSharingApprovalDescription": "I authorize Estathub to share necessary property documents and information with regulators, valuers, and other relevant parties for verification and compliance.",
+
+  "auth": {
+    "login": {
+      "welcomeBack": "Welcome Back",
+        "subtitle": "Sign in to access your investment portfolio",
+        "emailLabel": "Email Address",
+        "emailPlaceholder": "you@example.com",
+        "passwordLabel": "Password",
+        "passwordPlaceholder": "********",
+        "signIn": "Sign In",
+        "signingIn": "Signing in...",
+        "demoCredentials": "Demo Credentials:",
+        "noAccount": "Don't have an account?",
+        "signUp": "Sign up",
+        "signupLink": "Sign up",
+        "adminUser": "Admin",
+        "investorUser": "Investor",
+        "ownerUser": "Owner",
+        "errorInvalid": "Login failed. Please check your credentials and try again."
+    },
+   "signup": {
+  "title": "Create your Estathub account",
+  "subtitle": "Join Estathub and start investing in real estate.",
+  "nameLabel": "Full Name *",
+  "namePlaceholder": "John Doe",
+  "emailLabel": "Email Address *",
+  "emailPlaceholder": "you@example.com",
+  "passwordLabel": "Password *",
+  "passwordPlaceholder": "Min. 8 characters",
+  "confirmPasswordLabel": "Confirm Password *",
+  "confirmPasswordPlaceholder": "Confirm your password",
+  "tenantLabel": "Company/Organization Name",
+  "tenantPlaceholder": "Your company name (optional)",
+  "accountTypeLabel": "Account Type",
+  "roleInvestor": "Investor",
+  "roleOwner": "Owner",
+  "roleAdmin": "Admin",
+  "submit": "Create account",
+  "submitting": "Creating account...",
+  "footerQuestion": "Already have an account?",
+  "footerLogin": "Sign in",
+  "errorRequired": "Please fill in all required fields",
+  "errorPasswordLength": "Password must be at least 8 characters long",
+  "errorPasswordMismatch": "Passwords do not match",
+  "errorEmailInvalid": "Please enter a valid email address",
+  "errorGeneric": "Signup failed. Please try again."
+}
+  },
+  "home": {
+    "statsBlockchainSecured": "Blockchain Secured",
+"statsMarketAccess": "Market Access",
+"statsLocalCurrency": "Local Currency",
+    "badge": "Blockchain-Powered Real Estate Investment",
+    "heroTitle1": "Invest in Real Estate,",
+    "heroTitle2": "One Token at a Time",
+    "heroSubtitle": "Estathub democratizes real estate investment through blockchain tokenization.",
+    "heroCTA": " Start building your property portfolio with as little as one token.",
+    "exploreOpportunities": "Explore Opportunities",
+    "viewBlockchain": "View Blockchain",
+    "feature1Title": "Fractional Ownership",
+    "feature1Description": "Own a piece of premium real estate without the hefty price tag. Start with just one token.",
+    "feature2Title": "Monthly Returns",
+    "feature2Description": "Earn consistent monthly yields from rental income distributed directly to your wallet.",
+    "feature3Title": "Blockchain Security",
+    "feature3Description": "All transactions are secured on Hyperledger Fabric, ensuring transparency and immutability.",
+    "feature4Title": "Easy Payments",
+    "feature4Description": "Invest using local payment methods in SAR. Simple, fast, and secure transactions.",
+    "ctaTitle": "Ready to Start Investing?",
+    "ctaSubtitle": "Join Estathub today and start building your real estate portfolio with blockchain-powered fractional ownership.",
+    "browseProperties": "Browse Properties"
+    
+  },
+ "admin": {
+   "overview": {
+    "loginRequired": "Please login as admin to view this dashboard.",
+    "loginCta": "Login Now",
+    "loading": "Loading admin dashboard...",
+    "loadError": "Failed to load dashboard data",
+    "headerTitle": "Platform Overview",
+    "headerSubtitle": "Monitor performance, review property submissions, and manage users",
+    "notificationApproved": "Property approved successfully!",
+    "notificationRejected": "Property rejected successfully!",
+    "currency": "SAR",
+    "approved": "Approved",
+    "pendingProperties": "Pending Properties",
+    "rejected": "Rejected",
+    "stat": {
+      "totalProperties": "Total Properties",
+      "approvedProperties": "Approved Properties",
+      "pendingProperties": "Pending Properties",
+      "pendingReview": "Pending Review",
+      "activeInvestors": "Active Investors",
+      "investmentVolume": "Investment Volume",
+      "monthlyGrowth": "Monthly Growth",
+      "changeLabel": "{{value}}"
+    },
+    "pending": {
+      "title": "Pending Properties",
+      "subtitle": "{{count}} properties awaiting review",
+      "viewAll": "View All",
+      "emptyTitle": "No properties pending review",
+      "table": {
+        "propertyTitle": "Property Title",
+        "owner": "Owner",
+        "submitted": "Submitted",
+        "value": "Value",
+        "status": "Status",
+        "actions": "Actions"
+      },
+      "defaultLocation": "Riyadh, Saudi Arabia",
+      "defaultOwner": "Property Owner",
+      "statusPending": "Pending Review",
+      "unknownDate": "Date not available",
+      "viewDetailsTitle": "View details",
+      "approve": "Approve",
+      "reject": "Reject"
+    },
+    "activity": {
+      "title": "Recent Platform Activity",
+      "approvedPrefix": "Approved: ",
+      "submittedPrefix": "Submitted: ",
+      "rejectedPrefix": "Rejected: "
+    }
+  },
+ "users": {
+    "headerTitle": "User Management",
+    "headerSubtitle": "Manage platform users and their roles",
+    "filters": { "all": "All", "owner": "Owner", "investor": "Investor", "admin": "Admin" },
+    "loading": "Loading users...",
+    "errorTryAgain": "Try Again",
+    "stats": {
+      "totalUsers": "Total Users",
+      "owners": "Owners",
+      "investors": "Investors",
+      "active": "Active"
+    },
+    "messages": {
+      "deleteConfirm": "Are you sure you want to delete this user?",
+      "success": "User updated successfully!",
+      "error": "Failed to update user",
+      "loadFailed": "Failed to load users from database",
+      "messagingSystemDesc": "Enable internal messaging system between users",
+      "roleBasedAccessControl": "Role-Based Access Control",
+      "roleBasedAccessControlDesc": "Manage user permissions and access settings based on their roles",
+      "navigationVisibility": "Navigation Visibility",
+      "navigationVisibilityDesc": "Control which menu items are visible to each role",
+      "toggleNavigation": "Toggle {role} navigation",
+      "navigationItemVisible": "{item} is visible to {role}",
+      "navigationItemHidden": "{item} is hidden from {role}",
+      "roles": {
+        "admin": "Admin",
+        "investor": "Investor",
+        "owner": "Owner",
+        "user": "User"
+      },
+      "navigation": {
+        "investor/dashboard": "Investor Dashboard",
+        "investor/opportunities": "Opportunities",
+        "blockchain": "Blockchain",
+        "owner/dashboard": "Owner Dashboard",
+        "owner/properties": "Properties",
+        "admin/overview": "Overview",
+        "admin/opportunities": "Review Properties",
+        "overview": "Overview",
+        "opportunities": "Opportunities",
+        "users": "Users",
+        "deeds": "Deeds",
+        "reports": "Reports",
+        "management": "Management",
+        "settings": "Settings",
+        "investors": "Investors"
+      },
+      "navigationVisibility": "Navigation Visibility",
+      "roleUpdateSuccess": "User role updated to {{role}}! The user ({{name}}) must log out and log back in for changes to take effect.",
+      "roleChangeConfirm": "Are you sure you want to change {{name}}'s role from {{from}} to {{to}}?",
+      "statusUpdateFailed": "Failed to update user status",
+      "roleUpdateFailed": "Failed to update user role. Please try again.",
+      "userUpdateSuccess": "User updated successfully!",
+      "userDeleteConfirm": "Are you sure you want to delete this user?"
+    },
+    "status": {
+      "active": "Active",
+      "suspended": "Suspended"
+    },
+    "role": {
+      "owner": "Owner",
+      "investor": "Investor",
+      "admin": "Admin"
+    },
+    "texts": {
+      "selectNewRole": "Select a new role for {{name}}",
+      "currentRole": "(Current)",
+      "important": "Important:",
+      "roleChangeLoginNote": "The user must log out and log back in for the role change to take effect."
+    },
+    "actions": {
+      "edit": "Edit Role",
+      "changeRole": "Change Role",
+      "confirmRole": "Confirm Role",
+      "cancel": "Cancel",
+      "confirmChange": "Confirm Change",
+      "suspend": "Suspend",
+      "activate": "Activate",
+      "confirm_change": "Confirm Change",
+      "statusUpdateFailed": "Failed to update user status",
+      "roleUpdateFailed": "Failed to update user role. Please try again.",
+      "userUpdateSuccess": "User updated successfully!",
+      "userDeleteConfirm": "Are you sure you want to delete this user?",
+      "userDeleteSuccess": "User deleted successfully!",
+      "userDeleteError": "Failed to delete user. Please try again.",
+      "userDeleteCancel": "User deletion cancelled.",
+      "userDeleteInProgress": "Deleting user... Please wait.",
+      "userDeleteProcessing": "Processing user deletion... Please do not refresh the page or close this tab."
+    },
+    "table": {
+      "user": "User",
+      "contact": "Contact",
+      "role": "Role",
+      "status": "Status",
+      "joined": "Joined",
+      "actions": "Actions"
+    }
+  },
+  "issueDeeds": {
+    "headerTitle": "Issue Digital Deeds",
+    "headerSubtitle": "Review and issue digital title deeds for investors",
+    "stats": {
+      "totalProperties": "Total Properties",
+      "pendingIssuance": "Pending Issuance",
+      "alreadyIssued": "Already Issued"
+    },
+    "selectProperty": {
+      "title": "Select Property",
+      "onlyApprovedTooltip": "Only approved properties can issue deeds",
+      "tokensSold": "{{sold}} / {{total}} tokens sold",
+      "tokensIssued": "{{issued}} / {{sold}} tokens issued"
+    },
+    "investors": {
+      "title": "Investors ({{count}})",
+      "issueAll": "Issue All Deeds",
+      "empty": "No investors found for this property",
+      "badgeFullyIssued": "Fully Issued",
+      "badgeNewTokens": "⚠ {{count}} new tokens",
+      "buttonFullyIssued": "Fully Issued",
+      "buttonIssueTokens": "Issue {{count}} tokens",
+      "buttonIssueDeed": "Issue Deed",
+      "holdings": "{{tokens}} tokens ({{percent}}%)",
+      "issuedSummary": "{{issued}} issued in {{deedCount}} deeds",
+      "issuedSummaryWithPending": "{{issued}} issued in {{deedCount}} deeds, {{pending}} pending",
+      "viewInvestorDetails": "View investor details",
+      "columns": {
+      "properties": "Properties",
+      "propertiesCount": "properties",
+      "totalTokens": "tokens",
+      "actions": "Actions"
+    }
+    },
+    "confirmTitle": "Confirm Deed Issuance",
+    "confirmIssueForInvestor": "Are you sure you want to issue a digital deed for investor {{name}}?",
+    "confirmCancel": "Cancel",
+    "confirmOk": "Issue Deed",
+    "confirmProcessing": "Issuing...",
+    "results": {
+      "title": "Issuance Results",
+      "deedAlreadyExists": "Deed already exists: {{deedNumber}}",
+      "skipped": "(Skipped)",
+      "deedIssued": "Deed issued: {{deedNumber}}",
+      "errorPrefix": "Error: {{message}}"
+    },
+    "propertyModal": {
+      "title": "Property Details",
+      "basicInfo": "Basic Information",
+      "technical": "Technical Specification",
+      "financial": "Financial & Tokenization",
+      "ownerInfo": "Owner Information",
+      "legalDocs": "Legal Documents",
+      "images": "Property Images",
+      "description": "Description",
+      "labels": {
+        "propertyName": "Property Name",
+        "location": "Location",
+        "city": "City",
+        "district": "District",
+        "status": "Status",
+        "propertyType": "Property Type",
+        "landArea": "Land Area",
+        "builtArea": "Built Area",
+        "buildingAge": "Building Age",
+        "floors": "Floors",
+        "units": "Units",
+        "condition": "Condition",
+        "marketValue": "Market Value",
+        "expectedRoi": "Expected ROI",
+        "totalTokens": "Total Tokens",
+        "tokenPrice": "Token Price",
+        "tokensSold": "Tokens Sold",
+        "ownerRetained": "Owner Retained",
+        "ownerName": "Owner Name",
+        "ownerType": "Owner Type",
+        "nationalIdCr": "National ID / CR",
+        "phone": "Phone",
+        "email": "Email",
+        "iban": "IBAN"
+      },
+      "docs": {
+        "deed": "Property Deed",
+        "sitePlan": "Site Plan",
+        "buildingPermit": "Building Permit",
+        "valuationReport": "Valuation Report",
+        "ownerId": "Owner ID"
+      },
+      "close": "Close"
+    },
+    "confirmIssueForInvestor": "Are you sure you want to issue deeds for this investor ({{name}})?",
+    "investorModal": {
+      "title": "Investor Details",
+      "info": "Investor Information",
+      "labels": {
+        "name": "Name",
+        "email": "Email",
+        "userId": "User ID"
+      },
+      "investmentDate": "Investment Date",
+      "investmentIn": "Investment in",
+      "ownedTokens": "Owned tokens",
+      "ownershipPercentage": "Ownership percentage",
+      "investmentValue": "Investment value",
+      "deedIssuanceStatus": "Deed issuance status",
+      "totalTokensIssued": "Total tokens issued: {{count}}",
+      "tokensIssued": "in {{count}} deeds",
+      "deedsForThisInvestor": "for this investor",
+      "pendingTokens": "{{count}} pending",
+      "ownedTokensCount": "{{count}} tokens",
+      "noDeedsIssuedYet": "No deeds have been issued yet",
+      "pendingDeedIssuance": "{{count}} tokens pending deed issuance for this investor",
+      "transactionSummary": "Transaction summary",
+      "tokenPrice": "Token price",
+      "tokensPurchased": "Tokens purchased",
+      "totalInvestment": "Total investment",
+      "expectedAnnualROI": "Expected annual ROI",
+      "estimatedAnnualReturn": "Estimated annual return",
+      "holdings": "Holdings in this property",
+      "deeds": "Issued deeds",
+      "deedNumber": "Deed Number",
+      "ownedTokensLabel": "Owned Tokens",
+      "status": "Status",
+      "downloadPdf": "Download PDF",
+      "close": "Close",
+      "issueDeedForPendingTokens": "Issue deed for pending tokens"
+    }
+  },
+  
+  "reports": {
+    "loginRequired": "Please login as admin to view reports.",
+    "loading": "Loading reports data...",
+    "headerTitle": "Analytics Dashboard",
+    "headerSubtitle": "Customer insights and platform growth metrics to drive strategic decisions",
+    "timeRange": {
+      "7d": "Last 7 days",
+      "30d": "Last 30 days",
+      "90d": "Last 90 days",
+      "1y": "Last year"
+    },
+    "sections": {
+      "platformOverview": "Platform Overview",
+      "growthMetrics": "Growth Metrics",
+      "customerSegmentation": "Customer Segmentation Analysis",
+      "investmentBehavior": "Investment Behavior Analysis",
+      "topInvestorsBySegment": "Top Investors by Segment",
+      "platformPerformance": "Platform Performance",
+      "segmentationInsights": "Customer Segmentation Insights & Recommendations"
+    },
+    "topInvestors": {
+      "properties": "Properties",
+      "totalInvested": "Total Invested"
+    },
+    "overview": {
+      "totalProperties": "Total Properties",
+      "totalInvestors": "Total Investors",
+      "totalVolume": "Total Volume",
+      "activeProperties": "Active Properties",
+      "pendingApprovals": "Pending Approvals"
+    },
+    "growth": {
+      "newInvestors": "New Investors (30d)",
+      "monthlyRevenue": "Monthly Revenue",
+      "newListings": "New Listings"
+    },
+    "segments": {
+      "micro": "Micro Investors",
+      "growth": "Growth Seekers",
+      "whale": "Whale Investors",
+      "customers": "Customers",
+      "percentOfTotal": "% of Total",
+      "avgInvestment": "Avg Investment",
+      "totalValue": "Total Value",
+      "characteristics": "Characteristics:",
+      "microCharacteristics": [
+        "First-time investors",
+        "Conservative approach",
+        "Prefer low-risk properties",
+        "Invest for diversification"
+      ],
+      "growthCharacteristics": [
+        "Experienced investors",
+        "Seek moderate returns",
+        "Diversified portfolios",
+        "Active monitoring"
+      ],
+      "whaleCharacteristics": [
+        "High-net-worth individuals",
+        "Seek high-value opportunities",
+        "Long-term investment horizon",
+        "Prefer premium properties"
+      ]
+    },
+    "behavior": {
+      "oneTime": "One-time Investors",
+      "repeat": "Repeat Investors",
+      "highFrequency": "High-frequency Traders",
+      "longTerm": "Long-term Holders"
+    },
+    "topInvestorsBySegment": {
+      "propertiesLabel": "{{count}} properties",
+      "segmentUnknown": "Unknown",
+      "totalInvested": "Total invested"
+    },
+    "performance": {
+      "fundedProperties": "Funded Properties",
+      "successRate": "Success Rate",
+      "avgApprovalTime": "Avg. Approval Time"
+    },
+    "insights": {
+      "microTitle": "Micro Investors Strategy",
+      "microBody": "{{count}} micro investors ({{percent}}%). Create educational content and low-risk property bundles to attract this segment.",
+      "growthTitle": "Growth Seekers Opportunity",
+      "growthBody": "{{count}} growth seekers ({{percent}}%). Offer portfolio analysis tools and diversified investment options.",
+      "whaleTitle": "Whale Investor Retention",
+      "whaleBody": "{{count}} whale investors ({{percent}}%). Provide premium deals and dedicated relationship management."
+    }
+  },
+  "opportunities": {
+  "headerTitle": "Property Submissions",
+  "headerSubtitle": "Review and manage property tokenization requests",
+  "loading": "Loading property submissions...",
+  "currency": "SAR",
+  "filters": {
+    "all": "All",
+    "pending": "Pending",
+    "approved": "Approved",
+    "rejected": "Rejected"
+  },
+  "table": {
+    "property": "Property",
+    "owner": "Owner",
+    "targetAmount": "Target Amount",
+    "status": "Status",
+    "submitted": "Submitted",
+    "submittedDate": "Submitted: {{date}}",
+    "actions": "Actions"
+  },
+  "fields": {
+    "name": "Property Name",
+    "location": "Location",
+    "owner": "Owner",
+    "targetAmount": "Target Amount",
+    "status": "Status",
+    "submittedDate": "Submitted Date",
+    "description": "Description"
+  },
+  "status": {
+    "pending": "Pending",
+    "approved": "Approved",
+    "rejected": "Rejected"
+  },
+  "actions": {
+    "viewDetails": "View Details",
+    "approve": "Approve Property",
+    "reject": "Reject Property"
+  },
+  "modal": {
+    "title": "Property Details"
+  },
+  "messages": {
+    "approveSuccess": "Property approved successfully!",
+    "approveFailed": "Failed to approve property",
+    "rejectSuccess": "Property rejected",
+    "rejectFailed": "Failed to reject property",
+    "rejectReasonPrompt": "Reason for rejection (optional):",
+      "loadFailed": "Failed to load properties",
+      "saveFailed": "Failed to save property"
+    },
+    "list": {
+      "title": "Current Properties",
+      "loading": "Loading properties...",
+      "noProperties": "No properties yet. Add your first property to get started!",
+      "edit": "Edit",
+      "tokenPrice": "Token Price",
+      "monthlyYield": "Monthly Yield",
+      "totalTokens": "Total Tokens",
+      "sold": "Sold"
+    }
+  },
+"settings": {
+  "headerTitle": "Settings",
+  "headerSubtitle": "Manage platform settings and configurations",
+  "generalSettings": "General Settings",
+  "platformName": "Platform Name",
+  "platformFee": "Platform Fee (%)",
+  "minInvestment": "Minimum Investment (SAR)",
+  "maxInvestment": "Maximum Investment (SAR)",
+  "maintenanceMode": "Maintenance Mode",
+  "maintenanceModeDesc": "Enable maintenance mode to restrict access to administrators only",
+  "toggleMaintenance": "Toggle Maintenance Mode",
+  "allowNewRegistrations": "Allow New Registrations",
+  "allowNewRegistrationsDesc": "Allow new users to create accounts on the platform",
+  "toggleRegistrations": "Toggle Registrations",
+  "requireEmailVerification": "Require Email Verification",
+  "requireEmailVerificationDesc": "Users must verify their email address to activate their account",
+  "toggleEmailVerification": "Toggle Email Verification",
+  
+  "appearance": "Appearance",
+  "notifications": "Notifications",
+  "adminEmail": "Admin Email",
+  "emailNotifications": "Email Notifications",
+  "emailNotificationsDesc": "Enable email notifications for system alerts and updates",
+  "toggleEmailNotifications": "Toggle Email Notifications",
+  "newPropertyAlerts": "New Property Alerts",
+  "newPropertyAlertsDesc": "Receive notifications when new properties are listed",
+  "togglePropertyAlerts": "Toggle Property Alerts",
+  "investmentAlerts": "Investment Alerts",
+  "investmentAlertsDesc": "Get notified about investment opportunities and updates",
+  "toggleInvestmentAlerts": "Toggle Investment Alerts",
+  "systemAlerts": "System Alerts",
+  "systemAlertsDesc": "Important system notifications and updates",
+  "toggleSystemAlerts": "Toggle System Alerts",
+  
+  "security": "Security",
+  "sessionTimeout": "Session Timeout (minutes)",
+  "maxLoginAttempts": "Max Login Attempts",
+  "passwordMinLength": "Minimum Password Length",
+  "twoFactorAuth": "Two-Factor Authentication",
+  "twoFactorAuthDesc": "Add an extra layer of security to your account with 2FA",
+  "toggle2FA": "Toggle Two-Factor Authentication",
+  
+  "features": "Features",
+  "qrCodeGeneration": "QR Code Generation",
+  "qrCodeGenerationDesc": "Enable QR code generation for properties and transactions",
+  "toggleQRCodes": "Toggle QR Codes",
+  "analyticsDashboard": "Analytics Dashboard",
+  "analyticsDashboardDesc": "Enable the analytics dashboard for property and user insights",
+  "toggleAnalytics": "Toggle Analytics",
+  "reportsGeneration": "Reports Generation",
+  "reportsGenerationDesc": "Allow generation of reports for transactions and investments",
+  "toggleReports": "Toggle Reports",
+  "messagingSystem": "Messaging System",
+  "messagingSystemDesc": "Enable internal messaging between users",
+  "toggleMessaging": "Toggle Messaging",
+  
+  "roleBasedAccessControl": "Role-Based Access Control",
+  "navigationVisibility": "Navigation Visibility",
+  "navigationVisibilityDesc": "Control which menu items are visible to each user role",
+  
+    "loading": "Loading investor data...",
+    "filters": {
+      "all": "All Investors",
+      "active": "Active",
+      "inactive": "Inactive",
+      "verified": "Verified",
+      "unverified": "Unverified"
+    },
+    "columns": {
+      "name": "Investor Name",
+      "email": "Email",
+      "phone": "Phone",
+      "joinDate": "Join Date",
+      "status": "Status",
+      "totalInvestment": "Total Investment",
+      "totalReturns": "Total Returns",
+      "roi": "ROI",
+      "performance": "Performance",
+      "properties": "Properties",
+      "propertiesCount": "properties",
+      "totalTokens": "tokens",
+      "actions": "Actions"
+    },
+    "status": {
+      "active": "Active",
+      "inactive": "Inactive",
+      "suspended": "Suspended"
+    },
+    "verification": {
+      "verified": "Verified",
+      "unverified": "Unverified",
+      "pending": "Pending"
+    },
+    "details": {
+      "title": "Investor Details",
+      "contactInfo": "Contact Information",
+      "investmentPortfolio": "Investment Portfolio",
+      "investmentHistory": "Investment History",
+      "walletAddress": "Wallet Address",
+      "transactions": "Transactions",
+      "lastActive": "Last Active",
+      "viewDetails": "View Details",
+      "editProfile": "Edit Profile",
+      "sendMessage": "Send Message",
+      "suspendAccount": "Suspend Account",
+      "activateAccount": "Activate Account",
+      "tokens": "Tokens"
+    },
+    "analytics": {
+      "totalInvestors": "Total Investors",
+      "totalInvestment": "Total Investment",
+      "totalReturns": "Total Returns",
+      "avgInvestment": "Avg. Investment",
+      "profitableInvestors": "Profitable Investors",
+      "avgROI": "Avg. ROI"
+    },
+    "sections": {
+      "investorPortfolio": "Investor Portfolio"
+    },
+    "table": {
+      "details": "Details"
+    }
+  }
+ },
+ "investor": {
+  "blockchainExplorer": {
+    "title": "Blockchain Explorer",
+    "subtitle": "Interactive view of all blockchain events and transactions",
+    "loading": "Loading blockchain events...",
+    "error": "Error loading blockchain events",
+    "tryAgain": "Try Again",
+      "refresh": "Refresh Data"
+
+  },
+  "dashboard": {
+    "title": "My Investment Portfolio",
+    "subtitle": "Track your real estate investments and returns",
+    "loginRequired": "Please login to view your investment portfolio.",
+    "loginCta": "Login Now",
+    "loading": "Loading your portfolio...",
+    "totalLabel": "Total",
+    "totalPortfolioValue": "Total Portfolio Value",
+    "investedLabel": "Invested",
+    "totalInvested": "Total Invested",
+    "monthlyLabel": "Monthly",
+    "expectedReturns": "Expected Returns",
+    "activeLabel": "Active",
+    "propertiesInvested": "Properties Invested",
+    "balanceBreakdown": "Balance Breakdown",
+    "cashBalanceLabel": "Cash Balance",
+    "investedBalanceLabel": "Invested Balance",
+    "cashBalanceDesc": "Available cash in your wallet",
+    "investedBalanceDesc": "Current value of your property holdings",
+    "growthTitle": "Portfolio Performance",
+    "growthSubtitle": "Track your returns and portfolio growth",
+    "roiMonthly": "Monthly return",
+    "roiAnnual": "Annual return on investment",
+    "myHoldingsTitle": "My Property Holdings",
+    "myHoldingsCta": "Explore More Properties →",
+    "noHoldingsTitle": "You haven't invested in any properties yet",
+    "noHoldingsCta": "Browse Opportunities",
+    "holdingView": "View",
+    "holdingTokensOwned": "Tokens Owned",
+    "holdingInvestment": "Investment",
+    "holdingMonthlyReturn": "Monthly Return",
+    "holdingAnnualReturn": "Annual Return",
+    "recentTransactionsTitle": "Recent Transactions",
+    "recentTransactionsViewAll": "View All →",
+    "noTransactions": "No transactions yet",
+    "returnOnInvestmentPotential": "ROI Potential"
+  },
+  "wallet": {
+  "title": "My Wallet",
+  "subtitle": "Manage your cash and track your real estate investments",
+  "loginRequired": "Please login to view your wallet.",
+  "loading": "Loading wallet…",
+  "usingDemoData": "Using demo data - wallet API unavailable",
+  "totalValueLabel": "Total Value",
+  "totalValueDesc": "Cash balance + investments",
+  "availableCashLabel": "Available Cash",
+  "availableCashDesc": "Ready to invest",
+  "investedValueLabel": "Invested Value",
+  "investedValueDesc": "{{count}} properties",
+  "walletIdLabel": "Wallet ID",
+  "noBalanceTitle": "No available balance",
+  "noBalanceBody": "You need a balance to invest in properties. For demo purposes, click below to receive 1,000,000 SAR.",
+  "getTestBalance": "Get Test Balance (1M SAR)",
+  "testBalanceFailed": "Failed to initialize test balance",
+  "manageFundsTitle": "Manage Funds",
+  "amountLabel": "Amount (SAR)",
+  "deposit": "Deposit",
+  "withdraw": "Withdraw",
+  "depositFailed": "Deposit failed. Please try again.",
+  "withdrawFailed": "Withdraw failed. Please try again.",
+  "mockNote": "Note: Payments are demo-only for MVP purposes.",
+  "myHoldingsTitle": "My Holdings",
+  "noHoldingsTitle": "No holdings yet. Start investing in properties!",
+  "holdingTokensOwned": "Tokens owned:",
+  "holdingTokenPrice": "Token price:",
+  "holdingTotalValue": "Total value",
+  "recentTransactionsTitle": "Recent Transactions",
+  "noTransactions": "No transactions yet.",
+  "transactionType": {
+    "deposit": "Deposit",
+    "withdraw": "Withdraw",
+    "purchase": "Purchase"
+  
+}
+  },
+  "deeds": {
+    "title": "My Digital Deeds",
+    "subtitle": "صكوك الملكية الرقمية - Your Saudi Digital Title Deeds",
+    "loginRequired": "Please login to view your deeds",
+    "userIdMissing": "User ID not found. Please login again.",
+    "loadFailed": "Failed to load deeds",
+    "loading": "Loading your deeds...",
+    "errorTryAgain": "Try Again",
+    "errorLoginAgain": "Login Again",
+    "emptyErrorTitle": "No Deeds Available",
+    "emptyErrorBody": "Unable to load deeds. Please try refreshing or login again.",
+    "statsTotalDeeds": "Total Deeds",
+    "statsIssuedDeeds": "Issued Deeds",
+    "statsTotalOwnership": "Total Ownership",
+    "emptyTitle": "No Deeds Yet",
+    "emptyBody": "Your digital title deeds will appear here after your investments are issued as deeds.",
+    "cardTokens": "Owned Tokens",
+    "cardOwnership": "Ownership",
+    "cardIssuedDate": "Issued Date",
+    "issuedDatePending": "Pending",
+    "downloadPdf": "Download PDF",
+    "statusIssued": "Issued",
+    "statusPending": "Pending Approval",
+    "statusRevoked": "Revoked",
+    "statusTransferred": "Transferred",
+    "modalTitle": "Digital Title Deed",
+    "modalHeaderMain": "Digital Title Deed – Estathub",
+    "modalSubtitle": "صك ملكية رقمي",
+    "detailPropertyTitle": "Property Details",
+    "detailTitle": "Title:",
+    "detailLocation": "Location:",
+    "detailMunicipality": "Municipality:",
+    "detailDistrict": "District:",
+    "detailOwnershipTitle": "Ownership Details",
+    "detailOwnershipDetails": "Ownership Details",
+    "detailDeedNumber": "Deed Number:",
+    "detailOwnedTokens": "Owned Tokens:",
+    "detailOwnershipPct": "Ownership Percentage:",
+    "detailStatus": "Status:",
+    "detailIssuedDate": "Issued Date:",
+    "sectionProperty": "Property Details",
+    "sectionOwnership": "Ownership Details",
+    "sectionIssue": "Issue Details",
+    "planNumber": "Plan Number:",
+    "parcelNumber": "Parcel Number:",
+    "city": "City:",
+    "area": "Area:",
+    "propertyType": "Property Type:",
+    "ownerName": "Owner Name:",
+    "ownerNationalId": "National ID (masked):",
+    "acquisitionDate": "Acquisition Date:",
+    "issuingAuthority": "Issuing Entity:",
+    "digitalRegistryNumber": "Digital Registry Number:",
+    "blockchainSystem": "Blockchain Network:",
+    "blockchainSystemValue": "Private blockchain network via Estathub platform",
+    "digitalSeal": "Blockchain-authenticated digital document – Estathub Digital Certificate",
+    "disclaimer": "This is a digital ownership document recorded on a private blockchain network via the Estathub platform. It is not a substitute for the official title deed issued by the General Real Estate Authority or the Real Property Registry.",
+    "qrTitle": "Verification QR Code",
+    "qrDescription": "Scan to verify deed authenticity",
+    "blockchainTitle": "Blockchain Verification",
+    "blockchainTxId": "Transaction ID:",
+    "modalDownloadPdf": "Download PDF Deed",
+    "modalClose": "Close"
+  }
+  },
+    "owner": {
+    "dashboard": {
+      "title": "Welcome back, Property Owner!",
+      "subtitle": "Manage your real estate portfolio and track tokenization progress",
+      "loginRequired": "Please login to view your owner dashboard.",
+      "loginCta": "Login Now",
+      "loading": "Loading your owner dashboard...",
+      "loadFailed": "Failed to load owner dashboard data",
+      "ctaNewProperty": "Submit New Property",
+      "stats": {
+        "totalProperties": { "title": "Total Properties", "caption": "All submissions" },
+        "approvedProperties": { "title": "Approved Properties", "caption": "Live on platform" },
+        "pendingProperties": { "title": "Pending Review", "caption": "Awaiting approval" },
+        "totalRevenue": { "title": "Total Revenue", "caption": "From tokenization" },
+        "monthlyYield": { "title": "Avg Monthly Yield", "caption": "Expected returns" }
+      },
+      "propertiesSection": {
+        "title": "Your Properties",
+        "viewAll": "View All",
+        "emptyTitle": "No properties submitted yet",
+        "emptyCta": "Submit Your First Property",
+        "progressLabel": "{{percent}}% funded"
+      },
+      "propertyStatus": {
+        "approved": "Approved",
+        "pending": "Pending",
+        "rejected": "Rejected"
+      },
+      "metrics": {
+        "raised": "Raised",
+        "target": "Target",
+        "tokensSold": "Tokens Sold",
+        "yield": "Yield",
+        "fundingProgress": "Funding Progress"
+      },
+      "actions": {
+        "view": "View",
+        "edit": "Edit"
+      },
+      "statusMessages": {
+        "pending": "Awaiting admin approval - Your property will be reviewed shortly",
+        "rejected": "Property was rejected - Please review and resubmit with corrections"
+      }
+    },
+    "properties": {
+      "title": "My Properties",
+      "subtitle": "Manage and track your property submissions",
+      "ctaNewProperty": "Submit New Property",
+      "filters": {
+        "all": "All",
+        "approved": "Approved",
+        "pending": "Pending",
+        "rejected": "Rejected"
+      },
+      "defaultLocation": "Riyadh, Saudi Arabia",
+      "noDescription": "No description provided",
+      "metrics": {
+        "targetAmount": "Target Amount",
+        "investors": "Investors",
+        "raised": "Raised",
+        "yield": "Yield",
+        "fundingProgress": "Funding Progress"
+      },
+      "statusMessages": {
+        "pending": {
+          "title": "Under Review",
+          "subtitle": "Submitted on {{date}}"
+        },
+        "rejected": {
+          "title": "Rejected"
+        },
+        "approved": {
+          "title": "Live & Accepting Investments",
+          "subtitle": "Approved on {{date}}"
+        }
+      },
+      "actions": {
+        "viewDetails": "View Details",
+        "edit": "Edit"
+      },
+      "empty": {
+        "title": "No properties found",
+        "bodyAll": "You haven't submitted any properties yet",
+        "bodyFiltered": "No {{status}} properties",
+        "cta": "Submit Your First Property"
+      }
+    },
+    "newProperty": {
+      "pageTitle": "Submit New Property",
+      "pageSubtitle": "Complete all steps to submit your property for tokenization",
+      "backToProperties": "Back to Properties",
+      "steps": {
+        "1": { "label": "Legal Verification" },
+        "2": { "label": "Technical Specification" },
+        "3": { "label": "Financial & Tokenization" },
+        "4": { "label": "Owner Information" },
+        "5": { "label": "Compliance & Agreements" }
+      },
+      "step1": {
+        "title": "Legal Verification",
+      "subtitle": "Property ownership and legal documents",
+      "infoBoxTitle": "Required Documents",
+      "infoBoxBody": "Please upload all required legal documents. All documents must be clear, valid, and in PDF or image format (max 10MB each).",
+      "ownershipTypeLabel": "Ownership Type",
+      "ownershipTypePlaceholder": "Select ownership type",
+      "deedNumberLabel": "Deed Number",
+      "deedDateLabel": "Deed Date",
+      "deedAuthorityLabel": "Deed Issuing Authority",
+      "uploadButton": "Upload Documents",
+      "propertyNameLabel": "Property Name",
+      "propertyTypeLabel": "Property Type",
+      "locationLabel": "Location",
+      "areaLabel": "Property Size (m²)",
+      "buildingAgeLabel": "Building Age (years)",
+      "descriptionLabel": "Description",
+      "nextButtonLabel": "Next",
+      "propertyTypeApartment": "Apartment",
+      "propertyTypeVilla": "Villa",
+      "propertyTypeDuplex": "Duplex Apartment",
+      "propertyTypeOffice": "Office",
+      "propertyTypeBuilding": "Building",
+      "propertyTypeWarehouse": "Warehouse",
+      "propertyTypeLand": "Land",
+      "propertyTypeCommercial": "Commercial Space",
+      "propertyTypePlaceholder": "Select property type",
+      "landAreaPlaceholder": "e.g., 500",
+      "builtAreaPlaceholder": "e.g., 350",
+      "buildingAgePlaceholder": "e.g., 5",
+      "floorsCountPlaceholder": "e.g., 2",
+      "unitsCountPlaceholder": "e.g., 1",
+      "cityPlaceholder": "e.g., Riyadh",
+      "districtPlaceholder": "e.g., Al Olaya",
+      "municipalityPlaceholder": "e.g., Riyadh Municipality",
+      "gpsLatitudePlaceholder": "e.g., 24.7136",
+      "gpsLongitudePlaceholder": "e.g., 46.6753",
+      "propertyDescriptionPlaceholder": "Provide a detailed description of the property (minimum 100 characters)",
+      "uploadImagesLabel": "Click to upload property images",
+      "uploadingImagesLabel": "Uploading...",
+      "imagesFormatsHint": "JPG, PNG, WEBP (Max 5MB per image)",
+      "propertyDeedDocument": "Property Deed Document",
+      "sitePlanDocument": "Site Plan Document",
+      "buildingPermit": "Building Permit",
+      "electricityBill": "Electricity Bill",
+      "waterBill": "Water Bill (Optional)",
+      "ownerIdDocument": "Owner ID Document",
+      "deedNumberPlaceholder": "Enter deed number",
+"deedAuthorityPlaceholder": "e.g., Ministry of Justice - Riyadh"
+
+      },
+     "step2": {
+  "title": "Technical Specification",
+  "subtitle": "Property details and location",
+  "propertyTypeLabel": "Property Type",
+  "propertyTypePlaceholder": "Select property type",
+      "propertyTypes": {
+        "residentialVilla": "Residential Villa",
+        "residentialApartment": "Residential Apartment",
+        "residentialCompound": "Residential Compound",
+        "commercialOffice": "Commercial Office",
+        "commercialRetail": "Commercial Retail",
+        "commercialWarehouse": "Commercial Warehouse",
+        "mixedUse": "Mixed Use",
+        "landResidential": "Residential Land",
+        "landCommercial": "Commercial Land",
+        "agricultural": "Agricultural",
+        "industrial": "Industrial"
+      },
+  "landAreaLabel": "Land Area (m²)",
+  "builtAreaLabel": "Built Area (m²)",
+  "buildingAgeLabel": "Building Age (years)",
+  "floorsCountLabel": "Number of Floors",
+  "unitsCountLabel": "Number of Units",
+  "propertyConditionLabel": "Property Condition",
+
+  "locationInformationTitle": "Location Information",
+  "cityLabel": "City",
+  "districtLabel": "District",
+  "municipalityLabel": "Municipality",
+  "gpsLatitudeLabel": "Latitude (GPS)",
+  "gpsLongitudeLabel": "Longitude (GPS)",
+
+  "propertyDescriptionLabel": "Property Description",
+  "propertyImagesLabel": "Property Images",
+
+  "propertyTypePlaceholder": "Select property type",
+  "landAreaPlaceholder": "e.g., 500",
+  "builtAreaPlaceholder": "e.g., 350",
+  "buildingAgePlaceholder": "e.g., 5",
+  "floorsCountPlaceholder": "e.g., 2",
+  "unitsCountPlaceholder": "e.g., 1",
+  "cityPlaceholder": "e.g., Riyadh",
+  "districtPlaceholder": "e.g., Al Olaya",
+  "municipalityPlaceholder": "e.g., Riyadh Municipality",
+  "gpsLatitudePlaceholder": "e.g., 24.7136",
+  "gpsLongitudePlaceholder": "e.g., 46.6753",
+  "propertyDescriptionPlaceholder": "Provide a detailed description of the property (minimum 100 characters)",
+
+  "uploadImagesLabel": "Click to upload property images",
+  "uploadingImagesLabel": "Uploading...",
+  "imagesFormatsHint": "JPG, PNG, WEBP (Max 5MB per image)",
+
+  "propertyConditionPlaceholder": "Select property condition",
+  "propertyImagesRangeLabel": "Property Images ({{min}}-{{max}} required)",
+  "descriptionCounter": "{{count}} / {{min}} minimum",
+  "imageErrorMax": "Maximum {{max}} images allowed",
+  "imageErrorTooLarge": "{{file}} is too large. Max 5MB per image.",
+  "imageUploadFailed": "Failed to upload images",
+  "mainImageBadge": "Main Image"
+
+
+
+},
+     "step3": {
+  "title": "Financial & Tokenization",
+  "subtitle": "Valuation, token structure, and expected returns",
+
+  "infoBoxTitle": "Tokenization Structure",
+  "infoBoxBody": "Define how your property will be tokenized: total tokens, token price, and ownership you want to retain.",
+
+  "marketValueLabel": "Market Value (SAR)",
+  "valuationReportLabel": "Valuation Report",
+  "tokenizationStructureTitle": "Tokenization Structure",
+
+  "tokenDistributionSummaryTitle": "Token Distribution Summary",
+  "expectedReturnsTitle": "Expected Returns",
+
+  "roiConsistencyCheckTitle": "ROI Consistency Check",
+  "roiConsistencyCheckBody": "Monthly yield × 12 = {{monthly}}%. If this is far from your annual ROI {{annual}}%, please review your inputs."
+},
+      "step4": {
+        "title": "Owner Information",
+        "subtitle": "Contact and ownership details"
+      },
+      "step5": {
+        "title": "Compliance & Agreements",
+        "subtitle": "Regulatory declarations and agreements"
+      },
+      "nav": {
+        "next": "Next",
+        "back": "Back",
+        "submit": "Submit Property",
+        "submitting": "Submitting...",
+        "saveDraft": "Save Draft"
+      },
+   "validation": {
+      "ownershipTypeRequired": "Ownership type is required",
+      "deedNumberRequired": "Deed number is required",
+      "deedDateRequired": "Deed date is required",
+      "deedAuthorityRequired": "Deed authority is required",
+      "deedDocumentRequired": "Deed document is required",
+      "sitePlanRequired": "Site plan is required",
+      "buildingPermitRequired": "Building permit is required",
+      "electricityBillRequired": "Electricity bill is required",
+      "ownerIdRequired": "Owner ID is required",
+
+      "propertyTypeRequired": "Property type is required",
+      "landAreaRequired": "Valid land area is required",
+      "builtAreaRequired": "Valid built area is required",
+      "buildingAgeRequired": "Building age is required",
+      "floorsCountRequired": "Number of floors is required",
+      "unitsCountRequired": "Number of units is required",
+      "propertyConditionRequired": "Property condition is required",
+      "cityRequired": "City is required",
+      "districtRequired": "District is required",
+      "municipalityRequired": "Municipality is required",
+      "descriptionMin": "Description must be at least 100 characters",
+      "imagesMin": "At least 3 property images are required",
+
+      "marketValueRequired": "Market value is required",
+      "valuationReportRequired": "Valuation report is required",
+      "totalTokensRequired": "Total tokens is required",
+      "tokenPriceRequired": "Token price is required",
+      "expectedRoiRequired": "Expected ROI is required",
+      "expectedMonthlyYieldRequired": "Expected monthly yield is required",
+
+      "ownerNameRequired": "Owner name is required",
+      "nationalIdOrCrRequired": "National ID or CR is required",
+      "ownerPhoneRequired": "Phone number is required",
+      "ownerEmailRequired": "Email is required",
+      "ownerIbanRequired": "IBAN is required",
+      "commercialRegistrationRequired": "Commercial registration is required",
+      "authorizedPersonNameRequired": "Authorized person name is required",
+      "authorizedPersonIdRequired": "Authorized person ID is required",
+
+      "declarationRequired": "You must accept this declaration"
+    }
+    },
+    "map": {
+      "tipLabel": "Tip",
+      "tipText": "Click on the map or drag the marker to select the property location",
+      "coordinatesLabel": "Coordinates"
+    }
+  
+},
+ "fileUpload": {
+    "uploading": "Uploading...",
+    "clickToUpload": "Click to upload or drag and drop",
+    "acceptedFormats": "{{formats}} (Max {{max}})",
+    "documentUploaded": "Document uploaded",
+    "imageUploaded": "Image uploaded",
+    "uploadSuccessful": "Upload successful",
+    "errorTooLarge": "File too large. Maximum size is {{max}}",
+    "errorInvalidType": "Invalid file type. Accepted: {{accepted}}",
+    "errorUploadFailed": "Failed to upload file. Please try again."
+  },
+    "subtitle": "صكوك الملكية القمية - Your Saudi Digital Title Deeds",
+    "loginRequired": "Please login to view your deeds",
+    "userIdMissing": "User ID not found. Please login again.",
+    "loadFailed": "Failed to load deeds",
+    "loading": "Loading your deeds...",
+    "errorTryAgain": "Try Again",
+    "errorLoginAgain": "Login Again",
+    "emptyErrorTitle": "No Deeds Available",
+    "emptyErrorBody": "Unable to load deeds. Please try refreshing or login again.",
+    "statsTotalDeeds": "Total Deeds",
+    "statsIssuedDeeds": "Issued Deeds",
+    "statsTotalOwnership": "Total Ownership",
+    "emptyTitle": "No Deeds Yet",
+    "emptyBody": "Your digital title deeds will appear here after your investments are issued as deeds.",
+    "cardTokens": "Owned Tokens",
+    "cardOwnership": "Ownership",
+    "cardIssuedDate": "Issued Date",
+    "issuedDatePending": "Pending",
+    "downloadPdf": "Download PDF",
+    "statusIssued": "Issued",
+    "statusPending": "Pending Approval",
+    "statusRevoked": "Revoked",
+    "statusTransferred": "Transferred",
+    "modalTitle": "Digital Title Deed",
+    "modalSubtitle": "صك ملكية رقمي",
+    "detailPropertyTitle": "Property Details",
+    "detailTitle": "Title:",
+    "detailLocation": "Location:",
+    "detailMunicipality": "Municipality:",
+    "detailDistrict": "District:",
+    "detailOwnershipTitle": "Ownership Details",
+    "detailDeedNumber": "Deed Number:",
+    "detailOwnedTokens": "Owned Tokens:",
+    "detailOwnershipPct": "Ownership Percentage:",
+
+  "certificate": {
+    "detailOwnershipPct": "Ownership Percentage:",
+    "detailStatus": "Status:",
+    "detailIssuedDate": "Issue Date:",
+    "qrTitle": "Verification QR Code",
+    "qrDescription": "Scan to verify the certificate",
+    "blockchainTitle": "Blockchain Verification",
+    "blockchainTxId": "Transaction ID:",
+    "modalDownloadPdf": "Download PDF Certificate",
+    "modalClose": "Close", 
+
+  "blockchainExplorer": {
+    "title": "Blockchain Explorer",
+    "subtitle": "Interactive view of all blockchain events and transactions",
+    "loading": "Loading blockchain events...",
+    "error": "Error loading blockchain data",
+    "tryAgain": "Try again",
+    "noEvents": "No blockchain events recorded yet",
+    "noTokenMints": "No token mint events have been recorded yet",
+    "tabs": {
+      "timeline": "Timeline",
+      "properties": "Properties",
+      "certificates": "Certificates",
+      "transactions": "Transactions"
+    },
+    "kpiCards": {
+      "totalEvents": "Total Events",
+      "totalProperties": "Total Properties",
+      "totalCertificates": "Total Certificates",
+      "totalTransactions": "Total Transactions",
+      "uniqueOwners": "Unique Owners",
+      "uniqueInvestors": "Unique Investors",
+      "totalBlockchainLinkedRecords": "Total Blockchain-Linked Records"
+    },
+    "regulatorView": {
+      "title": "Regulator View (Beta)",
+      "description": "Detailed view of all blockchain events with additional regulatory information",
+      "details": "Inspect anonymized blockchain data with richer regulatory context.",
+      "enable": "Enable Regulator View",
+      "disable": "Disable Regulator View"
+    },
+    "status": {
+      "on": "Regulator View: ON",
+      "off": "Regulator View: OFF",
+      "verified": "Verified on blockchain"
+    },
+    "auditTrail": "Property audit trail",
+    "actions": {
+      "refresh": "Refresh data",
+      "tryAgain": "Try again"
+    },
+    "eventTypes": {
+      "all": "All",
+      "propertyCreated": "Property Created",
+      "propertyUpdated": "Property Updated",
+      "tokensMinted": "Tokens Minted",
+      "certificateIssued": "Certificate Issued",
+      "ownershipTransferred": "Ownership Transferred"
+    },
+    "details": {
+      "immutableAudit": "Immutable audit trail"
+    }
+  }
+}
+}

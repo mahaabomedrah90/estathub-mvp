@@ -35,6 +35,8 @@ export default function ProtectedRoute({ allowedRoles = [], requiredRoute = null
       return <Navigate to="/admin/overview" replace />
     } else if (role === 'owner') {
       return <Navigate to="/owner/dashboard" replace />
+    } else if (role === 'regulator') {
+      return <Navigate to="/regulator/overview" replace />
     } else {
       return <Navigate to="/investor/dashboard" replace />
     }

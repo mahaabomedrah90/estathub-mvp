@@ -5,6 +5,10 @@ import RootLayout from './layouts/RootLayout.jsx'
 import DashboardLayout from './layouts/DashboardLayout.jsx'
 import ProtectedRoute from './components/ProtectedRoute.jsx'
 import { getToken } from './lib/api.js'
+import { I18nextProvider } from 'react-i18next'
+import i18n from './i18n/i18n'
+import './index.css'
+
 // Public Pages
 import Home from './pages/Home.jsx'
 import Login from './pages/Login.jsx'
@@ -27,11 +31,20 @@ import AdminOverview from './pages/admin/AdminOverview.jsx'
 import AdminOpportunities from './pages/admin/AdminOpportunities.jsx'
 import AdminUsers from './pages/admin/AdminUsers.jsx'
 import IssueDeeds from './pages/admin/IssueDeeds.jsx'
+import AdminPropertyDetail from './pages/admin/AdminPropertyDetail.jsx'
 import './index.css'
 import AdminReports from './pages/admin/AdminReports.jsx'
 import AdminSettings from './pages/admin/AdminSettings.jsx'
 import AdminInvestors from './pages/admin/AdminInvestors.jsx'
-
+// Regulator Pages
+import RegOverview from './pages/regulator/RegOverview.jsx'
+import RegProperties from './pages/regulator/RegProperties.jsx'
+import RegPropertyDetail from './pages/regulator/RegPropertyDetail.jsx'
+import RegLedger from './pages/regulator/RegLedger.jsx'
+import RegAMLAlerts from './pages/regulator/RegAMLAlerts.jsx'
+import RegulatorDashboard from './pages/regulator/RegulatorDashboard.jsx'
+import RegInvestors from './pages/regulator/RegInvestors.jsx'
+import RegEvents from './pages/regulator/RegEvents.jsx'   
 
 
 console.log('� Full React app loading...')
@@ -116,6 +129,7 @@ const router = createBrowserRouter([
  children: [
   { index: true, element: <Navigate to="/admin/overview" replace /> },
   { path: 'overview', element: <AdminOverview /> },
+  { path: 'properties/:id', element: <AdminPropertyDetail /> },
   { path: 'opportunities', element: <AdminOpportunities /> },
   { path: 'users', element: <AdminUsers /> },
   { path: 'issue-deeds', element: <IssueDeeds /> },
@@ -124,13 +138,32 @@ const router = createBrowserRouter([
   { path: 'investors', element: <AdminInvestors /> },
 ],
 },
+// Regulator Routes
+{
+  path: '/regulator',
+  element: (
+    <ProtectedRoute allowedRoles={['regulator']}>
+      <DashboardLayout title="Regulatory Dashboard" />
+    </ProtectedRoute>
+  ),
+  children: [
+    { index: true, element: <Navigate to="/regulator/dashboard" replace /> },
+    { path: 'dashboard', element: <RegulatorDashboard /> },
+    { path: 'overview', element: <RegOverview /> },
+    { path: 'properties', element: <RegProperties /> },
+    { path: 'properties/:id', element: <RegPropertyDetail /> },
+    { path: 'ledger', element: <RegLedger /> },
+    { path: 'aml-alerts', element: <RegAMLAlerts /> },
+    { path: 'investors', element: <RegInvestors /> },
+    { path: 'events', element: <RegEvents /> },     // ← add this
+  ],
+},
 ])
 
-if (document.getElementById('root')) {
-  console.log('✅ Root element found, mounting full app...')
-  ReactDOM.createRoot(document.getElementById('root')).render(
-  <RouterProvider router={router} />
+ReactDOM.createRoot(document.getElementById('root')).render(
+  <React.StrictMode>
+    <I18nextProvider i18n={i18n}>
+      <RouterProvider router={router} />
+    </I18nextProvider>
+  </React.StrictMode>
 )
-} else {
-  console.error('❌ Root element not found!')
-}

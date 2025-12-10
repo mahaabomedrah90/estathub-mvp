@@ -1,10 +1,20 @@
-import React, { useState } from 'react'
+import React, { useState, useEffect, useRef } from 'react'
 import { Building2, MapPin, AlertCircle, Image as ImageIcon, X } from 'lucide-react'
 import { PropertyType, PropertyTypeLabels, PropertyCondition, PropertyConditionLabels, authHeader } from '../../../lib/api'
+import { useTranslation } from 'react-i18next';
+
+
 
 export default function Step2TechnicalSpec({ formData, onChange, errors = {} }) {
+const { t } = useTranslation('pages');
   const [uploadingImages, setUploadingImages] = useState(false)
   const [imageError, setImageError] = useState('')
+
+  // Map state (Leaflet loaded dynamically, similar to OwnerNewProperty)
+  const [showMap, setShowMap] = useState(false)
+  const [mapLoaded, setMapLoaded] = useState(false)
+  const mapRef = useRef(null)
+  const markerRef = useRef(null)
 
   const handleChange = (field, value) => {
     onChange({ ...formData, [field]: value })
@@ -16,7 +26,7 @@ export default function Step2TechnicalSpec({ formData, onChange, errors = {} }) 
 
     const currentImages = formData.mainImagesUrls || []
     if (currentImages.length + files.length > 10) {
-      setImageError('Maximum 10 images allowed')
+      setImageError(t('owner.newProperty.step2.imageErrorMax', { max: 10 }))
       return
     }
 
@@ -28,7 +38,11 @@ export default function Step2TechnicalSpec({ formData, onChange, errors = {} }) 
       
       for (const file of files) {
         if (file.size > 5 * 1024 * 1024) {
-          setImageError(`${file.name} is too large. Max 5MB per image.`)
+          setImageError(
+            t('owner.newProperty.step2.imageErrorTooLarge', {
+              file: file.name,
+            })
+          )
           continue
         }
 
@@ -51,7 +65,7 @@ export default function Step2TechnicalSpec({ formData, onChange, errors = {} }) 
       handleChange('mainImagesUrls', [...currentImages, ...uploadedUrls])
     } catch (err) {
       console.error('Image upload error:', err)
-      setImageError('Failed to upload images')
+      setImageError(t('owner.newProperty.step2.imageUploadFailed'))
     } finally {
       setUploadingImages(false)
     }
@@ -63,6 +77,72 @@ export default function Step2TechnicalSpec({ formData, onChange, errors = {} }) 
     handleChange('mainImagesUrls', newImages)
   }
 
+  // Load Leaflet CSS & JS only when map is shown
+  useEffect(() => {
+    if (!showMap) return
+
+    // CSS
+    if (!document.getElementById('leaflet-css')) {
+      const link = document.createElement('link')
+      link.id = 'leaflet-css'
+      link.rel = 'stylesheet'
+      link.href = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.css'
+      document.head.appendChild(link)
+    }
+
+    // JS
+    if (!window.L) {
+      const script = document.createElement('script')
+      script.src = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.js'
+      script.onload = () => setMapLoaded(true)
+      document.body.appendChild(script)
+    } else {
+      setMapLoaded(true)
+    }
+  }, [showMap])
+
+  // Initialize Leaflet map once loaded
+  useEffect(() => {
+    if (!mapLoaded || !showMap || mapRef.current) return
+
+    const L = window.L
+    const lat = Number(formData.gpsLatitude) || 24.7136
+    const lng = Number(formData.gpsLongitude) || 46.6753
+
+    const map = L.map('owner-property-map').setView([lat, lng], 13)
+
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      attribution: '© OpenStreetMap contributors',
+      maxZoom: 19,
+    }).addTo(map)
+
+    const marker = L.marker([lat, lng], { draggable: true }).addTo(map)
+
+    const updateFromLatLng = (p) => {
+      handleChange('gpsLatitude', p.lat.toFixed(6))
+      handleChange('gpsLongitude', p.lng.toFixed(6))
+    }
+
+    marker.on('dragend', (e) => {
+      const pos = e.target.getLatLng()
+      updateFromLatLng(pos)
+    })
+
+    map.on('click', (e) => {
+      marker.setLatLng(e.latlng)
+      updateFromLatLng(e.latlng)
+    })
+
+    mapRef.current = map
+    markerRef.current = marker
+
+    return () => {
+      map.remove()
+      mapRef.current = null
+      markerRef.current = null
+    }
+  }, [mapLoaded, showMap, formData.gpsLatitude, formData.gpsLongitude])
+
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -71,24 +151,33 @@ export default function Step2TechnicalSpec({ formData, onChange, errors = {} }) 
           <Building2 className="text-blue-600" size={24} />
         </div>
         <div>
-          <h2 className="text-2xl font-bold text-gray-900">Technical Specification</h2>
-          <p className="text-sm text-gray-600">المواصفات الفنية - Property details and location</p>
+         <h2 className="text-2xl font-bold text-gray-900">
+  {t('owner.newProperty.step2.title')}
+</h2>
+<p className="text-sm text-gray-600">
+  {t('owner.newProperty.step2.subtitle')}
+</p>
         </div>
       </div>
 
       {/* Property Type */}
       <div>
         <label className="block text-sm font-medium text-gray-700 mb-2">
-          Property Type / نوع العقار <span className="text-red-500">*</span>
+       {t('owner.newProperty.step2.propertyTypeLabel')}
+ <span className="text-red-500">*</span>
         </label>
         <select
           value={formData.propertyType}
           onChange={(e) => handleChange('propertyType', e.target.value)}
           className="w-full border border-gray-300 rounded-lg px-4 py-2.5 focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
         >
-          <option value="">Select property type</option>
-          {Object.entries(PropertyTypeLabels).map(([key, label]) => (
-            <option key={key} value={key}>{label}</option>
+          <option value="">
+            {t('owner.newProperty.step2.propertyTypePlaceholder')}
+          </option>
+          {Object.keys(PropertyTypeLabels).map((key) => (
+            <option key={key} value={key}>
+              {t(`owner.newProperty.step2.propertyTypes.${key}`)}
+            </option>
           ))}
         </select>
         {errors.propertyType && (
@@ -100,13 +189,13 @@ export default function Step2TechnicalSpec({ formData, onChange, errors = {} }) 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-2">
-            Land Area (m²) / مساحة الأرض <span className="text-red-500">*</span>
+       {t('owner.newProperty.step2.landAreaLabel')} <span className="text-red-500">*</span>
           </label>
           <input
             type="number"
             value={formData.landArea}
             onChange={(e) => handleChange('landArea', e.target.value)}
-            placeholder="e.g., 500"
+             placeholder={t('owner.newProperty.step2.landAreaPlaceholder')}
             min="0"
             step="0.01"
             className="w-full border border-gray-300 rounded-lg px-4 py-2.5 focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
@@ -118,13 +207,13 @@ export default function Step2TechnicalSpec({ formData, onChange, errors = {} }) 
 
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-2">
-            Built Area (m²) / مساحة البناء <span className="text-red-500">*</span>
+       {t('owner.newProperty.step2.builtAreaLabel')} <span className="text-red-500">*</span>
           </label>
           <input
             type="number"
             value={formData.builtArea}
             onChange={(e) => handleChange('builtArea', e.target.value)}
-            placeholder="e.g., 350"
+            placeholder={t('owner.newProperty.step2.builtAreaPlaceholder')}
             min="0"
             step="0.01"
             className="w-full border border-gray-300 rounded-lg px-4 py-2.5 focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
@@ -139,13 +228,13 @@ export default function Step2TechnicalSpec({ formData, onChange, errors = {} }) 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-2">
-            Building Age (years) / عمر البناء <span className="text-red-500">*</span>
+       {t('owner.newProperty.step2.buildingAgeLabel')} <span className="text-red-500">*</span>
           </label>
           <input
             type="number"
             value={formData.buildingAge}
             onChange={(e) => handleChange('buildingAge', e.target.value)}
-            placeholder="e.g., 5"
+            placeholder={t('owner.newProperty.step2.buildingAgePlaceholder')}
             min="0"
             className="w-full border border-gray-300 rounded-lg px-4 py-2.5 focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
           />
@@ -156,13 +245,13 @@ export default function Step2TechnicalSpec({ formData, onChange, errors = {} }) 
 
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-2">
-            Number of Floors / عدد الطوابق <span className="text-red-500">*</span>
+       {t('owner.newProperty.step2.floorsCountLabel')} <span className="text-red-500">*</span>
           </label>
           <input
             type="number"
             value={formData.floorsCount}
             onChange={(e) => handleChange('floorsCount', e.target.value)}
-            placeholder="e.g., 2"
+            placeholder= {t('owner.newProperty.step2.floorsCountPlaceholder')}
             min="1"
             className="w-full border border-gray-300 rounded-lg px-4 py-2.5 focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
           />
@@ -173,13 +262,14 @@ export default function Step2TechnicalSpec({ formData, onChange, errors = {} }) 
 
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-2">
-            Number of Units / عدد الوحدات <span className="text-red-500">*</span>
+           {t('owner.newProperty.step2.unitsCountLabel')}
+ <span className="text-red-500">*</span>
           </label>
           <input
             type="number"
             value={formData.unitsCount}
             onChange={(e) => handleChange('unitsCount', e.target.value)}
-            placeholder="e.g., 1"
+            placeholder={t('owner.newProperty.step2.unitsCountPlaceholder')}
             min="1"
             className="w-full border border-gray-300 rounded-lg px-4 py-2.5 focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
           />
@@ -192,14 +282,16 @@ export default function Step2TechnicalSpec({ formData, onChange, errors = {} }) 
       {/* Property Condition */}
       <div>
         <label className="block text-sm font-medium text-gray-700 mb-2">
-          Property Condition / حالة العقار <span className="text-red-500">*</span>
+       {t('owner.newProperty.step2.propertyConditionLabel')} <span className="text-red-500">*</span>
         </label>
         <select
           value={formData.propertyCondition}
           onChange={(e) => handleChange('propertyCondition', e.target.value)}
           className="w-full border border-gray-300 rounded-lg px-4 py-2.5 focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
         >
-          <option value="">Select condition</option>
+          <option value="">
+            {t('owner.newProperty.step2.propertyConditionPlaceholder')}
+          </option>
           {Object.entries(PropertyConditionLabels).map(([key, label]) => (
             <option key={key} value={key}>{label}</option>
           ))}
@@ -213,19 +305,36 @@ export default function Step2TechnicalSpec({ formData, onChange, errors = {} }) 
       <div className="space-y-4 pt-4">
         <h3 className="text-lg font-semibold text-gray-900 flex items-center gap-2">
           <MapPin size={20} />
-          Location Information
+          {t('owner.newProperty.step2.locationInformationTitle')}
         </h3>
+
+        {/* Map toggle */}
+        <button
+          type="button"
+          onClick={() => setShowMap(!showMap)}
+          className="text-sm text-blue-600 hover:text-blue-700 font-medium mb-2"
+        >
+          {showMap
+            ? t('owner.newProperty.step2.hideMapButton', { defaultValue: 'Hide map' })
+            : t('owner.newProperty.step2.showMapButton', { defaultValue: 'Select location on map' })}
+        </button>
+
+        {showMap && (
+          <div className="mb-4 h-64 rounded-lg border border-gray-300 overflow-hidden">
+            <div id="owner-property-map" className="w-full h-full" />
+          </div>
+        )}
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">
-              City / المدينة <span className="text-red-500">*</span>
+           {t('owner.newProperty.step2.cityLabel')} <span className="text-red-500">*</span>
             </label>
             <input
               type="text"
               value={formData.city}
               onChange={(e) => handleChange('city', e.target.value)}
-              placeholder="e.g., Riyadh"
+              placeholder={t('owner.newProperty.step2.cityPlaceholder')}
               className="w-full border border-gray-300 rounded-lg px-4 py-2.5 focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
             />
             {errors.city && (
@@ -235,13 +344,13 @@ export default function Step2TechnicalSpec({ formData, onChange, errors = {} }) 
 
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">
-              District / الحي <span className="text-red-500">*</span>
+           {t('owner.newProperty.step2.districtLabel')} <span className="text-red-500">*</span>
             </label>
             <input
               type="text"
               value={formData.district}
               onChange={(e) => handleChange('district', e.target.value)}
-              placeholder="e.g., Al Olaya"
+              placeholder={t('owner.newProperty.step2.districtPlaceholder')}
               className="w-full border border-gray-300 rounded-lg px-4 py-2.5 focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
             />
             {errors.district && (
@@ -251,13 +360,13 @@ export default function Step2TechnicalSpec({ formData, onChange, errors = {} }) 
 
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">
-              Municipality / البلدية <span className="text-red-500">*</span>
+           {t('owner.newProperty.step2.municipalityLabel')} <span className="text-red-500">*</span>
             </label>
             <input
               type="text"
               value={formData.municipality}
               onChange={(e) => handleChange('municipality', e.target.value)}
-              placeholder="e.g., Riyadh Municipality"
+              placeholder={t('owner.newProperty.step2.municipalityPlaceholder')}
               className="w-full border border-gray-300 rounded-lg px-4 py-2.5 focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
             />
             {errors.municipality && (
@@ -270,13 +379,13 @@ export default function Step2TechnicalSpec({ formData, onChange, errors = {} }) 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">
-              GPS Latitude / خط العرض <span className="text-red-500">*</span>
+              {t('owner.newProperty.step2.gpsLatitudeLabel')} <span className="text-red-500">*</span>
             </label>
             <input
               type="number"
               value={formData.gpsLatitude}
               onChange={(e) => handleChange('gpsLatitude', e.target.value)}
-              placeholder="e.g., 24.7136"
+              placeholder={t('owner.newProperty.step2.gpsLatitudePlaceholder')}
               step="0.000001"
               className="w-full border border-gray-300 rounded-lg px-4 py-2.5 focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
             />
@@ -287,13 +396,13 @@ export default function Step2TechnicalSpec({ formData, onChange, errors = {} }) 
 
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">
-              GPS Longitude / خط الطول <span className="text-red-500">*</span>
+           {t('owner.newProperty.step2.gpsLongitudeLabel')} <span className="text-red-500">*</span>
             </label>
             <input
               type="number"
               value={formData.gpsLongitude}
               onChange={(e) => handleChange('gpsLongitude', e.target.value)}
-              placeholder="e.g., 46.6753"
+              placeholder={t('owner.newProperty.step2.gpsLongitudePlaceholder')}
               step="0.000001"
               className="w-full border border-gray-300 rounded-lg px-4 py-2.5 focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
             />
@@ -307,12 +416,12 @@ export default function Step2TechnicalSpec({ formData, onChange, errors = {} }) 
       {/* Property Description */}
       <div>
         <label className="block text-sm font-medium text-gray-700 mb-2">
-          Property Description / وصف العقار <span className="text-red-500">*</span>
+           {t('owner.newProperty.step2.propertyDescriptionLabel')} <span className="text-red-500">*</span>
         </label>
         <textarea
           value={formData.propertyDescription}
           onChange={(e) => handleChange('propertyDescription', e.target.value)}
-          placeholder="Provide a detailed description of the property (minimum 100 characters)"
+          placeholder={t('owner.newProperty.step2.propertyDescriptionPlaceholder')}
           rows={5}
           className="w-full border border-gray-300 rounded-lg px-4 py-2.5 focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
         />
@@ -321,7 +430,10 @@ export default function Step2TechnicalSpec({ formData, onChange, errors = {} }) 
             <p className="text-sm text-red-600">{errors.propertyDescription}</p>
           )}
           <p className="text-sm text-gray-500 ml-auto">
-            {formData.propertyDescription?.length || 0} / 100 minimum
+            {t('owner.newProperty.step2.descriptionCounter', {
+              count: formData.propertyDescription?.length || 0,
+              min: 100,
+            })}
           </p>
         </div>
       </div>
@@ -331,7 +443,7 @@ export default function Step2TechnicalSpec({ formData, onChange, errors = {} }) 
         <div className="flex items-center justify-between">
           <h3 className="text-lg font-semibold text-gray-900 flex items-center gap-2">
             <ImageIcon size={20} />
-            Property Images (3-10 required)
+            {t('owner.newProperty.step2.propertyImagesRangeLabel', { min: 3, max: 10 })}
           </h3>
           <span className="text-sm text-gray-600">
             {(formData.mainImagesUrls || []).length} / 10
@@ -352,11 +464,13 @@ export default function Step2TechnicalSpec({ formData, onChange, errors = {} }) 
           <label htmlFor="image-upload" className="cursor-pointer">
             <ImageIcon className="mx-auto text-gray-400 mb-2" size={40} />
             <p className="text-sm text-gray-600 mb-1">
-              {uploadingImages ? 'Uploading...' : 'Click to upload property images'}
-            </p>
+  {uploadingImages
+    ? t('owner.newProperty.step2.uploadingImagesLabel')
+    : t('owner.newProperty.step2.uploadImagesLabel')}
+</p>
             <p className="text-xs text-gray-500">
-              JPG, PNG, WEBP (Max 5MB per image)
-            </p>
+  {t('owner.newProperty.step2.imagesFormatsHint')}
+</p>
           </label>
         </div>
 
@@ -377,16 +491,12 @@ export default function Step2TechnicalSpec({ formData, onChange, errors = {} }) 
                   alt={`Property ${index + 1}`}
                   className="w-full h-32 object-cover rounded-lg border border-gray-200"
                 />
-                <button
-                  type="button"
-                  onClick={() => removeImage(index)}
-                  className="absolute top-2 right-2 p-1 bg-red-500 text-white rounded-full opacity-0 group-hover:opacity-100 transition-opacity"
-                >
+                <button type="button" onClick={() => removeImage(index)} className="absolute top-2 right-2 p-1 bg-red-500 text-white rounded-full opacity-0 group-hover:opacity-100 transition-opacity">
                   <X size={16} />
                 </button>
                 {index === 0 && (
                   <div className="absolute bottom-2 left-2 px-2 py-1 bg-emerald-600 text-white text-xs rounded">
-                    Main Image
+                    {t('owner.newProperty.step2.mainImageBadge')}
                   </div>
                 )}
               </div>

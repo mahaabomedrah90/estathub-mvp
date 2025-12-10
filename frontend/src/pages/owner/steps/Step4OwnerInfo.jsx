@@ -1,8 +1,13 @@
 import React from 'react'
 import { User, Building, AlertCircle, CheckCircle2 } from 'lucide-react'
 import { OwnerType, OwnerTypeLabels, validateNationalId, validatePhone, validateIban } from '../../../lib/api'
+import { useTranslation } from 'react-i18next';
+
+
+
 
 export default function Step4OwnerInfo({ formData, onChange, errors = {} }) {
+  const { t } = useTranslation('pages');
   const [validations, setValidations] = React.useState({
     nationalId: null,
     phone: null,
@@ -32,8 +37,8 @@ export default function Step4OwnerInfo({ formData, onChange, errors = {} }) {
           <User className="text-indigo-600" size={24} />
         </div>
         <div>
-          <h2 className="text-2xl font-bold text-gray-900">Owner Information</h2>
-          <p className="text-sm text-gray-600">معلومات المالك - Contact and banking details</p>
+          <h2 className="text-2xl font-bold text-gray-900">{t('ownerInformationTitle')}</h2>
+          <p className="text-sm text-gray-600">{t('ownerInformationDescription')}</p>
         </div>
       </div>
 
@@ -41,15 +46,15 @@ export default function Step4OwnerInfo({ formData, onChange, errors = {} }) {
       <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 flex items-start gap-3">
         <AlertCircle className="text-blue-600 flex-shrink-0 mt-0.5" size={20} />
         <div className="text-sm text-blue-800">
-          <p className="font-medium mb-1">Important Information</p>
-          <p>This information will be used for payouts and official communications. Please ensure all details are accurate.</p>
+          <p className="font-medium mb-1">{t('importantInformationTitle')}</p>
+          <p>{t('importantInformationDescription')}</p>
         </div>
       </div>
 
       {/* Owner Type */}
       <div>
         <label className="block text-sm font-medium text-gray-700 mb-2">
-          Owner Type / نوع المالك <span className="text-red-500">*</span>
+          {t('ownerType')} <span className="text-red-500">*</span>
         </label>
         <div className="grid grid-cols-2 gap-4">
           {Object.entries(OwnerTypeLabels).map(([key, label]) => (
@@ -84,12 +89,12 @@ export default function Step4OwnerInfo({ formData, onChange, errors = {} }) {
       {/* Basic Information */}
       <div className="space-y-4 pt-4">
         <h3 className="text-lg font-semibold text-gray-900">
-          {isCompany ? 'Company Information' : 'Personal Information'}
+          {isCompany ? t('companyInformation') : t('personalInformation')}
         </h3>
 
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-2">
-            {isCompany ? 'Company Name / اسم الشركة' : 'Full Name / الاسم الكامل'} <span className="text-red-500">*</span>
+            {isCompany ? t('companyName') : t('fullName')} <span className="text-red-500">*</span>
           </label>
           <input
             type="text"
@@ -105,7 +110,7 @@ export default function Step4OwnerInfo({ formData, onChange, errors = {} }) {
 
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-2">
-            {isCompany ? 'Commercial Registration / السجل التجاري' : 'National ID / رقم الهوية'} <span className="text-red-500">*</span>
+            {isCompany ? t('commercialRegistration') : t('nationalId')} <span className="text-red-500">*</span>
           </label>
           <div className="relative">
             <input
@@ -128,7 +133,7 @@ export default function Step4OwnerInfo({ formData, onChange, errors = {} }) {
           </div>
           {!isCompany && formData.nationalIdOrCR && !validations.nationalId && (
             <p className="mt-1 text-sm text-amber-600">
-              National ID must be 10 digits starting with 1 or 2
+              {t('nationalIdMustBe10DigitsStartingWith1Or2')}
             </p>
           )}
           {errors.nationalIdOrCR && (
@@ -141,7 +146,7 @@ export default function Step4OwnerInfo({ formData, onChange, errors = {} }) {
           <>
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
-                Commercial Registration Number / رقم السجل التجاري <span className="text-red-500">*</span>
+                {t('commercialRegistrationNumber')} <span className="text-red-500">*</span>
               </label>
               <input
                 type="text"
@@ -158,7 +163,7 @@ export default function Step4OwnerInfo({ formData, onChange, errors = {} }) {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Authorized Person Name / اسم المفوض <span className="text-red-500">*</span>
+                    {t('authorizedPersonName')} <span className="text-red-500">*</span>
                 </label>
                 <input
                   type="text"
@@ -174,7 +179,7 @@ export default function Step4OwnerInfo({ formData, onChange, errors = {} }) {
 
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Authorized Person ID / هوية المفوض <span className="text-red-500">*</span>
+                  {t('authorizedPersonId')} <span className="text-red-500">*</span>
                 </label>
                 <input
                   type="text"
@@ -195,12 +200,12 @@ export default function Step4OwnerInfo({ formData, onChange, errors = {} }) {
 
       {/* Contact Information */}
       <div className="space-y-4 pt-4">
-        <h3 className="text-lg font-semibold text-gray-900">Contact Information</h3>
+        <h3 className="text-lg font-semibold text-gray-900">{t('contactInformation')}</h3>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">
-              Phone Number / رقم الجوال <span className="text-red-500">*</span>
+              {t('phoneNumber')} <span className="text-red-500">*</span>
             </label>
             <div className="relative">
               <input
@@ -222,7 +227,7 @@ export default function Step4OwnerInfo({ formData, onChange, errors = {} }) {
             </div>
             {formData.ownerPhone && !validations.phone && (
               <p className="mt-1 text-sm text-amber-600">
-                Enter valid Saudi phone number (05XXXXXXXX)
+                {t('phoneNumberHint')}
               </p>
             )}
             {errors.ownerPhone && (
@@ -232,7 +237,7 @@ export default function Step4OwnerInfo({ formData, onChange, errors = {} }) {
 
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">
-              Email Address / البريد الإلكتروني <span className="text-red-500">*</span>
+              {t('emailAddress')} <span className="text-red-500">*</span>
             </label>
             <input
               type="email"
@@ -250,19 +255,19 @@ export default function Step4OwnerInfo({ formData, onChange, errors = {} }) {
 
       {/* Banking Information */}
       <div className="space-y-4 pt-4">
-        <h3 className="text-lg font-semibold text-gray-900">Banking Information</h3>
+        <h3 className="text-lg font-semibold text-gray-900">{t('bankingInformation')}</h3>
 
         <div className="bg-amber-50 border border-amber-200 rounded-lg p-4 flex items-start gap-3">
           <AlertCircle className="text-amber-600 flex-shrink-0 mt-0.5" size={20} />
           <div className="text-sm text-amber-800">
-            <p className="font-medium mb-1">Payout Account</p>
-            <p>This IBAN will be used for all rental income distributions. Ensure it's correct and active.</p>
+            <p className="font-medium mb-1">{t('payoutAccount')}</p>
+            <p>{t('payoutAccountDescription')}</p>
           </div>
         </div>
 
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-2">
-            IBAN / رقم الآيبان <span className="text-red-500">*</span>
+            {t('iban')} <span className="text-red-500">*</span>
           </label>
           <div className="relative">
             <input
@@ -285,7 +290,7 @@ export default function Step4OwnerInfo({ formData, onChange, errors = {} }) {
           </div>
           {formData.ownerIban && !validations.iban && (
             <p className="mt-1 text-sm text-amber-600">
-              IBAN must start with SA followed by 22 digits
+              {t('ibanMustStartWithSAFollowedBy22Digits')}
             </p>
           )}
           {errors.ownerIban && (

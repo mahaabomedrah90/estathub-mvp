@@ -2,8 +2,12 @@ import React from 'react'
 import { Shield, AlertCircle } from 'lucide-react'
 import FileUpload from '../../../components/FileUpload'
 import { OwnershipType, OwnershipTypeLabels } from '../../../lib/api'
+import { useTranslation } from 'react-i18next';
+
+
 
 export default function Step1LegalVerification({ formData, onChange, errors = {} }) {
+  const { t } = useTranslation('pages');
   const handleChange = (field, value) => {
     onChange({ ...formData, [field]: value })
   }
@@ -16,8 +20,12 @@ export default function Step1LegalVerification({ formData, onChange, errors = {}
           <Shield className="text-emerald-600" size={24} />
         </div>
         <div>
-          <h2 className="text-2xl font-bold text-gray-900">Legal Verification</h2>
-          <p className="text-sm text-gray-600">التحقق القانوني - Property ownership and legal documents</p>
+         <h2 className="text-2xl font-bold text-gray-900">
+  {t('owner.newProperty.step1.title')}
+</h2>
+<p className="text-sm text-gray-600">
+  {t('owner.newProperty.step1.subtitle')}
+</p>
         </div>
       </div>
 
@@ -25,22 +33,28 @@ export default function Step1LegalVerification({ formData, onChange, errors = {}
       <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 flex items-start gap-3">
         <AlertCircle className="text-blue-600 flex-shrink-0 mt-0.5" size={20} />
         <div className="text-sm text-blue-800">
-          <p className="font-medium mb-1">Required Documents</p>
-          <p>Please upload all required legal documents. All documents must be clear, valid, and in PDF or image format (max 10MB each).</p>
+          <p className="font-medium mb-1">
+  {t('owner.newProperty.step1.infoBoxTitle')}
+</p>
+<p>
+  {t('owner.newProperty.step1.infoBoxBody')}
+</p>
         </div>
       </div>
 
       {/* Ownership Type */}
       <div>
         <label className="block text-sm font-medium text-gray-700 mb-2">
-          Ownership Type / نوع الملكية <span className="text-red-500">*</span>
+         {t('owner.newProperty.step1.ownershipTypeLabel')} <span className="text-red-500">*</span>
         </label>
         <select
           value={formData.ownershipType}
           onChange={(e) => handleChange('ownershipType', e.target.value)}
           className="w-full border border-gray-300 rounded-lg px-4 py-2.5 focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
         >
-          <option value="">Select ownership type</option>
+         <option value="">
+  {t('owner.newProperty.step1.ownershipTypePlaceholder')}
+</option>
           {Object.entries(OwnershipTypeLabels).map(([key, label]) => (
             <option key={key} value={key}>{label}</option>
           ))}
@@ -54,15 +68,15 @@ export default function Step1LegalVerification({ formData, onChange, errors = {}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-2">
-            Deed Number / رقم الصك <span className="text-red-500">*</span>
+          {t('owner.newProperty.step1.deedNumberLabel')} <span className="text-red-500">*</span>
           </label>
-          <input
-            type="text"
-            value={formData.deedNumber}
-            onChange={(e) => handleChange('deedNumber', e.target.value)}
-            placeholder="Enter deed number"
-            className="w-full border border-gray-300 rounded-lg px-4 py-2.5 focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
-          />
+        <input
+  type="text"
+  value={formData.deedNumber}
+  onChange={(e) => handleChange('deedNumber', e.target.value)}
+  placeholder={t('owner.newProperty.step1.deedNumberPlaceholder')}
+  className="w-full border border-gray-300 rounded-lg px-4 py-2.5 focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
+/>
           {errors.deedNumber && (
             <p className="mt-1 text-sm text-red-600">{errors.deedNumber}</p>
           )}
@@ -70,7 +84,7 @@ export default function Step1LegalVerification({ formData, onChange, errors = {}
 
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-2">
-            Deed Date / تاريخ الصك <span className="text-red-500">*</span>
+           {t('owner.newProperty.step1.deedDateLabel')} <span className="text-red-500">*</span>
           </label>
           <input
             type="date"
@@ -87,15 +101,15 @@ export default function Step1LegalVerification({ formData, onChange, errors = {}
 
       <div>
         <label className="block text-sm font-medium text-gray-700 mb-2">
-          Deed Issuing Authority / جهة إصدار الصك <span className="text-red-500">*</span>
+         {t('owner.newProperty.step1.deedAuthorityLabel')} <span className="text-red-500">*</span>
         </label>
-        <input
-          type="text"
-          value={formData.deedAuthority}
-          onChange={(e) => handleChange('deedAuthority', e.target.value)}
-          placeholder="e.g., Ministry of Justice - Riyadh"
-          className="w-full border border-gray-300 rounded-lg px-4 py-2.5 focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
-        />
+      <input
+  type="text"
+  value={formData.deedAuthority}
+  onChange={(e) => handleChange('deedAuthority', e.target.value)}
+  placeholder={t('owner.newProperty.step1.deedAuthorityPlaceholder')}
+  className="w-full border border-gray-300 rounded-lg px-4 py-2.5 focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
+/>
         {errors.deedAuthority && (
           <p className="mt-1 text-sm text-red-600">{errors.deedAuthority}</p>
         )}
@@ -103,11 +117,12 @@ export default function Step1LegalVerification({ formData, onChange, errors = {}
 
       {/* Document Uploads */}
       <div className="space-y-4 pt-4">
-        <h3 className="text-lg font-semibold text-gray-900">Required Documents</h3>
-        
+        <h3 className="text-lg font-semibold text-gray-900">
+  {t('owner.newProperty.step1.infoBoxTitle')}
+</h3>
         <FileUpload
-          label="Property Deed Document"
-          labelAr="صك الملكية"
+          label={t('owner.newProperty.step1.propertyDeedDocument')}
+         
           required
           accept=".pdf,.jpg,.jpeg,.png"
           value={formData.deedDocumentUrl}
@@ -116,8 +131,8 @@ export default function Step1LegalVerification({ formData, onChange, errors = {}
         />
 
         <FileUpload
-          label="Site Plan Document"
-          labelAr="مخطط الموقع"
+          label={t('owner.newProperty.step1.sitePlanDocument')}
+          
           required
           accept=".pdf,.jpg,.jpeg,.png"
           value={formData.sitePlanDocumentUrl}
@@ -126,8 +141,7 @@ export default function Step1LegalVerification({ formData, onChange, errors = {}
         />
 
         <FileUpload
-          label="Building Permit"
-          labelAr="رخصة البناء"
+          label={t('owner.newProperty.step1.buildingPermit')}
           required
           accept=".pdf,.jpg,.jpeg,.png"
           value={formData.buildingPermitUrl}
@@ -136,8 +150,7 @@ export default function Step1LegalVerification({ formData, onChange, errors = {}
         />
 
         <FileUpload
-          label="Electricity Bill"
-          labelAr="فاتورة الكهرباء"
+          label={t('owner.newProperty.step1.electricityBill')}
           required
           accept=".pdf,.jpg,.jpeg,.png"
           value={formData.electricityBillUrl}
@@ -146,8 +159,7 @@ export default function Step1LegalVerification({ formData, onChange, errors = {}
         />
 
         <FileUpload
-          label="Water Bill (Optional)"
-          labelAr="فاتورة المياه"
+          label={t('owner.newProperty.step1.waterBill')}
           accept=".pdf,.jpg,.jpeg,.png"
           value={formData.waterBillUrl}
           onChange={(url) => handleChange('waterBillUrl', url)}
@@ -155,8 +167,7 @@ export default function Step1LegalVerification({ formData, onChange, errors = {}
         />
 
         <FileUpload
-          label="Owner ID Document"
-          labelAr="هوية المالك"
+          label={t('owner.newProperty.step1.ownerIdDocument')}
           required
           accept=".pdf,.jpg,.jpeg,.png"
           value={formData.ownerIdDocumentUrl}

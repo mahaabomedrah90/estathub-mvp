@@ -133,6 +133,7 @@ propertyRouter.get('/', async (req: Request, res: Response) => {
     }))
     res.json(mapped)
   } catch (e) {
+        console.error('List properties error:', e)
     res.status(500).json({ error: 'failed_to_list_properties' })
   }
 })

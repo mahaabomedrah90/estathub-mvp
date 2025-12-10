@@ -14,6 +14,7 @@ import { settingsRouter } from './controllers/settings.controller'
 import { isFabricEnabled, testFabricConnection } from './lib/fabric'
 import { errorHandler } from './middleware/roles'
 import { ownerRouter } from './controllers/owner.controller'
+import { regulatorRouter } from './controllers/regulator.controller'
 
 dotenv.config()
 
@@ -71,11 +72,8 @@ app.use('/api/payments', ordersRouter)
 app.use('/api/blockchain', blockchainRouter)
 app.use('/api/deeds', deedRouter)
 app.use('/api/owners', ownerRouter)
-app.use('/api/settings', settingsRouter) 
-// Register centralized error handler (must be after all routes)
-app.use(errorHandler)
-
-
+app.use('/api/settings', settingsRouter)
+app.use('/api/regulator', regulatorRouter)
 // Register centralized error handler (must be after all routes)
 app.use(errorHandler)
 

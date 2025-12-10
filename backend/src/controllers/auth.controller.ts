@@ -99,52 +99,62 @@ authRouter.post('/login', async (req: Request, res: Response) => {
       return res.status(400).json({ error: 'email_required' })
     }
 
-    // Look up existing user first
-    let user = await prisma.user.findUnique({
-      where: { email },
-      include: { tenant: true }
-    })
-    
-    // If user doesn't exist, create with auto-detected role
-    if (!user) {
-      console.log('✨ User not found, creating automatically...')
-      
-      // Auto-detect role from email for NEW users only
-      let userRole: Role = Role.INVESTOR // default
-      if (req.body?.role) {
-        const requestedRole = String(req.body.role).toUpperCase()
-        if (requestedRole === 'INVESTOR' || requestedRole === 'OWNER' || requestedRole === 'ADMIN') {
-          userRole = requestedRole as Role
-        }
-      } else {
-        // Auto-detect from email for new users
-        if (email.includes('owner')) {
-          userRole = Role.OWNER
-        } else if (email.includes('admin')) {
-          userRole = Role.ADMIN
-        } else if (email.includes('investor')) {
-          userRole = Role.INVESTOR
-        }
-      }
-      
-      console.log('👤 Creating new user with role:', userRole)
-      user = await prisma.user.create({
-        data: {
-          email,
-          role: userRole,
-          tenantId: '1',
-          passwordHash: 'oauth_placeholder'
-        },
-        include: { tenant: true }
-      })
-    } else {
-      // ✅ IMPORTANT: For existing users, ALWAYS use the role from database
-      // Never overwrite it based on email or request body
-      console.log('👤 Existing user found with role:', user.role)
-    }
+  
+
+ 
+
+  // Look up existing user first
+let user = await prisma.user.findUnique({ 
+    where: { email } 
+  })
+  // Auto-detect role for NEW users
+let userRole: Role = Role.INVESTOR // default
+
+if (req.body?.role) {
+  const requestedRole = String(req.body.role).toUpperCase()
+  if (['INVESTOR', 'OWNER', 'ADMIN', 'REGULATOR'].includes(requestedRole)) {
+    userRole = requestedRole as Role
+  }
+} else {
+  if (email.includes('owner')) {
+    userRole = Role.OWNER
+  } else if (email.includes('admin')) {
+    userRole = Role.ADMIN
+  } else if (email.includes('investor')) {
+    userRole = Role.INVESTOR
+  } else if (email.includes('regulator')) {
+    userRole = Role.REGULATOR
+  }
+}
+
+// After the first user lookup and role detection:
+
+if (!user) {
+  // 🔹 Ensure there is a default tenant and use its real id
+  const defaultTenant = await prisma.tenant.findFirst({
+    where: { name: 'Default Tenant' }
+  })
+
+  if (!defaultTenant) {
+    return res.status(500).json({ error: 'default_tenant_not_found' })
+  }
+
+    console.log('👤 Creating new user with role:', userRole)
+  user = await prisma.user.create({
+    data: {
+      email,
+      role: userRole,
+      tenantId: defaultTenant.id,
+      passwordHash: 'oauth_placeholder'
+    },
+    include: { tenant: true }
+  })
+} else {
+  console.log('👤 Existing user found with role:', user.role)
+}
 
     if (!user) {
-      throw new Error('User authentication failed - user not found')
+      return res.status(401).json({ error: 'user_authentication_failed' });
     }
 
     console.log('✅ User authenticated:', { id: user.id, email: user.email, role: user.role })
@@ -152,7 +162,7 @@ authRouter.post('/login', async (req: Request, res: Response) => {
     // Include tenant information in token
     const userWithTenant = {
       ...user,
-      tenantId: user.tenant?.id || '1' // Default tenant if no tenant association
+      tenantId: user.tenantId || '1' // Default tenant if no tenant association
     }
     const token = signToken(userWithTenant)
     const response = { 
@@ -163,7 +173,7 @@ authRouter.post('/login', async (req: Request, res: Response) => {
     console.log('📤 Sending response:', response)
     return res.status(200).json(response)
     
-  } catch (e: any) {
+  } catch (e: any) {  
     console.error('❌ Login error:', e)
     console.error('Error details:', { message: e.message, stack: e.stack })
     return res.status(500).json({ error: 'login_failed', details: e.message })
@@ -225,8 +235,8 @@ authRouter.post('/signup', async (req: Request, res: Response) => {
         email: email.toLowerCase(),
         passwordHash,
         role: role || 'INVESTOR',
-       tenantId: tenant?.id || '1'
-      },
+tenantId: tenant?.id || '1'  
+    },
       include: {
         tenant: true
       }
@@ -333,7 +343,7 @@ usersRouter.patch('/:id/role', auth(true), async (req: Request, res: Response) =
       return res.status(400).json({ error: 'user_id_and_role_required' })
     }
 
-    const validRoles = ['ADMIN', 'INVESTOR', 'OWNER']
+    const validRoles = ['ADMIN', 'INVESTOR', 'OWNER', 'REGULATOR']
     if (!validRoles.includes(role.toUpperCase())) {
       return res.status(400).json({ error: 'invalid_role' })
     }

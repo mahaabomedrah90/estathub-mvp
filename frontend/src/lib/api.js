@@ -1,4 +1,5 @@
 export function getToken() {
+
   return localStorage.getItem('estathub_token') || ''
 }
 
@@ -157,18 +158,30 @@ export class ApiError extends Error {
 export const api = new ApiClient()
 
 // Backward compatibility - keep fetchJson for existing code
-export async function fetchJson(path, opts = {}) {
+// Add this function if it doesn't exist, or update it if it does
+export async function fetchJson(url, options = {}) {
+  const headers = {
+    'Content-Type': 'application/json',
+    ...options.headers
+  };
+
   try {
-    return await api.request(path, opts)
-  } catch (error) {
-    // Convert ApiError to old format for backward compatibility
-    if (error instanceof ApiError) {
-      const legacyError = new Error(error.message)
-      legacyError.status = error.status
-      legacyError.body = error.data
-      throw legacyError
+    const response = await fetch(url, {
+      ...options,
+      headers
+    });
+
+    if (!response.ok) {
+      const error = new Error(`HTTP error! status: ${response.status}`);
+      error.status = response.status;
+      throw error;
     }
-    throw error
+
+    const data = await response.json();
+    return data;
+  } catch (error) {
+    console.error(`Fetch error for ${url}:`, error);
+    throw error;
   }
 }
 
@@ -223,6 +236,16 @@ export const defaultPermissions = {
     // Admin can also access all investor and owner pages if needed
     '/investor/dashboard',
     '/owner/dashboard'
+  ],
+
+  // Regulator permissions (read-only access + regulatory tools)
+  regulator: [
+    '/regulator/overview',
+    '/regulator/properties',
+    '/regulator/properties/:id',
+    '/regulator/ledger',
+    '/regulator/aml-alerts',
+    '/blockchain'
   ]
 }
 
@@ -453,4 +476,52 @@ export function formatFileSize(bytes) {
   const sizes = ['Bytes', 'KB', 'MB', 'GB']
   const i = Math.floor(Math.log(bytes) / Math.log(k))
   return Math.round(bytes / Math.pow(k, i) * 100) / 100 + ' ' + sizes[i]
+}
+
+// ============================================================================
+// REGULATOR API HELPERS
+// ==========================================================================
+
+export async function getRegulatorProperties(params = {}) {
+  const query = new URLSearchParams(params).toString()
+  const suffix = query ? `?${query}` : ''
+  return fetchJson(`/api/regulator/properties${suffix}`, {
+    headers: { ...authHeader() },
+  })
+}
+
+export async function getRegulatorProperty(id) {
+  return fetchJson(`/api/regulator/properties/${id}`, {
+    headers: { ...authHeader() },
+  })
+}
+
+export async function approvePropertyAsRegulator(id) {
+  return fetchJson(`/api/regulator/properties/${id}/approve`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...authHeader() },
+    body: JSON.stringify({}),
+  })
+}
+
+export async function rejectPropertyAsRegulator(id, reason = '') {
+  return fetchJson(`/api/regulator/properties/${id}/reject`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...authHeader() },
+    body: JSON.stringify({ reason }),
+  })
+}
+
+export async function getRegulatorLedger(params = {}) {
+  const query = new URLSearchParams(params).toString()
+  const suffix = query ? `?${query}` : ''
+  return fetchJson(`/api/regulator/ledger${suffix}`, {
+    headers: { ...authHeader() },
+  })
+}
+
+export async function getRegulatorAMLAlerts() {
+  return fetchJson('/api/regulator/aml-alerts', {
+    headers: { ...authHeader() },
+  })
 }

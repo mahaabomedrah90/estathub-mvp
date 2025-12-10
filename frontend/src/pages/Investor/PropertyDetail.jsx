@@ -5,8 +5,8 @@ import {
   Building2, TrendingUp, Coins, MapPin, Calendar, Users, 
   Shield, ArrowLeft, Calculator, CheckCircle2, AlertCircle, Eye, EyeOff 
 } from 'lucide-react'
+import { useTranslation } from 'react-i18next'
 
-// Mask property ID for public view - properly hide middle characters
 const maskPropertyId = (id, showFull = false) => {
   if (!id || typeof id !== 'string') return id
   if (showFull) {
@@ -14,17 +14,19 @@ const maskPropertyId = (id, showFull = false) => {
     return id
   }
   if (id.length <= 16) return id
-  
-  // Show first 8 and last 8 characters, hide everything in between
+
   const startLength = 8
   const endLength = 8
   const middleLength = id.length - startLength - endLength
-  const masked = id.substring(0, startLength) + '*'.repeat(middleLength) + id.substring(id.length - endLength)
-  
-  console.log(' UUID comparison:');
- console.log(' Full:', id);
- console.log(' Masked:', masked);
- return masked;
+  const masked =
+    id.substring(0, startLength) +
+    '*'.repeat(middleLength) +
+    id.substring(id.length - endLength)
+
+  console.log(' UUID comparison:')
+  console.log(' Full:', id)
+  console.log(' Masked:', masked)
+  return masked
 }
 
 export default function PropertyDetail() {
@@ -42,7 +44,8 @@ export default function PropertyDetail() {
   const [purchaseDetails, setPurchaseDetails] = useState(null)
   const [minInvestment, setMinInvestment] = useState(100)
  const [maxInvestment, setMaxInvestment] = useState(1000000)
-
+  const { t, i18n } = useTranslation('property')
+  const isRtl = i18n.dir() === 'rtl'
 
   // Fallback: extract id from pathname if useParams fails
   const pathMatch = location.pathname.match(/\/properties\/(\d+)/)
@@ -104,7 +107,7 @@ export default function PropertyDetail() {
   if (!property) {
     return (
       <div className="flex items-center justify-center py-12">
-        <div className="text-gray-600">Loading property...</div>
+       <div className="text-gray-600">{t('detail.loadingProperty')}</div>
       </div>
     )
   }
@@ -122,12 +125,14 @@ export default function PropertyDetail() {
   return (
     <div className="space-y-6">
       {/* Back Button */}
-      <button 
-        onClick={() => navigate('/opportunities')} 
+      <button
+        onClick={() => navigate('/opportunities')}
         className="flex items-center gap-2 text-gray-600 hover:text-gray-900 transition-colors"
       >
-        <ArrowLeft size={20} />
-        <span>Back to Opportunities</span>
+        <ArrowLeft size={20} className={isRtl ? 'rotate-180' : ''} />
+      <span>{t('detail.backToList')}</span>
+
+        <span>{t('detail.propertyId')}: {maskPropertyId(property.id, showFullId)}</span>
       </button>
 
       {/* Property Header */}
@@ -160,12 +165,12 @@ export default function PropertyDetail() {
 <span>
   {property.location || [property.city, property.district, property.municipality]
     .filter(Boolean)
-    .join(', ') || 'Location not specified'}
+    .join(', ') || t('detail.locationNotSpecified')}
 </span>
               </div>
               <div className="flex items-center gap-2">
                 <Shield size={16} />
-                <span>Property ID: {maskPropertyId(property.id, showFullId)}</span>
+                <span>{t('detail.propertyId')}: {maskPropertyId(property.id, showFullId)}</span>
                   {userRole === 'OWNER' && (
                   <button
                   onClick={() => setShowFullId(!showFullId)}
@@ -184,7 +189,7 @@ export default function PropertyDetail() {
             <div className="bg-gray-50 rounded-lg p-4">
               <div className="flex items-center gap-2 text-gray-500 text-sm mb-1">
                 <Coins size={16} />
-                <span>Token Price</span>
+                <span>{t('detail.tokenPrice')}</span>
               </div>
               <div className="text-2xl font-bold text-gray-900">{tokenPrice.toLocaleString()} SAR</div>
             </div>
@@ -192,7 +197,7 @@ export default function PropertyDetail() {
             <div className="bg-emerald-50 rounded-lg p-4">
               <div className="flex items-center gap-2 text-emerald-600 text-sm mb-1">
                 <TrendingUp size={16} />
-                <span>Monthly Yield</span>
+                <span>{t('detail.monthlyYield')}</span>
               </div>
               <div className="text-2xl font-bold text-emerald-700">{monthlyYield}%</div>
             </div>
@@ -200,7 +205,7 @@ export default function PropertyDetail() {
             <div className="bg-blue-50 rounded-lg p-4">
               <div className="flex items-center gap-2 text-blue-600 text-sm mb-1">
                 <Users size={16} />
-                <span>Available Tokens</span>
+                <span>{t('detail.availableTokens')}</span>
               </div>
               <div className="text-2xl font-bold text-blue-700">{remainingTokens.toLocaleString()}</div>
             </div>
@@ -208,18 +213,23 @@ export default function PropertyDetail() {
             <div className="bg-purple-50 rounded-lg p-4">
               <div className="flex items-center gap-2 text-purple-600 text-sm mb-1">
                 <Calendar size={16} />
-                <span>Sold</span>
+                <span>{t('detail.soldLabel')}</span>
+
               </div>
               <div className="text-2xl font-bold text-purple-700">{percentageSold}%</div>
             </div>
           </div>
+  </div>
 
           {/* Progress Bar */}
           <div>
             <div className="flex justify-between text-sm mb-2">
-              <span className="text-gray-600">Funding Progress</span>
-              <span className="font-medium text-gray-900">{percentageSold}% Complete</span>
-            </div>
+              <span className="text-gray-600">{t('detail.fundingProgress')}</span>
+              <span className="font-medium text-gray-900">
+                {t('detail.fundingComplete', { value: percentageSold })}
+              </span>
+            </div>  {/* ← this line was missing */}
+
             <div className="w-full bg-gray-200 rounded-full h-3">
               <div 
                 className="bg-emerald-600 h-3 rounded-full transition-all" 
@@ -227,52 +237,125 @@ export default function PropertyDetail() {
               />
             </div>
           </div>
-        </div>
       </div>
 
       <div className="grid md:grid-cols-3 gap-6">
-        {/* Investment Calculator */}
+        {/* Left column: property information */}
         <div className="md:col-span-2 space-y-6">
-          {/* About Property */}
+          {/* About Property - show real owner-submitted description when available */}
           <div className="bg-white border border-gray-200 rounded-xl p-6">
-            <h2 className="text-xl font-semibold text-gray-900 mb-4">About This Property</h2>
-            <p className="text-gray-600 leading-relaxed">
-             {property.propertyDescription || property.description || (
- 'This premium real estate property has been tokenized on the blockchain, allowing fractional ownership and investment opportunities. Each token represents a share of the property, entitling holders to proportional rental income distributions on a monthly basis.'
- )}
+            <h2 className="text-xl font-semibold text-gray-900 mb-4">
+              {t('detail.aboutTitle')}
+            </h2>
+
+            <p className="text-gray-600 leading-relaxed mb-4 whitespace-pre-line">
+              {property.propertyDescription || property.description || t('detail.aboutFallback')}
             </p>
+
+            {/* Quick facts from technical & financial data */}
+            <div className="grid sm:grid-cols-2 gap-4 text-sm text-gray-700">
+              {property.propertyTypeDetailed && (
+                <div className="flex items-start gap-2">
+                  <Building2 size={16} className="text-emerald-600 mt-0.5" />
+                  <div>
+                    <div className="font-medium">
+                      {t('detail.typeLabel', { defaultValue: 'Property Type' })}
+                    </div>
+                    <div>{property.propertyTypeDetailed}</div>
+                  </div>
+                </div>
+              )}
+              {property.landArea && (
+                <div className="flex items-start gap-2">
+                  <MapPin size={16} className="text-amber-600 mt-0.5" />
+                  <div>
+                    <div className="font-medium">
+                      {t('detail.landAreaLabel', { defaultValue: 'Land Area' })}
+                    </div>
+                    <div>{property.landArea} m²</div>
+                  </div>
+                </div>
+              )}
+              {property.builtArea && (
+                <div className="flex items-start gap-2">
+                  <Building2 size={16} className="text-gray-500 mt-0.5" />
+                  <div>
+                    <div className="font-medium">
+                      {t('detail.builtAreaLabel', { defaultValue: 'Built Area' })}
+                    </div>
+                    <div>{property.builtArea} m²</div>
+                  </div>
+                </div>
+              )}
+              {property.buildingAge != null && (
+                <div className="flex items-start gap-2">
+                  <Calendar size={16} className="text-blue-600 mt-0.5" />
+                  <div>
+                    <div className="font-medium">
+                      {t('detail.buildingAgeLabel', { defaultValue: 'Building Age' })}
+                    </div>
+                    <div>
+                      {property.buildingAge}{' '}
+                      {t('detail.yearsLabel', { defaultValue: 'years' })}
+                    </div>
+                  </div>
+                </div>
+              )}
+              {property.marketValue && (
+                <div className="flex items-start gap-2">
+                  <Coins size={16} className="text-emerald-600 mt-0.5" />
+                  <div>
+                    <div className="font-medium">
+                      {t('detail.marketValueLabel', { defaultValue: 'Market Value' })}
+                    </div>
+                    <div>{Number(property.marketValue).toLocaleString()} SAR</div>
+                  </div>
+                </div>
+              )}
+              {property.expectedROI && (
+                <div className="flex items-start gap-2">
+                  <TrendingUp size={16} className="text-purple-600 mt-0.5" />
+                  <div>
+                    <div className="font-medium">
+                      {t('detail.expectedRoiLabel', { defaultValue: 'Expected ROI' })}
+                    </div>
+                    <div>{property.expectedROI}%</div>
+                  </div>
+                </div>
+              )}
+            </div>
           </div>
 
           {/* Investment Benefits */}
           <div className="bg-white border border-gray-200 rounded-xl p-6">
-            <h2 className="text-xl font-semibold text-gray-900 mb-4">Investment Benefits</h2>
+            <h2 className="text-xl font-semibold text-gray-900 mb-4">{t('detail.benefitsTitle')}</h2>
             <div className="space-y-3">
               <div className="flex items-start gap-3">
                 <CheckCircle2 className="text-emerald-600 flex-shrink-0 mt-0.5" size={20} />
                 <div>
-                  <div className="font-medium text-gray-900">Monthly Passive Income</div>
-                  <div className="text-sm text-gray-600">Receive {monthlyYield}% monthly returns from rental income</div>
+                  <div className="font-medium text-gray-900">{t('detail.benefit1Title')}</div>
+                  <div className="text-sm text-gray-600">{t('detail.benefit1Body', { value: monthlyYield })}</div>
                 </div>
               </div>
               <div className="flex items-start gap-3">
                 <CheckCircle2 className="text-emerald-600 flex-shrink-0 mt-0.5" size={20} />
                 <div>
-                  <div className="font-medium text-gray-900">Blockchain Security</div>
-                  <div className="text-sm text-gray-600">All ownership records secured on Hyperledger Fabric</div>
+                  <div className="font-medium text-gray-900">{t('detail.benefit2Title')}</div>
+                  <div className="text-sm text-gray-600">{t('detail.benefit2Body')}</div>
                 </div>
               </div>
               <div className="flex items-start gap-3">
                 <CheckCircle2 className="text-emerald-600 flex-shrink-0 mt-0.5" size={20} />
                 <div>
-                  <div className="font-medium text-gray-900">Fractional Ownership</div>
-                  <div className="text-sm text-gray-600">Start investing with as little as one token</div>
+                  <div className="font-medium text-gray-900">{t('detail.benefit3Title')}</div>
+                  <div className="text-sm text-gray-600">{t('detail.benefit3Body')}</div>
                 </div>
               </div>
               <div className="flex items-start gap-3">
                 <CheckCircle2 className="text-emerald-600 flex-shrink-0 mt-0.5" size={20} />
                 <div>
-                  <div className="font-medium text-gray-900">Transparent Transactions</div>
-                  <div className="text-sm text-gray-600">View all transactions on the blockchain explorer</div>
+                  <div className="font-medium text-gray-900">{t('detail.benefit4Title')}</div>
+                  <div className="text-sm text-gray-600">{t('detail.benefit4Body')}</div>
                 </div>
               </div>
             </div>
@@ -285,34 +368,78 @@ export default function PropertyDetail() {
           <div className="bg-white border-2 border-emerald-200 rounded-xl p-6 sticky top-6 space-y-4">
             <div className="flex items-center gap-2 text-emerald-700 mb-2">
               <Calculator size={20} />
-              <h3 className="font-semibold text-lg">Investment Calculator</h3>
+              <h3 className="font-semibold text-lg">
+                {t('detail.calcTitle')}
+              </h3>
             </div>
 
             {/* Token Input */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">Number of Tokens</label>
-              <input
-                type="number"
-                min={1}
-                max={remainingTokens}
-                value={tokens}
-                onChange={e => setTokens(Math.max(1, Math.min(remainingTokens, Number(e.target.value))))}
-                className="border border-gray-300 rounded-lg w-full px-4 py-2.5 focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
-              />
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                {t('detail.calcTokensLabel')}
+              </label>
+              <div className="flex items-center gap-2 mb-2">
+                <button
+                  type="button"
+                  onClick={() => setTokens((prev) => Math.max(1, prev - 1))}
+                  className="w-9 h-9 flex items-center justify-center rounded-lg border border-gray-300 bg-gray-50 text-gray-700 hover:bg-gray-100"
+                >
+                  -
+                </button>
+                <input
+                  type="number"
+                  min="1"
+                  max={remainingTokens}
+                  value={tokens}
+                  onChange={(e) => {
+                    const value = Number(e.target.value) || 0
+                    if (value < 1) {
+                      setTokens(1)
+                    } else if (value > remainingTokens) {
+                      setTokens(remainingTokens)
+                    } else {
+                      setTokens(value)
+                    }
+                  }}
+                  className="flex-1 border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 text-center"
+                />
+                <button
+                  type="button"
+                  onClick={() => setTokens((prev) => Math.min(remainingTokens, prev + 1))}
+                  className="w-9 h-9 flex items-center justify-center rounded-lg border border-gray-300 bg-gray-50 text-gray-700 hover:bg-gray-100"
+                >
+                  +
+                </button>
+              </div>
+              <div className="text-xs text-gray-500 mb-2">
+                {t('detail.availableTokensLabel', { defaultValue: 'Available tokens' })}: {remainingTokens.toLocaleString()}
+              </div>
+              <div className="text-sm text-gray-600">
+                {t('detail.limitMinWarning', {
+                  min: minInvestment.toLocaleString(),
+                  current: investmentAmount.toFixed(2),
+                })}
+              </div>
+              <div className="text-sm text-gray-600">
+                {t('detail.limitMaxWarning', {
+                  max: maxInvestment.toLocaleString(),
+                  current: investmentAmount.toFixed(2),
+                })}
+              </div>
             </div>
 
             {/* Investment Summary */}
             <div className="bg-gray-50 rounded-lg p-4 space-y-2">
               <div className="flex justify-between text-sm">
-                <span className="text-gray-600">Investment Amount</span>
+                <span className="text-gray-600">{t('detail.calcInvestmentAmount')}</span>
                 <span className="font-semibold text-gray-900">{investmentAmount.toLocaleString()} SAR</span>
               </div>
               <div className="flex justify-between text-sm">
-                <span className="text-gray-600">Est. Monthly Return</span>
+                <span className="text-gray-600">{t('detail.calcMonthlyReturn')}</span>
                 <span className="font-semibold text-emerald-600">{estimatedMonthlyReturn.toFixed(2)} SAR</span>
               </div>
               <div className="flex justify-between text-sm">
-                <span className="text-gray-600">Est. Yearly Return</span>
+                <span className="text-gray-600">{t('detail.calcYearlyReturn')}</span>
                 <span className="font-semibold text-emerald-600">{estimatedYearlyReturn.toFixed(2)} SAR</span>
               </div>
             </div>
@@ -321,7 +448,7 @@ export default function PropertyDetail() {
               <div className="bg-amber-50 border border-amber-200 rounded-lg p-3 flex items-start gap-2">
               <AlertCircle className="text-amber-600 flex-shrink-0 mt-0.5" size={18} />
               <div className="text-sm text-amber-700">
-              Minimum investment is {minInvestment.toLocaleString()} SAR. Your current amount is {investmentAmount.toFixed(2)} SAR.
+              {t('detail.calcMinimumInvestment', { min: minInvestment.toLocaleString(), current: investmentAmount.toFixed(2) })}
               </div>
               </div>
               )}
@@ -329,7 +456,7 @@ export default function PropertyDetail() {
               <div className="bg-red-50 border border-red-200 rounded-lg p-3 flex items-start gap-2">
               <AlertCircle className="text-red-600 flex-shrink-0 mt-0.5" size={18} />
               <div className="text-sm text-red-700">
-              Maximum investment is {maxInvestment.toLocaleString()} SAR. Your current amount is {investmentAmount.toFixed(2)} SAR.
+              {t('detail.calcMaximumInvestment', { max: maxInvestment.toLocaleString(), current: investmentAmount.toFixed(2) })}
               </div>
               </div>
               )}
@@ -389,55 +516,70 @@ export default function PropertyDetail() {
                     const errorData = e?.data || e?.body
                     // Check for minimum investment error
                     if (msg === 'minimum_investment_not_met' || errorData?.error === 'minimum_investment_not_met') {
-                    const backendMessage = errorData?.message || `Minimum investment is 100 SAR. Your investment amount is ${investmentAmount.toFixed(2)} SAR.`
-                    setError(backendMessage)
-                    } else if (msg === 'maximum_investment_exceeded' || errorData?.error === 'maximum_investment_exceeded') {
-                    const backendMessage = errorData?.message || `Maximum investment exceeded. Your investment amount is ${investmentAmount.toFixed(2)} SAR.`
-                    console.log('✅ Setting max investment error:', backendMessage)
-                    setError(backendMessage)
-                    } else if (msg === 'insufficient_balance') {
-                    setError(`Insufficient wallet balance. You need SAR ${investmentAmount.toLocaleString()} to complete this purchase. Please deposit and try again.`)
-                    } else if (msg === 'insufficient_tokens') {
-                    setError('Not enough tokens available for this property. Try a smaller amount.')
-                    } else if (msg === 'property_not_found') {
-                    setError('Property not found. Please go back to Opportunities and try again.')
-                    } else {
-                    setError('Investment failed. Please try again in a moment.')
-                    }
+                    const amount = investmentAmount.toFixed(2)
+                    setError(t('detail.minInvestmentNotMet', { amount }))
+                  } else if (msg === 'maximum_investment_exceeded' || errorData?.error === 'maximum_investment_exceeded') {
+                    const amount = investmentAmount.toFixed(2)
+                    setError(t('detail.maxInvestmentExceeded', { amount }))
+                  } else if (msg === 'insufficient_balance') {
+                    setError(t('detail.insufficientBalance', { amount: investmentAmount.toLocaleString() }))
+                  } else if (msg === 'insufficient_tokens') {
+                    setError(t('detail.insufficientTokens'))
+                  } else if (msg === 'property_not_found') {
+                    setError(t('detail.propertyNotFound'))
+                  } else {
+                    setError(t('detail.investFailedDescription'))
+                  }
                 } finally {
                   setLoading(false)
                 }
               }}
  className="w-full flex items-center justify-center gap-2 rounded-lg bg-emerald-600 hover:bg-emerald-700 disabled:bg-gray-300 disabled:cursor-not-allowed text-white px-4 py-3 font-semibold transition-colors"
  >
-            {loading ? 'Processing...' : remainingTokens === 0 ? 'Sold Out' : 'Invest Now'}
-          </button>
+{loading
+  ? t('detail.processing')
+  : remainingTokens === 0
+  ? t('detail.soldOut')
+  : t('detail.buyCta')}
+            </button>
 
             {/* Security Badge */}
             <div className="flex items-center gap-2 text-sm text-gray-500 pt-2">
               <Shield size={16} />
-              <span>Secured by Hyperledger Fabric</span>
+             <span>{t('detail.secBadge')}</span>
+
             </div>
           </div>
-          ) : (
- <div className="bg-blue-50 border-2 border-blue-200 rounded-xl p-6 sticky top-6">
- <div className="flex items-center gap-2 text-blue-700 mb-3">
- <AlertCircle size={20} />
- <h3 className="font-semibold text-lg">Investment Restricted</h3>
- </div>
- <p className="text-sm text-blue-800 mb-4">
- {userRole === 'ADMIN'
- ? 'As an administrator, you can review and approve properties but cannot invest in them.'
- : userRole === 'OWNER'
- ? 'As a property owner, you can list properties but cannot invest in them.'
- : 'Only investors can purchase property tokens. Please log in with an investor account.'}
- </p>
- <div className="flex items-center gap-2 text-sm text-blue-600">
- <Shield size={16} />
- <span>Role: {userRole || 'Not logged in'}</span>
- </div>
- </div>
- )}
+              ) : (
+          <div className="bg-blue-50 border-2 border-blue-200 rounded-xl p-6 sticky top-6">
+            <div className="flex items-center gap-2 text-blue-700 mb-3">
+              <AlertCircle size={20} />
+              <h3 className="font-semibold text-lg">
+                {t('detail.restrictedTitle')}
+              </h3>
+            </div>
+
+            <p className="text-sm text-blue-800 mb-4">
+              {userRole === 'ADMIN'
+                ? t('detail.restrictedAdmin')
+                : userRole === 'OWNER'
+                ? t('detail.restrictedOwner')
+                : t('detail.restrictedOther')}
+            </p>
+
+            <div className="flex items-center gap-2 text-sm text-blue-600">
+              <Shield size={16} />
+              <span>
+                {t('detail.roleLabel')}: {userRole || t('detail.roleNotLoggedIn')}
+              </span>
+            </div>
+            
+            <div className="flex items-center gap-2 text-sm text-blue-600 pt-2">
+              <Shield size={16} />
+              <span>{t('detail.secBadge')}</span>
+            </div>
+          </div> 
+        )}
         </div>
       </div>
 
@@ -453,33 +595,33 @@ export default function PropertyDetail() {
               
               {/* Success Message */}
               <h2 className="text-2xl font-bold text-gray-900 mb-2">
-                Purchase Successful! 🎉
+                {t('detail.successTitle')} 🎉
               </h2>
               <p className="text-gray-600 mb-6">
-                Your investment has been confirmed and recorded on the blockchain.
+                {t('detail.successBody')}
               </p>
               
               {/* Purchase Details */}
               <div className="bg-gray-50 rounded-xl p-4 mb-6 text-left">
                 <div className="space-y-3">
                   <div className="flex justify-between">
-                    <span className="text-gray-600">Property:</span>
+                    <span className="text-gray-600">{t('detail.successProperty')}:</span>
                     <span className="font-semibold text-gray-900">{purchaseDetails.propertyName}</span>
                   </div>
                   <div className="flex justify-between">
-                    <span className="text-gray-600">Tokens Purchased:</span>
+                    <span className="text-gray-600">{t('detail.successTokens')}:</span>
                     <span className="font-semibold text-emerald-600">{purchaseDetails.tokens}</span>
                   </div>
                   <div className="flex justify-between">
-                    <span className="text-gray-600">Total Amount:</span>
+                    <span className="text-gray-600">{t('detail.successTotalAmount')}:</span>
                     <span className="font-semibold text-gray-900">
                       {purchaseDetails.totalAmount.toLocaleString()} SAR
                     </span>
                   </div>
                   <div className="flex justify-between text-xs">
-                    <span className="text-gray-500">Order ID:</span>
+                    <span className="text-gray-500">{t('detail.successOrderId')}:</span>
                     <span className="font-mono text-gray-500">
-                      {purchaseDetails.orderId.substring(0, 8)}...
+                      {purchaseDetails.orderId.substring(0, 8)}...{purchaseDetails.orderId.slice(-4)}
                     </span>
                   </div>
                 </div>
@@ -488,7 +630,7 @@ export default function PropertyDetail() {
               {/* Blockchain Badge */}
               <div className="flex items-center justify-center gap-2 text-sm text-emerald-600 mb-6">
                 <Shield size={16} />
-                <span>Secured on Hyperledger Fabric</span>
+                <span>{t('detail.secBadge')}</span>
               </div>
               
               {/* Action Buttons */}
@@ -500,7 +642,7 @@ export default function PropertyDetail() {
                   }}
                   className="flex-1 px-4 py-3 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 transition-colors font-semibold"
                 >
-                  View Portfolio
+                  {t('detail.successViewPortfolio')}
                 </button>
                 <button
                   onClick={() => {
@@ -509,7 +651,7 @@ export default function PropertyDetail() {
                   }}
                   className="flex-1 px-4 py-3 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors font-semibold"
                 >
-                  Browse More
+                  {t('detail.successBrowseMore')}
                 </button>
               </div>
               

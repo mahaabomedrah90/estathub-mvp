@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { Building2, TrendingUp, Coins, MapPin, ArrowRight, Loader2, Plus, Edit2, Eye, Shield } from 'lucide-react'
 import { getToken } from '../../lib/api'
+import { useTranslation } from 'react-i18next'
 
 // Mask property ID for public view
 const maskPropertyId = (id) => {
@@ -11,6 +12,8 @@ const maskPropertyId = (id) => {
 }
 
 export default function Opportunities() {
+  const { t, i18n } = useTranslation('property')
+const isRtl = i18n.dir() === 'rtl'
   const navigate = useNavigate()
   const [properties, setProperties] = useState([])
   const [loading, setLoading] = useState(true)
@@ -37,7 +40,11 @@ export default function Opportunities() {
         return r.json()
       })
       .then(data => setProperties(Array.isArray(data) ? data : []))
-      .catch(() => setError('Failed to load opportunities. Please refresh.'))
+      .catch((err) => {
+        console.error('Error loading properties:', err)
+        setError(t('list.loadError'))
+        console.error('Detailed error:', err);
+      })
       .finally(() => setLoading(false))
   }, [])
 
@@ -55,22 +62,24 @@ export default function Opportunities() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div className="space-y-2">
-          <h1 className="text-3xl font-bold text-gray-900">
-            {userRole === 'owner' ? 'Manage Your Properties' : 'Investment Opportunities'}
-          </h1>
-          <p className="text-gray-600">
-            {userRole === 'owner' 
-              ? 'Add, edit, and manage your real estate listings'
-              : 'Discover tokenized real estate properties available for investment'}
-          </p>
+         <h1 className="text-3xl font-bold text-gray-900">
+  {userRole === 'owner'
+    ? t('list.titleOwner')
+    : t('list.titleInvestor')}
+</h1>
+<p className="text-gray-600">
+  {userRole === 'owner'
+    ? t('list.subtitleOwner')
+    : t('list.subtitleInvestor')}
+</p>
         </div>
         {userRole === 'owner' && (
           <button
             onClick={() => navigate('/owner/new')}
             className="flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-amber-500 to-orange-600 text-white rounded-xl font-semibold hover:shadow-lg transition-all hover:scale-105"
           >
-            <Plus size={20} />
-            Add New Property
+           <Plus size={20} />
+<span>{t('list.addNewProperty')}</span>
           </button>
         )}
       </div>
@@ -80,7 +89,7 @@ export default function Opportunities() {
         <div className="flex items-center justify-center py-12">
           <div className="text-center space-y-3">
             <Loader2 className="animate-spin text-emerald-600 mx-auto" size={40} />
-            <div className="text-gray-600">Loading opportunities…</div>
+            <div className="text-gray-600">{t('list.loading')}</div>
           </div>
         </div>
       ) : error ? (
@@ -90,7 +99,7 @@ export default function Opportunities() {
       ) : properties.length === 0 ? (
         <div className="text-center py-12 bg-gray-50 rounded-lg">
           <Building2 className="mx-auto text-gray-400 mb-3" size={48} />
-          <div className="text-gray-600">No properties available yet. Please check back soon.</div>
+          <div className="text-gray-600">{t('list.empty')}</div>
         </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -136,11 +145,11 @@ export default function Opportunities() {
                     <h3 className="font-semibold text-xl text-gray-900 mb-1">{p.name ?? p.title}</h3>
                     <div className="flex items-center gap-1 text-sm text-gray-500">
                       <MapPin size={14} />
-                      <span>Riyadh, Saudi Arabia</span>
+                      <span>{t('list.locationFallback')}</span>
                     </div>
                     <div className="flex items-center gap-1 text-xs text-gray-400 mt-1">
                       <Shield size={12} />
-                      <span>ID: {maskPropertyId(p.id)}</span>
+                      <span>{t('list.idLabel')}: {maskPropertyId(p.id)}</span>
                     </div>
                   </div>
 
@@ -149,7 +158,7 @@ export default function Opportunities() {
                     <div className="bg-gray-50 rounded-lg p-3">
                       <div className="flex items-center gap-1 text-gray-500 text-xs mb-1">
                         <Coins size={14} />
-                        <span>Token Price</span>
+                        <span>{t('list.tokenPrice')}</span>
                       </div>
                       <div className="font-semibold text-gray-900">{tokenPrice.toLocaleString()} SAR</div>
                     </div>
@@ -157,7 +166,7 @@ export default function Opportunities() {
                     <div className="bg-emerald-50 rounded-lg p-3">
                       <div className="flex items-center gap-1 text-emerald-600 text-xs mb-1">
                         <TrendingUp size={14} />
-                        <span>Monthly Yield</span>
+                        <span>{t('list.monthlyYield')}</span>
                       </div>
                       <div className="font-semibold text-emerald-700">{monthlyYield}%</div>
                     </div>
@@ -166,7 +175,7 @@ export default function Opportunities() {
                   {/* Availability Bar */}
                   <div>
                     <div className="flex justify-between text-sm mb-2">
-                      <span className="text-gray-600">Tokens Available</span>
+                      <span className="text-gray-600">{t('list.tokensAvailable')}</span>
                       <span className="font-medium text-gray-900">{remainingTokens.toLocaleString()}</span>
                     </div>
                     <div className="w-full bg-gray-200 rounded-full h-2">
@@ -175,7 +184,9 @@ export default function Opportunities() {
                         style={{ width: `${100 - percentageSold}%` }}
                       />
                     </div>
-                    <div className="text-xs text-gray-500 mt-1">{percentageSold}% sold</div>
+                    <div className="text-xs text-gray-500 mt-1">
+  {t('list.percentSold', { value: percentageSold })}
+</div>
                   </div>
 
                   {/* Action Buttons */}
@@ -187,7 +198,7 @@ export default function Opportunities() {
                           className="flex-1 flex items-center justify-center gap-2 px-4 py-2 bg-gray-600 hover:bg-gray-700 text-white rounded-lg font-medium transition-colors"
                         >
                           <Eye size={18} />
-                          <span>View</span>
+                          <span>{t('list.view')}</span>
                         </button>
                         {(status === 'PENDING' || status === 'REJECTED') && (
                           <button
@@ -195,18 +206,21 @@ export default function Opportunities() {
                             className="flex-1 flex items-center justify-center gap-2 px-4 py-2 bg-amber-600 hover:bg-amber-700 text-white rounded-lg font-medium transition-colors"
                           >
                             <Edit2 size={18} />
-                            <span>Edit</span>
+                            <span>{t('list.edit')}</span>
                           </button>
                         )}
                       </div>
                     ) : (
                       <Link
-                        to={`/investor/properties/${p.id}`}
-                        className="flex items-center justify-center gap-2 w-full px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg font-medium transition-colors"
-                      >
-                        <span>View Details</span>
-                        <ArrowRight size={18} />
-                      </Link>
+                      to={`/investor/properties/${p.id}`}
+                      className="flex items-center justify-center gap-2 w-full px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg font-medium transition-colors"
+                    >
+                      <span>{t('list.viewDetails')}</span>
+                     <ArrowRight
+  size={18}
+  className={isRtl ? 'rotate-180' : ''}
+/>
+                    </Link>
                     )}
                   </div>
                 </div>

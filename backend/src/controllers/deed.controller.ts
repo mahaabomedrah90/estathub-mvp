@@ -30,9 +30,10 @@ deedRouter.get('/', auth(true), async (req: Request & { user?: any }, res: Respo
       where,
       include: {
         user: { select: { id: true, name: true, email: true } },
-        property: { select: { id: true, title: true, location: true } }
+        property: { select: { id: true, title: true, location: true } },
+        events: { orderBy: { createdAt: 'asc' } },
       },
-      orderBy: { createdAt: 'desc' }
+      orderBy: { createdAt: 'desc' },
     })
     
     res.json(deeds)
@@ -60,10 +61,11 @@ deedRouter.get('/:deedNumber', auth(true), async (req: Request & { user?: any },
             location: true,
             municipality: true,
             district: true,
-            totalTokens: true
-          }
-        }
-      }
+            totalTokens: true,
+          },
+        },
+        events: { orderBy: { createdAt: 'asc' } },
+      },
     })
     
     if (!deed) {
@@ -107,11 +109,13 @@ deedRouter.post('/issue', auth(true), async (req: Request & { user?: any }, res:
     const existingDeeds = await prisma.digitalDeed.findMany({
       where: {
         userId: String(userId),
-        propertyId: String(propertyId)
-      }
+        propertyId: String(propertyId),
+      },
+      orderBy: { createdAt: 'asc' },
     })
     
-    // Calculate total tokens already covered by existing deeds
+    // Calculate total tokens already covered by existing deeds (for backward compatibility
+    // with older multiple-deed records)
     const totalIssuedTokens = existingDeeds.reduce((sum, deed) => sum + deed.ownedTokens, 0)
     
     // Get property details first (needed for both new and existing deeds)
@@ -140,56 +144,83 @@ deedRouter.post('/issue', auth(true), async (req: Request & { user?: any }, res:
     
     // Calculate how many NEW tokens need a deed
     const newTokensToIssue = holding.tokens - totalIssuedTokens
-    console.log(`📝 Issuing NEW deed for ${newTokensToIssue} additional tokens (Total: ${holding.tokens}, Already issued: ${totalIssuedTokens})`)
-    
-    // Property and user already fetched above
-    
-    // Generate deed number
-    const deedNumber = await generateDeedNumber()
-    
-    // Calculate ownership percentage for NEW tokens only
-    const ownershipPct = (newTokensToIssue / property.totalTokens) * 100
-    
-    // Generate PDF (mock for now)
+    console.log(`📝 Issuing additional ${newTokensToIssue} token(s) (Total owned: ${holding.tokens}, Already issued: ${totalIssuedTokens})`)
+
+    // Decide whether to create a new deed (first time) or update an existing one
+    let deedToUse = existingDeeds.find(d => d.status === 'ISSUED') || existingDeeds[0] || null
+
+    // Generate a deed number now; if we reuse an existing deed we keep its number
+    const deedNumber = deedToUse?.deedNumber || await generateDeedNumber()
+
+    // Generate PDF for this issuance (represents the updated ownership after this issuance)
     const issuedAt = new Date().toISOString()
+
+    // If we have an existing deed, compute the updated totals, otherwise base on newTokensToIssue only
+    const baseOwnedTokens = deedToUse ? deedToUse.ownedTokens : 0
+    const updatedOwnedTokens = baseOwnedTokens + newTokensToIssue
+    const ownershipPct = (updatedOwnedTokens / property.totalTokens) * 100
+
     const { pdfUrl, pdfHash } = await generateDeedPDF({
       deedNumber,
       userName: user.name || user.email,
       propertyTitle: property.title,
-      ownedTokens: newTokensToIssue, // Only new tokens
+      ownedTokens: updatedOwnedTokens,
       ownershipPct,
       issuedAt,
       municipality: property.municipality,
-      district: property.district
+      district: property.district,
     })
-    
-    // Calculate deed hash for blockchain
+
+    // Calculate deed hash for blockchain based on updated totals
     const deedHash = calculateDeedHash({
       deedNumber,
       userId: Number(userId),
       propertyId: Number(propertyId),
-      ownedTokens: newTokensToIssue, // Only new tokens
-      issuedAt
+      ownedTokens: updatedOwnedTokens,
+      issuedAt,
     })
-    
+
     // Generate QR code data
     const qrCodeData = generateQRCodeData(deedNumber, deedHash)
-    
-    // Create deed in database
-    const deed = await prisma.digitalDeed.create({
+
+    // Create or update deed in database
+    let deed = deedToUse
+      ? await prisma.digitalDeed.update({
+          where: { id: deedToUse.id },
+          data: {
+            ownedTokens: updatedOwnedTokens,
+            ownershipPct,
+            status: 'ISSUED',
+            deedHash,
+            qrCodeData,
+            pdfUrl,
+            issuedAt: new Date(issuedAt),
+          },
+        })
+      : await prisma.digitalDeed.create({
+          data: {
+            deedNumber,
+            userId: String(userId),
+            propertyId: String(propertyId),
+            orderId: orderId ? String(orderId) : null,
+            ownedTokens: updatedOwnedTokens,
+            ownershipPct,
+            status: 'ISSUED',
+            deedHash,
+            qrCodeData,
+            pdfUrl,
+            issuedAt: new Date(issuedAt),
+          },
+        })
+
+    // Record issuance event for audit/history (always stores only the delta)
+    await prisma.deedIssuanceEvent.create({
       data: {
-        deedNumber,
-        userId: String(userId),
-        propertyId: String(propertyId),
+        deedId: deed.id,
+        deltaTokens: newTokensToIssue,
         orderId: orderId ? String(orderId) : null,
-        ownedTokens: newTokensToIssue, // Only new tokens
-        ownershipPct,
-        status: 'ISSUED',
-        deedHash,
-        qrCodeData,
-        pdfUrl,
-        issuedAt: new Date(issuedAt)
-      }
+        note: 'Additional tokens issued',
+      },
     })
     
     // Issue deed on blockchain if Fabric is enabled
@@ -202,10 +233,10 @@ deedRouter.post('/issue', auth(true), async (req: Request & { user?: any }, res:
           deedNumber,
           String(userId),
           String(propertyId),
-          newTokensToIssue, // Only new tokens
+          newTokensToIssue, // Only the delta is minted on-chain for this call
           deedHash,
           qrCodeData,
-          orderId ? String(orderId) : undefined
+          orderId ? String(orderId) : undefined,
         )
         blockchainTxId = txId
         
@@ -227,7 +258,7 @@ deedRouter.post('/issue', auth(true), async (req: Request & { user?: any }, res:
               payload: JSON.stringify({ 
                 action: 'IssueDeed', 
                 deedNumber,
-                ownedTokens: newTokensToIssue, // Only new tokens
+                ownedTokens: newTokensToIssue,
                 propertyId,
                 userId 
               })
@@ -334,10 +365,18 @@ deedRouter.post('/verify', async (req: Request, res: Response) => {
 deedRouter.get('/user/:userId', auth(true), async (req: Request & { user?: any }, res: Response) => {
   try {
     const { userId } = req.params
-    
+
     const deeds = await prisma.digitalDeed.findMany({
       where: { userId: String(userId) },
       include: {
+        user: {
+          select: {
+            id: true,
+            name: true,
+            email: true,
+            nationalId: true,
+          },
+        },
         property: {
           select: {
             id: true,
@@ -345,13 +384,18 @@ deedRouter.get('/user/:userId', auth(true), async (req: Request & { user?: any }
             location: true,
             imageUrl: true,
             municipality: true,
-            district: true
-          }
-        }
+            district: true,
+            planNumber: true,
+            city: true,
+            landArea: true,
+            propertyTypeDetailed: true,
+          },
+        },
+        events: { orderBy: { createdAt: 'asc' } },
       },
-      orderBy: { issuedAt: 'desc' }
+      orderBy: { issuedAt: 'desc' },
     })
-    
+
     res.json(deeds)
   } catch (error) {
     console.error('Error fetching user deeds:', error)
