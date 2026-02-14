@@ -1,0 +1,170 @@
+openapi: 3.0.3
+info:
+  title: Estathub Fabric Gateway API
+  version: 1.0.0
+
+servers:
+  - url: http://localhost:4000
+    description: Local development
+
+paths:
+  /v1/health:
+    get:
+      summary: Health check
+      responses:
+        '200':
+          description: Service health
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  ok:
+                    type: boolean
+                  service:
+                    type: string
+                  fabric:
+                    type: object
+                    properties:
+                      configured:
+                        type: boolean
+                      useFabric:
+                        type: boolean
+                  time:
+                    type: string
+                    format: date-time
+
+  /v1/tx/submit:
+    post:
+      summary: Submit a Fabric transaction
+      security:
+        - GatewayApiKey: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TxRequest'
+      responses:
+        '200':
+          description: Transaction submitted
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TxSubmitResponse'
+        '400':
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /v1/tx/evaluate:
+    post:
+      summary: Evaluate a Fabric transaction (read-only)
+      security:
+        - GatewayApiKey: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TxRequest'
+      responses:
+        '200':
+          description: Evaluation result
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TxEvaluateResponse'
+        '400':
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+components:
+  securitySchemes:
+    GatewayApiKey:
+      type: apiKey
+      in: header
+      name: X-GATEWAY-KEY
+
+  schemas:
+    TxRequest:
+      type: object
+      required:
+        - functionName
+        - args
+      properties:
+        channel:
+          type: string
+        chaincode:
+          type: string
+        contractName:
+          type: string
+        functionName:
+          type: string
+        args:
+          type: array
+          items:
+            type: string
+        transientData:
+          type: object
+          additionalProperties:
+            type: string
+
+    TxSubmitResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+        txId:
+          type: string
+        resultRaw:
+          type: string
+        result:
+          nullable: true
+        durationMs:
+          type: integer
+        functionName:
+          type: string
+
+    TxEvaluateResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+        resultRaw:
+          type: string
+        result:
+          nullable: true
+        durationMs:
+          type: integer
+        functionName:
+          type: string
+
+    ErrorResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+        error:
+          type: string
+        message:
+          type: string
+        details:
+          nullable: true

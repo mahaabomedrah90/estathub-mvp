@@ -6,7 +6,6 @@ import { auth } from '../middleware/auth'
 import multer from 'multer'
 import path from 'path'
 import crypto from 'crypto'
-import { $Enums } from '@prisma/client'
 
 export const propertyRouter = Router()
 
@@ -47,14 +46,14 @@ const upload = multer({
 propertyRouter.get('/', async (req: Request, res: Response) => {
   try {
     const { status } = req.query
-    const where = status ? { status: status as $Enums.PropertyStatus } : {}
+    const where = status ? { status: status as any } : {}
     
     const list = await prisma.property.findMany({ 
       where,
       orderBy: { id: 'desc' } 
     })
     
-    const mapped = list.map(p => ({
+    const mapped = list.map((p: any) => ({
       // Basic fields
       id: p.id,
       name: p.title,
@@ -388,7 +387,7 @@ propertyRouter.post('/submit', auth(true), async (req: Request & { user?: any },
         tenantId,
 
         // STEP 1: Legal Verification
-        ownershipType: ownershipType as $Enums.OwnershipType | undefined,
+        ownershipType: ownershipType as any,
         deedNumber,
         deedDate: deedDate ? new Date(deedDate) : null,
         deedAuthority,
@@ -406,7 +405,7 @@ propertyRouter.post('/submit', auth(true), async (req: Request & { user?: any },
         buildingAge: Number(buildingAge || 0),
         floorsCount: Number(floorsCount || 1),
         unitsCount: Number(unitsCount || 1),
-        propertyCondition: propertyCondition as $Enums.PropertyCondition | undefined,
+        propertyCondition: propertyCondition as any,
         gpsLatitude: Number(gpsLatitude),
         gpsLongitude: Number(gpsLongitude),
         city,
@@ -419,10 +418,10 @@ propertyRouter.post('/submit', auth(true), async (req: Request & { user?: any },
         marketValue: Number(marketValue),
         valuationReportUrl,
         ownerRetainedPercentage: ownerRetainedPct,
-        payoutSchedule: payoutSchedule as $Enums.PayoutSchedule | undefined,
+        payoutSchedule: payoutSchedule as any,
 
         // STEP 4: Owner Information
-        ownerType: ownerType as $Enums.OwnerType | undefined,
+        ownerType: ownerType as any,
         nationalIdOrCR,
         ownerPhone,
         ownerEmail,
@@ -540,14 +539,14 @@ propertyRouter.patch('/:id', async (req: Request, res: Response) => {
     if (!status) {
       return res.status(400).json({ error: 'status is required' })
     }
-    const allowedStatuses: $Enums.PropertyStatus[] = ['PENDING', 'APPROVED', 'REJECTED']
+    const allowedStatuses = ['PENDING', 'APPROVED', 'REJECTED'] as const
 
 if (!allowedStatuses.includes(status)) {
   return res.status(400).json({ error: 'invalid_status' })
 }
 
   const updateData: {
-  status: $Enums.PropertyStatus
+  status: (typeof allowedStatuses)[number]
   approvedAt?: Date
   rejectedAt?: Date
   rejectionReason?: string
@@ -610,19 +609,19 @@ if (!allowedStatuses.includes(status)) {
           const events = [
             {
               txId: registerTxId,
-              type: $Enums.OnChainEventType.TOKEN_MINT,
+              type: 'TOKEN_MINT' as any,
               propertyId: updated.id,
               payload: JSON.stringify({ action: 'RegisterPropertySimple', propertyId: updated.id, title: updated.title })
             },
             {
               txId: approveTxId,
-              type: $Enums.OnChainEventType.TOKEN_MINT,
+              type: 'TOKEN_MINT' as any,
               propertyId: updated.id,
               payload: JSON.stringify({ action: 'ApproveProperty', propertyId: updated.id })
             },
             {
               txId: tokenizeTxId,
-              type: $Enums.OnChainEventType.TOKEN_MINT,
+              type: 'TOKEN_MINT' as any,
               propertyId: updated.id,
               payload: JSON.stringify({ action: 'TokenizeProperty', propertyId: updated.id, totalTokens: updated.totalTokens })
             }
@@ -714,19 +713,19 @@ propertyRouter.put('/:id/approve', async (req: Request, res: Response) => {
           const events = [
             {
               txId: registerTxId,
-              type: $Enums.OnChainEventType.TOKEN_MINT,
+              type: 'TOKEN_MINT' as any,
               propertyId: updated.id,
               payload: JSON.stringify({ action: 'RegisterPropertySimple', propertyId: updated.id, title: updated.title })
             },
             {
               txId: approveTxId,
-              type: $Enums.OnChainEventType.TOKEN_MINT,
+              type: 'TOKEN_MINT' as any,
               propertyId: updated.id,
               payload: JSON.stringify({ action: 'ApproveProperty', propertyId: updated.id })
             },
             {
               txId: tokenizeTxId,
-              type: $Enums.OnChainEventType.TOKEN_MINT,
+              type: 'TOKEN_MINT' as any,
               propertyId: updated.id,
               payload: JSON.stringify({ action: 'TokenizeProperty', propertyId: updated.id, totalTokens: updated.totalTokens })
             }
@@ -820,7 +819,8 @@ if (!id) {
     }
     
     // Map holdings with ownership percentage
-    const mapped = holdings.map(h => ({
+    const mapped = holdings.map((h: any) => ({
+
       id: h.id,
       userId: h.userId,
       userEmail: h.user.email,

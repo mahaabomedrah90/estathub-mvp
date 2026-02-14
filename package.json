@@ -1,0 +1,9 @@
+{
+  "name": "estathub-monorepo",
+  "private": true,
+  "scripts": {
+    "build": "npm --prefix backend run build && npm --prefix frontend run build",
+    "dev:backend": "npm --prefix backend run dev:ts",
+    "dev:frontend": "npm --prefix frontend run dev"
+  }
+}

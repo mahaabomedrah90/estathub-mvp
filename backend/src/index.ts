@@ -15,53 +15,107 @@ import { isFabricEnabled, testFabricConnection } from './lib/fabric'
 import { errorHandler } from './middleware/roles'
 import { ownerRouter } from './controllers/owner.controller'
 import { regulatorRouter } from './controllers/regulator.controller'
+import { requestIdMiddleware } from './middleware/requestId'
+import { checkGatewayHealth } from './lib/gatewayHealth'
 
 dotenv.config()
 
 const app = express()
 
-// CORS configuration - MUST be before other middleware
-app.use(cors({ 
-  origin: 'http://localhost:5173',
-  credentials: true,
-  methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization', 'user-id', 'Cache-Control', 'Pragma', 'Expires']
-}))
+function parseCorsOrigins(raw: string): string[] {
+  return raw
+    .split(',')
+    .map(s => s.trim())
+    .filter(Boolean)
+}
+
+function createCorsOptions() {
+  const nodeEnv = process.env.NODE_ENV || 'development'
+  const isProd = nodeEnv === 'production'
+
+  const raw = (process.env.CORS_ORIGIN || '').trim()
+  if (isProd && !raw) {
+    throw new Error(
+      'Missing required env var CORS_ORIGIN in production. Example: "https://alwsm.sa,https://www.alwsm.sa"'
+    )
+  }
+
+  const allowlist = raw ? parseCorsOrigins(raw) : []
+
+  const options = {
+    origin: (origin: string | undefined, callback: (err: Error | null, allow?: boolean) => void) => {
+      if (!origin) {
+        return callback(null, true)
+      }
+
+      if (allowlist.length === 0) {
+        return callback(null, true)
+      }
+
+      if (allowlist.includes(origin)) {
+        return callback(null, true)
+      }
+
+      return callback(new Error(`CORS blocked for origin: ${origin}`))
+    },
+    credentials: true,
+    methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'Authorization', 'user-id'],
+  }
+
+  return options
+}
+
+/**
+ * ================================
+ * ✅ CRITICAL: HEALTH CHECK (ALB)
+ * ================================
+ * يجب أن يكون:
+ * - قبل أي منطق معقد
+ * - خارج async startup
+ * - سريع جدًا
+ */
+app.get('/health', (_req, res) => {
+  res.status(200).send('ok')
+})
+
+app.get('/api/health', (_req, res) => {
+  res.status(200).json({
+    status: 'ok',
+    service: 'estathub-backend',
+    timestamp: new Date().toISOString(),
+  })
+})
+
+/**
+ * ================================
+ * Middleware
+ * ================================
+ */
+app.use(cors(createCorsOptions()))
 
 app.use(express.json())
 app.use(morgan('dev'))
+app.use(requestIdMiddleware)
 
-// Serve static files for uploaded property images
+/**
+ * Static files
+ */
 app.use('/api/uploads', express.static('uploads'))
 
-// Debug middleware to log all requests
-app.use((req, res, next) => {
+/**
+ * Debug request logger
+ */
+app.use((req, _res, next) => {
   console.log(`📥 ${req.method} ${req.path}`)
-  if (req.path.includes('/login')) {
-    console.log('  Body:', req.body)
-    console.log('  Headers:', req.headers)
-  }
   next()
 })
 
-app.get('/api/health', (_req, res) => res.json({ ok: true }))
-
-// Debug: Check if blockchainRouter is properly imported
-console.log('\n=== DEBUGGING BLOCKCHAIN ROUTER ===')
-console.log('blockchainRouter type:', typeof blockchainRouter)
-console.log('blockchainRouter is Router?:', blockchainRouter?.constructor?.name)
-console.log('blockchainRouter.stack length:', blockchainRouter?.stack?.length)
-if (blockchainRouter?.stack) {
-  console.log('Routes in blockchainRouter:')
-  blockchainRouter.stack.forEach((layer: any, i: number) => {
-    if (layer.route) {
-      console.log(`  ${i}: ${Object.keys(layer.route.methods)} ${layer.route.path}`)
-    }
-  })
-}
-console.log('=== END DEBUG ===\n')
-
-// Register routes
+/**
+ * ================================
+ * Routes
+ * ================================
+ */
 app.use('/api/auth', authRouter)
 app.use('/api/users', usersRouter)
 app.use('/api/properties', propertyRouter)
@@ -74,38 +128,51 @@ app.use('/api/deeds', deedRouter)
 app.use('/api/owners', ownerRouter)
 app.use('/api/settings', settingsRouter)
 app.use('/api/regulator', regulatorRouter)
-// Register centralized error handler (must be after all routes)
+
+/**
+ * Error handler (last)
+ */
 app.use(errorHandler)
 
-const port = Number(process.env.PORT || 5000)
+/**
+ * ================================
+ * Server startup
+ * ================================
+ */
+const PORT = Number(process.env.PORT || 5001)
 
-// Test Fabric connection on startup
 async function startServer() {
-  console.log('\n=== FABRIC CONNECTION CHECK ===')
-  
+  console.log('\n=== STARTUP CHECKS ===')
+
   if (isFabricEnabled()) {
-    console.log('✅ Fabric is enabled (USE_FABRIC=true)')
+    console.log('✅ Fabric enabled')
     try {
       await testFabricConnection()
-      console.log('✅ Fabric connection test PASSED')
+      console.log('✅ Fabric connection OK')
     } catch (err: any) {
-      console.error('❌ Fabric connection test FAILED:', err.message)
-      console.error('   The server will start but Fabric queries will fail.')
-      console.error('   Please check your Fabric network and configuration.')
+      console.error('⚠️ Fabric check failed:', err.message)
     }
   } else {
-    console.log('⚠️  Fabric is disabled (USE_FABRIC=false or not set)')
-    console.log('   All blockchain queries will use database fallback.')
+    console.log('ℹ️ Fabric disabled')
   }
-  
-  console.log('=== END FABRIC CHECK ===\n')
-  
-  app.listen(port, () => {
-    console.log(`🚀 API running on http://localhost:${port}`)
+
+  if (
+    process.env.USE_FABRIC_GATEWAY === 'true' &&
+    process.env.GATEWAY_STARTUP_CHECK === 'true'
+  ) {
+    try {
+      await checkGatewayHealth()
+    } catch (err: any) {
+      console.error('⚠️ Gateway health failed:', err?.message || err)
+    }
+  }
+
+  app.listen(PORT, '0.0.0.0', () => {
+    console.log(`🚀 API running on http://0.0.0.0:${PORT}`)
   })
 }
 
 startServer().catch(err => {
-  console.error('Failed to start server:', err)
+  console.error('❌ Failed to start server:', err)
   process.exit(1)
 })

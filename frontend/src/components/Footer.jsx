@@ -59,13 +59,33 @@ export default function Footer() {
           </div>
 
           <div>
-            <h3 className="text-white font-semibold mb-4">{t('footer.resources')}</h3>
+            <h3 className="text-white font-semibold mb-4">{t('footer.quickLinks')}</h3>
             <ul className="space-y-2 text-sm">
-              <li><a href="#" className="hover:text-emerald-500 transition-colors">{t('footer.links.about')}</a></li>
-              <li><a href="#" className="hover:text-emerald-500 transition-colors">{t('footer.links.howItWorks')}</a></li>
-              <li><a href="#" className="hover:text-emerald-500 transition-colors">{t('footer.links.faq')}</a></li>
-              <li><a href="#" className="hover:text-emerald-500 transition-colors">{t('footer.links.terms')}</a></li>
-              <li><a href="#" className="hover:text-emerald-500 transition-colors">{t('footer.links.privacy')}</a></li>
+              <li>
+                <Link to="/about" className="hover:text-emerald-500 transition-colors">
+                  {t('footer.links.about')}
+                </Link>
+              </li>
+              <li>
+                <Link to="/how-it-works" className="hover:text-emerald-500 transition-colors">
+                  {t('footer.links.howItWorks')}
+                </Link>
+              </li>
+              <li>
+                <Link to="/faq" className="hover:text-emerald-500 transition-colors">
+                  {t('footer.links.faq')}
+                </Link>
+              </li>
+              <li>
+                <Link to="/terms" className="hover:text-emerald-500 transition-colors">
+                  {t('footer.links.terms')}
+                </Link>
+              </li>
+              <li>
+                <Link to="/privacy" className="hover:text-emerald-500 transition-colors">
+                  {t('footer.links.privacy')}
+                </Link>
+              </li>
             </ul>
           </div>
 

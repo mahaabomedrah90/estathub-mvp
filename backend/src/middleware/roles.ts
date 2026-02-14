@@ -63,7 +63,7 @@ export class StandardError extends Error {
 }
 
 // Centralized error handler middleware
-export function errorHandler(err: any, req: Request, res: Response, next: NextFunction) {
+export function errorHandler(err: any, req: Request & { user?: any }, res: Response, next: NextFunction) {
   console.error('❌ API Error:', {
     error: err,
     message: err?.message,

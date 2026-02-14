@@ -42,7 +42,7 @@ settingsRouter.get('/', auth(true), async (req: Request & { user?: any }, res: R
     
     // Convert array to object format
     const settingsObj: Record<string, any> = {}
-    settings.forEach(setting => {
+    settings.forEach((setting: any) => {
       settingsObj[setting.key] = setting.value
     })
 

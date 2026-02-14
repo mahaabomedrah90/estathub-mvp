@@ -1,11 +1,12 @@
 import { Router, Request, Response } from 'express'
 import jwt from 'jsonwebtoken'
 import bcrypt from 'bcryptjs'
-import { Role } from '@prisma/client'
 import { prisma } from '../lib/prisma'
 import { auth } from '../middleware/auth'
 export const authRouter = Router()
 export const usersRouter = Router()
+
+type Role = 'INVESTOR' | 'OWNER' | 'ADMIN' | 'REGULATOR'
 
 // ============================================================================
 // Configuration
@@ -75,17 +76,20 @@ function generateDisplayName(email: string): string {
 }
 
 function signToken(user: { id: string; email: string; role: Role; tenantId?: string }) {
-  const secret = process.env.JWT_SECRET || 'devsecret'
-  return jwt.sign({ 
-  userId: user.id, 
-  email: user.email, 
-  role: user.role,
-  tenantId: user.tenantId || '1'
-}, secret, { 
-    issuer: 'estathub-mvp',
-    audience: 'estathub-users',
-    expiresIn: '7d' 
-  })
+  return jwt.sign(
+    {
+      userId: user.id,
+      email: user.email,
+      role: user.role,
+      tenantId: user.tenantId || '1'
+    },
+    JWT_SECRET,
+    {
+      issuer: 'estathub-mvp',
+      audience: 'estathub-users',
+      expiresIn: '7d'
+    }
+  )
 }
 
 // POST /api/auth/login
@@ -108,7 +112,7 @@ let user = await prisma.user.findUnique({
     where: { email } 
   })
   // Auto-detect role for NEW users
-let userRole: Role = Role.INVESTOR // default
+  let userRole: Role = 'INVESTOR' // default
 
 if (req.body?.role) {
   const requestedRole = String(req.body.role).toUpperCase()
@@ -117,13 +121,13 @@ if (req.body?.role) {
   }
 } else {
   if (email.includes('owner')) {
-    userRole = Role.OWNER
+    userRole = 'OWNER'
   } else if (email.includes('admin')) {
-    userRole = Role.ADMIN
+    userRole = 'ADMIN'
   } else if (email.includes('investor')) {
-    userRole = Role.INVESTOR
-  } else if (email.includes('regulator')) {
-    userRole = Role.REGULATOR
+    userRole = 'INVESTOR'
+  } else if (email.includes('regulat')) {
+    userRole = 'REGULATOR'
   }
 }
 
@@ -291,7 +295,7 @@ usersRouter.get('/', auth(true), async (req: Request, res: Response) => {
     })
 
     // Get property counts for owners
-    const ownerIds = users.map(u => u.id)
+    const ownerIds = users.map((u: any) => u.id)
     const propertyCounts = await prisma.property.groupBy({
       by: ['ownerId'],
       where: {
@@ -303,14 +307,14 @@ usersRouter.get('/', auth(true), async (req: Request, res: Response) => {
     })
 
     // Create a map of userId -> property count
-    const propertyCountMap = propertyCounts.reduce((acc, item) => {
+    const propertyCountMap = propertyCounts.reduce((acc: Record<string, number>, item: any) => {
       if (item.ownerId) {
         acc[item.ownerId] = item._count.id
       }
       return acc
     }, {} as Record<string, number>)
 
-    const mappedUsers = users.map(user => ({
+    const mappedUsers = users.map((user: any) => ({
       id: user.id,
       name: user.name || user.email,
       email: user.email,

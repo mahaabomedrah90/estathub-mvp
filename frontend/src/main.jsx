@@ -17,6 +17,11 @@ import BlockchainExplorer from './pages/BlockchainExplorer.jsx'
 import Opportunities from './pages/investor/Opportunities.jsx'
 import PropertyDetail from './pages/investor/PropertyDetail.jsx'
 import VerifyDeed from './pages/VerifyDeed.jsx'
+import About from './pages/About.jsx'
+import HowItWorks from './pages/HowItWorks.jsx'
+import FAQ from './pages/FAQ.jsx'
+import Terms from './pages/Terms.jsx'
+import Privacy from './pages/Privacy.jsx'
 // Investor Pages
 import InvestorDashboard from './pages/investor/InvestorDashboard.jsx'
 import Portfolio from './pages/Investor/Portfolio.jsx'
@@ -71,6 +76,11 @@ const router = createBrowserRouter([
       { path: 'verify-deed', element: <VerifyDeed /> },
       { path: 'login', element: <Login /> },
       { path: 'signup', element: <Signup /> },
+      { path: 'about', element: <About /> },
+      { path: 'how-it-works', element: <HowItWorks /> },
+      { path: 'faq', element: <FAQ /> },
+      { path: 'terms', element: <Terms /> },
+      { path: 'privacy', element: <Privacy /> },
       {
         path: 'wallet',
         element: (() => {

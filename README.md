@@ -38,3 +38,34 @@ On GitHub, mention issues/PRs with `Closes #<number>` when merging.
 ## Getting started
 
 See `docs/setup_guide.md` for step-by-step instructions.
+
+## Production deployment notes (AWS)
+
+This repo supports deploying the frontend as a static SPA and the backend behind an ALB.
+
+### Frontend (Vite SPA)
+
+- Build output folder: `frontend/dist/`
+- The frontend must be built with an API base that points to your production backend.
+  - Recommended for same-domain CloudFront routing:
+    - `VITE_API_BASE=https://www.alwsm.sa/api`
+
+### Backend (Express API)
+
+- CORS is allowlist-based and read from `CORS_ORIGIN` (comma-separated origins):
+  - `CORS_ORIGIN="https://alwsm.sa,https://www.alwsm.sa"`
+- In `NODE_ENV=production`, the backend will **fail fast** if `CORS_ORIGIN` is missing.
+
+### CloudFront routing (critical)
+
+- Ensure CloudFront routes:
+  - `/*` -> S3 (SPA)
+  - `/api/*` -> ALB (backend)
+
+If `/api/*` is served by S3, the frontend will receive `index.html` (HTML) instead of JSON.
+
+### CloudFront invalidation (after frontend upload)
+
+```bash
+aws cloudfront create-invalidation --distribution-id <DIST_ID> --paths "/*"
+```

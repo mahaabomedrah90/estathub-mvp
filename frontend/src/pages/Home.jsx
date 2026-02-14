@@ -3,9 +3,12 @@ import { Link } from 'react-router-dom'
 import { Building2, TrendingUp, Shield, Wallet, ArrowRight, CheckCircle2 } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 
+
 export default function Home() {
-   const { t, i18n } = useTranslation('pages')
-  const isRtl = i18n.dir() === 'rtl'
+  const { t } = useTranslation('pages')
+  const { i18n } = useTranslation('pages')
+const isRtl = i18n.dir() === 'rtl'
+
   return (
     <div className="space-y-16">
       {/* Hero Section */}

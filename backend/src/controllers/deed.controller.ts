@@ -2,7 +2,6 @@ import { Router, Request, Response } from 'express'
 import { prisma } from '../lib/prisma'
 import * as fabric from '../lib/fabric'
 import { auth } from '../middleware/auth'
-import { $Enums } from '@prisma/client'
 import {
   generateDeedNumber,
   calculateDeedHash,
@@ -116,7 +115,7 @@ deedRouter.post('/issue', auth(true), async (req: Request & { user?: any }, res:
     
     // Calculate total tokens already covered by existing deeds (for backward compatibility
     // with older multiple-deed records)
-    const totalIssuedTokens = existingDeeds.reduce((sum, deed) => sum + deed.ownedTokens, 0)
+    const totalIssuedTokens = existingDeeds.reduce((sum: number, deed: any) => sum + deed.ownedTokens, 0)
     
     // Get property details first (needed for both new and existing deeds)
     const property = await prisma.property.findUnique({
@@ -147,7 +146,7 @@ deedRouter.post('/issue', auth(true), async (req: Request & { user?: any }, res:
     console.log(`📝 Issuing additional ${newTokensToIssue} token(s) (Total owned: ${holding.tokens}, Already issued: ${totalIssuedTokens})`)
 
     // Decide whether to create a new deed (first time) or update an existing one
-    let deedToUse = existingDeeds.find(d => d.status === 'ISSUED') || existingDeeds[0] || null
+    let deedToUse = existingDeeds.find((d: any) => d.status === 'ISSUED') || existingDeeds[0] || null
 
     // Generate a deed number now; if we reuse an existing deed we keep its number
     const deedNumber = deedToUse?.deedNumber || await generateDeedNumber()
@@ -251,7 +250,7 @@ deedRouter.post('/issue', auth(true), async (req: Request & { user?: any }, res:
           await prisma.onChainEvent.create({
             data: {
               txId: txId,
-              type: $Enums.OnChainEventType.TOKEN_MINT, // Reusing existing enum
+              type: 'TOKEN_MINT',
               userId: userId,
               propertyId: propertyId,
               orderId: orderId || undefined,

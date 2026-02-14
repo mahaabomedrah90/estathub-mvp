@@ -1,7 +1,6 @@
 import { Router, Request, Response, NextFunction } from 'express'
 import jwt from 'jsonwebtoken'
 import { prisma } from '../lib/prisma'
-import { TransactionType } from '@prisma/client'
 import { auth } from '../middleware/auth'
 import { 
   isFabricEnabled, 
@@ -53,7 +52,7 @@ const prop = await prisma.property.findUnique({ where: { id: String(pid) } })
     
     if (!fabricResult?.dbTx) {
       console.log('🔍 Test-mint: Fabric did not create dbTx, creating it in controller...')
-      await prisma.$transaction(async tx => {
+      await prisma.$transaction(async (tx: any) => {
         await tx.property.update({ where: { id: String(pid) }, data: { remainingTokens: { decrement: qty } } })
         await tx.holding.upsert({
           where: { userId_propertyId: { userId: targetUser!.id, propertyId: String(pid) } },
@@ -65,7 +64,7 @@ const prop = await prisma.property.findUnique({ where: { id: String(pid) } })
           data: {
             userId: targetUser!.id,
             tenantId: targetUser!.tenantId,
-            type: TransactionType.TOKEN_MINT,
+            type: 'TOKEN_MINT',
             amount: qty,
             note: 'Test blockchain mint',
             blockchainTxId: fabricResult?.txId,
@@ -74,13 +73,13 @@ const prop = await prisma.property.findUnique({ where: { id: String(pid) } })
       })
     } else {
       // Still need to update property and holdings even if Fabric created the transaction
-            await prisma.$transaction(async tx => {
-              await tx.property.update({ where: { id: String(pid) }, data: { remainingTokens: { decrement: qty } } })
-      await tx.holding.upsert({
-      where: { userId_propertyId: { userId: targetUser!.id, propertyId: String(pid) } },
-      update: { tokens: { increment: qty } },
-      create: { userId: targetUser!.id, propertyId: String(pid), tokens: qty },
-              })
+      await prisma.$transaction(async (tx: any) => {
+        await tx.property.update({ where: { id: String(pid) }, data: { remainingTokens: { decrement: qty } } })
+        await tx.holding.upsert({
+          where: { userId_propertyId: { userId: targetUser!.id, propertyId: String(pid) } },
+          update: { tokens: { increment: qty } },
+          create: { userId: targetUser!.id, propertyId: String(pid), tokens: qty },
+        })
       })
       dbTx = fabricResult.dbTx
     }
@@ -128,7 +127,7 @@ blockchainRouter.get('/events', auth(true), async (_req: Request, res: Response)
           orderBy: { createdAt: 'desc' },
           take: 100,
         })
-        events = dbEvents.map(e => ({
+        events = dbEvents.map((e: any) => ({
           ...e,
           source: 'blockchain',
           txId: e.txId
@@ -191,13 +190,14 @@ blockchainRouter.get('/properties', auth(true), async (_req: Request, res: Respo
         })
         
         // Create a set of approved property IDs
-        const approvedIds = new Set(dbProps.map(dp => String(dp.id)))
+        const approvedIds = new Set(dbProps.map((dp: any) => String(dp.id)))
+
         
         // Merge ledger data with database data - FILTER to only approved properties
         properties = ledgerProps
-          .filter(lp => approvedIds.has(lp.propertyId)) // Only include if approved in DB
-          .map(lp => {
-            const dbProp = dbProps.find(dp => String(dp.id) === lp.propertyId)
+          .filter((lp: any) => approvedIds.has(lp.propertyId)) // Only include if approved in DB
+          .map((lp: any) => {
+            const dbProp = dbProps.find((dp: any) => String(dp.id) === lp.propertyId)
             return {
               id: lp.propertyId,
               title: lp.title,
@@ -225,7 +225,7 @@ blockchainRouter.get('/properties', auth(true), async (_req: Request, res: Respo
           },
           orderBy: { createdAt: 'desc' },
         })
-        properties = dbProps.map(p => ({ ...p, source: 'database_fallback' }))
+        properties = dbProps.map((p: any) => ({ ...p, source: 'database_fallback' }))
       }
     } else {
       // Fabric disabled, use database
@@ -240,7 +240,7 @@ blockchainRouter.get('/properties', auth(true), async (_req: Request, res: Respo
         },
         orderBy: { createdAt: 'desc' },
       })
-      properties = dbProps.map(p => ({ ...p, source: 'database' }))
+      properties = dbProps.map((p: any) => ({ ...p, source: 'database' }))
     }
     
     return res.json({ properties })
@@ -266,18 +266,18 @@ blockchainRouter.get('/certificates', auth(true), async (_req: Request, res: Res
         console.log(`✅ Loaded ${ledgerDeeds.length} deeds from Fabric ledger`)
         
         // Get user and property info from database
-        const userIds = [...new Set(ledgerDeeds.map(d => d.userId))]
-        const propertyIds = [...new Set(ledgerDeeds.map(d => d.propertyId))]
+        const userIds = [...new Set(ledgerDeeds.map((d: any) => d.userId))]
+        const propertyIds = [...new Set(ledgerDeeds.map((d: any) => d.propertyId))]
         
         const [users, properties] = await Promise.all([
           prisma.user.findMany({ where: { id: { in: userIds } }, select: { id: true, email: true } }),
           prisma.property.findMany({ where: { id: { in: propertyIds } }, select: { id: true, title: true } })
         ])
         
-        const userMap = new Map(users.map(u => [u.id, u.email]))
-        const propMap = new Map(properties.map(p => [p.id, p.title]))
+        const userMap = new Map(users.map((u: any) => [u.id, u.email]))
+        const propMap = new Map(properties.map((p: any) => [p.id, p.title]))
         
-        certificates = ledgerDeeds.map(deed => ({
+        certificates = ledgerDeeds.map((deed: any) => ({
           id: deed.deedNumber,
           code: deed.deedNumber,
           userId: deed.userId,
@@ -303,7 +303,7 @@ blockchainRouter.get('/certificates', auth(true), async (_req: Request, res: Res
           orderBy: { createdAt: 'desc' },
           take: 100,
         })
-        certificates = dbCerts.map(cert => ({
+        certificates = dbCerts.map((cert: any) => ({
           id: cert.id,
           code: cert.code,
           userId: cert.userId,
@@ -326,7 +326,8 @@ blockchainRouter.get('/certificates', auth(true), async (_req: Request, res: Res
         orderBy: { createdAt: 'desc' },
         take: 100,
       })
-      certificates = dbCerts.map(cert => ({
+      certificates = dbCerts.map((cert: any) => ({
+
         id: cert.id,
         code: cert.code,
         userId: cert.userId,
@@ -370,19 +371,20 @@ blockchainRouter.get('/transactions', auth(true), async (_req: Request, res: Res
         }
         
         // Get user info from database
-        const allUserIds = [...new Set([...holdings.map(h => String(h.userId)), ...deeds.map(d => String(d.userId))])]
+        const allUserIds = [...new Set([...holdings.map((h: any) => String(h.userId)), ...deeds.map((d: any) => String(d.userId))])]
         const users = await prisma.user.findMany({ 
           where: { id: { in: allUserIds } }, 
           select: { id: true, email: true } 
         })
-        const userMap = new Map(users.map(u => [u.id, u.email]))
+        const userMap = new Map(users.map((u: any) => [u.id, u.email]))
+
         
         // Convert holdings to transaction format
-        const holdingTxns = holdings.map((h, idx) => ({
+        const holdingTxns = holdings.map((h: any, idx: number) => ({
           id: `fabric-holding-${idx}`,
           userId: h.userId,
           userEmail: userMap.get(h.userId) || 'Unknown',
-          type: TransactionType.TOKEN_MINT,
+          type: 'TOKEN_MINT',
           amount: 0,
           ref: `Property ${h.propertyId}`,
           note: `${h.tokens} tokens for property ${h.propertyId}`,
@@ -394,7 +396,7 @@ blockchainRouter.get('/transactions', auth(true), async (_req: Request, res: Res
         }))
         
         // Convert deeds to transaction format
-        const deedTxns = deeds.map((d, idx) => ({
+        const deedTxns = deeds.map((d: any, idx: number) => ({
           id: `fabric-deed-${idx}`,
           userId: d.userId,
           userEmail: userMap.get(d.userId) || 'Unknown',
@@ -419,19 +421,19 @@ blockchainRouter.get('/transactions', auth(true), async (_req: Request, res: Res
         })
         
         console.log(`📊 Total database transactions: ${dbTxns.length}`)
-        console.log(`📊 Database transactions with blockchainTxId: ${dbTxns.filter(t => t.blockchainTxId).length}`)
-       console.log(`📊 TOKEN_MINT transactions: ${dbTxns.filter(t => t.type === TransactionType.TOKEN_MINT).length}`)
+        console.log(`📊 Database transactions with blockchainTxId: ${dbTxns.filter((t: any) => t.blockchainTxId).length}`)
+        console.log(`📊 TOKEN_MINT transactions: ${dbTxns.filter((t: any) => t.type === 'TOKEN_MINT').length}`)
 
         
         // Debug: Show all transaction types in database
-        const txTypes = dbTxns.reduce((acc: any, tx) => {
+        const txTypes = dbTxns.reduce((acc: any, tx: any) => {
           acc[tx.type] = (acc[tx.type] || 0) + 1
           return acc
-        }, {})
+        }, {} as Record<string, number>)
         console.log(`📊 Transaction types in database:`, txTypes)
         
         // Debug: Show last 5 transactions
-        console.log(`📊 Last 5 transactions:`, dbTxns.slice(0, 5).map(t => ({
+        console.log(`📊 Last 5 transactions:`, dbTxns.slice(0, 5).map((t: any) => ({
           id: t.id,
           type: t.type,
           amount: t.amount,
@@ -441,8 +443,8 @@ blockchainRouter.get('/transactions', auth(true), async (_req: Request, res: Res
         
         // Include all TOKEN_MINT transactions (with or without blockchainTxId)
         const dbMapped = dbTxns
-          .filter(txn => txn.type === 'TOKEN_MINT') // All token mint transactions
-          .map(txn => ({
+          .filter((txn: any) => txn.type === 'TOKEN_MINT')
+          .map((txn: any) => ({
             id: txn.id,
             userId: txn.userId,
             userEmail: txn.user.email,
@@ -466,7 +468,7 @@ blockchainRouter.get('/transactions', auth(true), async (_req: Request, res: Res
           orderBy: { createdAt: 'desc' },
           take: 100,
         })
-        transactions = dbTxns.map(txn => ({
+        transactions = dbTxns.map((txn: any) => ({
           id: txn.id,
           userId: txn.userId,
           userEmail: txn.user.email,
@@ -488,7 +490,8 @@ blockchainRouter.get('/transactions', auth(true), async (_req: Request, res: Res
         orderBy: { createdAt: 'desc' },
         take: 100,
       })
-      transactions = dbTxns.map(txn => ({
+     transactions = dbTxns.map((txn: any) => ({
+
         id: txn.id,
         userId: txn.userId,
         userEmail: txn.user.email,
@@ -548,11 +551,11 @@ blockchainRouter.get('/stats', auth(true), async (_req: Request, res: Response) 
           prisma.onChainEvent.count(),
           prisma.property.count({ where: { blockchainTxId: { not: null } } }),
           prisma.certificate.count({ where: { blockchainTxId: { not: null } } }),
-          prisma.transaction.count({ 
-            where: { 
+          prisma.transaction.count({
+            where: {
               blockchainTxId: { not: null },
-              type: TransactionType.TOKEN_MINT
-            } 
+              type: 'TOKEN_MINT',
+            },
           }),
         ])
         stats = {
@@ -574,7 +577,7 @@ blockchainRouter.get('/stats', auth(true), async (_req: Request, res: Response) 
         prisma.onChainEvent.count(),
         prisma.property.count(),
         prisma.certificate.count(),
-        prisma.transaction.count({ where: { type: TransactionType.TOKEN_MINT } }),
+        prisma.transaction.count({ where: { type: 'TOKEN_MINT' } }),
       ])
       stats = {
         totalEvents,
@@ -639,7 +642,7 @@ blockchainRouter.get('/verify', auth(true), async (_req: Request, res: Response)
     // Get all blockchain transactions (token mints)
     const transactions = await prisma.transaction.findMany({
       where: {
-        type: TransactionType.TOKEN_MINT
+        type: 'TOKEN_MINT'
       },
       select: {
         id: true,
@@ -656,9 +659,9 @@ blockchainRouter.get('/verify', auth(true), async (_req: Request, res: Response)
     })
     
     // Calculate sync statistics
-    const propertiesSynced = properties.filter(p => p.blockchainTxId).length
-    const certificatesSynced = certificates.filter(c => c.blockchainTxId).length
-    const transactionsSynced = transactions.filter(t => t.blockchainTxId).length
+    const propertiesSynced = properties.filter((p: any) => p.blockchainTxId).length
+const certificatesSynced = certificates.filter((c: any) => c.blockchainTxId).length
+const transactionsSynced = transactions.filter((t: any) => t.blockchainTxId).length
     
     const syncStatus = {
       enabled: true,
@@ -684,7 +687,7 @@ blockchainRouter.get('/verify', auth(true), async (_req: Request, res: Response)
         }
       },
       details: {
-        properties: properties.map(p => ({
+        properties: properties.map((p: any) =>({
           id: p.id,
           title: p.title,
           status: p.status,
@@ -693,7 +696,7 @@ blockchainRouter.get('/verify', auth(true), async (_req: Request, res: Response)
           approvedAt: p.approvedAt,
           createdAt: p.createdAt
         })),
-        certificates: certificates.map(c => ({
+        certificates: certificates.map((c: any) => ({
           id: c.id,
           deedNumber: c.deedNumber,
           userId: c.userId,
@@ -706,7 +709,7 @@ blockchainRouter.get('/verify', auth(true), async (_req: Request, res: Response)
           synced: !!c.blockchainTxId,
           issuedAt: c.issuedAt
         })),
-        transactions: transactions.map(t => ({
+        transactions: transactions.map((t: any) => ({
           id: t.id,
           userId: t.userId,
           userEmail: t.user.email,

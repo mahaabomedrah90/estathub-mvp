@@ -24,7 +24,7 @@ ownerRouter.get('/:ownerId/investors', auth(true), async (req: Request, res: Res
       return res.json({ investors: [], totalInvestment: 0 })
     }
 
-    const propertyIds = properties.map(p => p.id)
+    const propertyIds = properties.map((p: any) => p.id)
 
     // Holdings across those properties, include user + property
     const holdings = await prisma.holding.findMany({
@@ -66,7 +66,7 @@ ownerRouter.get('/:ownerId/investors', auth(true), async (req: Request, res: Res
     }
 
     const investors = Array.from(investorMap.values())
-    const totalInvestment = investors.reduce((sum, i) => sum + i.totalInvestment, 0)
+    const totalInvestment = investors.reduce((sum: number, i: any) => sum + i.totalInvestment, 0)
 
     res.json({
       ownerId,

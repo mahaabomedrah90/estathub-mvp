@@ -1,6 +1,6 @@
 import pkg from '@prisma/client'
 import bcrypt from 'bcryptjs'
-const { PrismaClient, Role, PropertyStatus } = pkg
+const { PrismaClient, Role, PropertyStatus, OrderStatus } = pkg
 
 const prisma = new PrismaClient()
 
@@ -138,9 +138,7 @@ async function main() {
       propertyId: property1.id,
       tokens: 50,
       amount: 50000, // 50 tokens * 1000 SAR each
-      status: 'COMPLETED',
-      transactionHash: '0xabc123def456789...',
-      blockchainConfirmed: true,
+      status: OrderStatus.PAID,
     },
   })
 
@@ -150,9 +148,7 @@ async function main() {
       propertyId: property2.id,
       tokens: 25,
       amount: 25000, // 25 tokens * 1000 SAR each
-      status: 'COMPLETED',
-      transactionHash: '0xdef789ghi012345...',
-      blockchainConfirmed: true,
+      status: OrderStatus.PAID,
     },
   })
 
@@ -184,7 +180,7 @@ async function main() {
       userId: investor.id,
       propertyId: property1.id,
       orderId: order1.id,
-      blockchainTxId: order1.transactionHash,
+      blockchainTxId: '0xabc123def456789',
     },
   })
 
@@ -194,7 +190,7 @@ async function main() {
       userId: investor.id,
       propertyId: property2.id,
       orderId: order2.id,
-      blockchainTxId: order2.transactionHash,
+      blockchainTxId: '0xdef789ghi012345',
     },
   })
 
@@ -208,8 +204,7 @@ async function main() {
       role: Role.INVESTOR,
       passwordHash,
       tenantId: defaultTenant.id,
-      verified: true,
-      phone: '+966 55 234 5678',
+      phoneNumber: '+966 55 234 5678',
     },
   })
 
@@ -229,9 +224,7 @@ async function main() {
       propertyId: property1.id,
       tokens: 30,
       amount: 30000,
-      status: 'COMPLETED',
-      transactionHash: '0xghi456jkl789012...',
-      blockchainConfirmed: true,
+      status: OrderStatus.PAID,
     },
   })
 
@@ -251,7 +244,7 @@ async function main() {
       userId: investor2.id,
       propertyId: property1.id,
       orderId: order3.id,
-      blockchainTxId: order3.transactionHash,
+      blockchainTxId: '0xghi456jkl789012',
     },
   })
 

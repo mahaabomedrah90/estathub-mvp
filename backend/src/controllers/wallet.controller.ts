@@ -1,5 +1,4 @@
 import { Router, Request, Response } from 'express'
-import { $Enums } from '@prisma/client'
 import { prisma } from '../lib/prisma'
 import { isFabricEnabled, evaluateGetHoldings } from '../lib/fabric'
 import { auth } from '../middleware/auth'
@@ -25,7 +24,7 @@ walletRouter.get('/', auth(true), async (req: Request & { user?: any }, res: Res
     let mapped: Array<{ propertyId: string; title: string; tokens: number; tokenPrice: number; value: number }>
     
     // Use database holdings (blockchain is not properly synced)
-    mapped = dbHoldings.map(h => ({
+    mapped = dbHoldings.map((h: any) => ({
       propertyId: h.propertyId,
       title: h.property.title,
       tokens: h.tokens,
@@ -33,7 +32,7 @@ walletRouter.get('/', auth(true), async (req: Request & { user?: any }, res: Res
       value: (h.tokens || 0) * (h.property.tokenPrice || 0),
     }))
   
-    const investedValue = mapped.reduce((s, x) => s + x.value, 0)
+    const investedValue = mapped.reduce((s: number, x: any) => s + x.value, 0)
     const cashBalance = wallet.cashBalance || 0
     const totalValue = cashBalance + investedValue
     const transactions = await prisma.transaction.findMany({
@@ -63,10 +62,10 @@ walletRouter.post('/deposit', auth(true), async (req: Request & { user?: any }, 
   try {
     const amount = Number(req.body?.amount)
     if (!Number.isFinite(amount) || amount <= 0) return res.status(400).json({ error: 'invalid_amount' })
-    const result = await prisma.$transaction(async tx => {
+       const result = await prisma.$transaction(async (tx: any) => {
       const wallet = await tx.wallet.upsert({ where: { userId: req.user!.userId }, update: {}, create: { userId: req.user!.userId, tenantId: req.user!.tenantId } })
       const updated = await tx.wallet.update({ where: { id: wallet.id }, data: { cashBalance: { increment: amount } } })
-      await tx.transaction.create({ data: { userId: req.user!.userId, tenantId: req.user!.tenantId, type: $Enums.TransactionType.DEPOSIT, amount } })
+      await tx.transaction.create({ data: { userId: req.user!.userId, tenantId: req.user!.tenantId, type: 'DEPOSIT', amount } })
       return updated
     })
     return res.json({ cashBalance: result.cashBalance })
@@ -100,7 +99,7 @@ walletRouter.post('/init-test-balance', auth(true), async (req: Request & { user
       data: {
         userId: req.user!.userId,
         tenantId: req.user!.tenantId,
-        type: $Enums.TransactionType.DEPOSIT,
+        type: 'DEPOSIT',
         amount: testBalance,
         note: 'Test balance initialization'
       }
@@ -122,11 +121,11 @@ walletRouter.post('/withdraw', auth(true), async (req: Request & { user?: any },
   try {
     const amount = Number(req.body?.amount)
     if (!Number.isFinite(amount) || amount <= 0) return res.status(400).json({ error: 'invalid_amount' })
-    const result = await prisma.$transaction(async tx => {
+    const result = await prisma.$transaction(async (tx: any) => {
       const wallet = await tx.wallet.upsert({ where: { userId: req.user!.userId }, update: {}, create: { userId: req.user!.userId, tenantId: req.user!.tenantId } })
       if ((wallet.cashBalance || 0) < amount) throw new Error('insufficient')
       const updated = await tx.wallet.update({ where: { id: wallet.id }, data: { cashBalance: { decrement: amount } } })
-      await tx.transaction.create({ data: { userId: req.user!.userId, tenantId: req.user!.tenantId, type: $Enums.TransactionType.WITHDRAWAL, amount } })
+      await tx.transaction.create({ data: { userId: req.user!.userId, tenantId: req.user!.tenantId, type: 'WITHDRAWAL', amount } })
       return updated
     })
     return res.json({ cashBalance: result.cashBalance })

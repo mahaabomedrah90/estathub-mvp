@@ -3,8 +3,6 @@ import { Router, Request, Response, NextFunction } from 'express'
 import { prisma } from '../lib/prisma'
 import { auth } from '../middleware/auth'
 import { requireRole } from '../middleware/roles'
-import { $Enums, TransactionType } from '@prisma/client'
-
 export const regulatorRouter = Router()
 
 // Shared middleware: authenticated + regulator/admin role
@@ -25,9 +23,9 @@ regulatorRouter.get(
 
       // Optional status filter
       if (status && typeof status === 'string') {
-        const upper = status.toUpperCase() as $Enums.PropertyStatus
+        const upper = status.toUpperCase()
         if (['PENDING', 'APPROVED', 'REJECTED'].includes(upper)) {
-          where.status = upper
+          where.status = upper as any
         }
       }
 
@@ -57,7 +55,7 @@ regulatorRouter.get(
         orderBy: { submittedAt: 'desc' },
       })
 
-      const mapped = list.map((p) => ({
+      const mapped = list.map((p: any) => ({
         id: p.id,
         title: p.title,
         location: p.location,
@@ -120,7 +118,7 @@ regulatorRouter.get(
 
       const totalTokens = property.totalTokens || 0
 
-      const ownership = holdings.map((h) => ({
+      const ownership = holdings.map((h: any) => ({
         id: h.id,
         userId: h.userId,
         userEmail: h.user.email,
@@ -287,12 +285,12 @@ regulatorRouter.get(
       })
 
       const transactions = await prisma.transaction.findMany({
-        where: { type: TransactionType.TOKEN_MINT },
+        where: { type: 'TOKEN_MINT' },
         orderBy: { createdAt: 'desc' },
       })
 
       const ledger = properties
-        .filter((p) => {
+         .filter((p: any) => {
           if (!search || typeof search !== 'string') return true
           const needle = search.toLowerCase()
           return (
@@ -301,14 +299,14 @@ regulatorRouter.get(
             (p.ownerName || '').toLowerCase().includes(needle)
           )
         })
-        .map((p) => {
+        .map((p: any) => {
           const totalSupply = p.totalTokens || 0
           const distributedTokens = totalSupply - (p.remainingTokens || 0)
           const investorsCount = p.holdings.length
 
-          const lastEvent = events.find((e) => e.propertyId === p.id)
+          const lastEvent = events.find((e: any) => e.propertyId === p.id)
           const lastTxn = transactions.find(
-            (t) => t.ref === p.id || (t.note && t.note.includes(p.id))
+            (t: any) => t.ref === p.id || (t.note && t.note.includes(p.id))
           )
 
           const lastOnChainEvent = lastEvent
@@ -318,7 +316,6 @@ regulatorRouter.get(
             : null
 
           const lastUpdateCandidates = [
-            p.updatedAt,
             p.approvedAt,
             p.rejectedAt,
             lastEvent?.createdAt,
@@ -400,12 +397,14 @@ regulatorRouter.get(
         else low.push(alert)
       }
 
-      const propertyMap = new Map(properties.map((p) => [p.id, p]))
-      const userMap = new Map(users.map((u) => [u.id, u]))
+      const propertyMap = new Map(properties.map((p: any) => [p.id, p]))
+      const userMap = new Map(users.map((u: any) => [u.id, u]))
 
       // Rule 1: High-value single investor (> 15% of property)
-      for (const h of holdings) {
-        const prop = propertyMap.get(h.propertyId)
+     for (const h of holdings as any[]) {
+
+          const prop = propertyMap.get(h.propertyId) as any
+
         if (!prop || !prop.totalTokens) continue
         const pct = (h.tokens / prop.totalTokens) * 100
         if (pct > 15) {
@@ -425,7 +424,8 @@ regulatorRouter.get(
       }
 
       // Rule 2: Rapid purchases (< 60s between purchases for same user+property)
-      const ordersByUserProp = new Map<string, typeof orders>()
+      const ordersByUserProp = new Map<string, any[]>()
+
       for (const o of orders) {
         const key = `${o.userId}:${o.propertyId}`
         if (!ordersByUserProp.has(key)) ordersByUserProp.set(key, [])
@@ -433,16 +433,16 @@ regulatorRouter.get(
       }
 
       for (const [, list] of ordersByUserProp.entries()) {
-        list.sort((a, b) => a.createdAt.getTime() - b.createdAt.getTime())
+        list.sort((a: any, b: any) => a.createdAt.getTime() - b.createdAt.getTime())
         for (let i = 1; i < list.length; i++) {
           const prev = list[i - 1]
           const curr = list[i]
           const diffSec =
             (curr.createdAt.getTime() - prev.createdAt.getTime()) / 1000
           if (diffSec < 60) {
-            const prop = propertyMap.get(curr.propertyId)
-            const user = userMap.get(curr.userId)
-            pushAlert({
+            const prop = propertyMap.get(curr.propertyId) as any
+const user = userMap.get(curr.userId) as any
+pushAlert({
               id: `rapid-${curr.id}`,
               type: 'RAPID_PURCHASES',
               severity: 'medium',
@@ -451,9 +451,10 @@ regulatorRouter.get(
               )} seconds for the same property`,
               userId: curr.userId,
               userEmail: user?.email,
+  propertyTitle: prop?.title,
+  createdAt: curr.createdAt.toISOString(),
               propertyId: curr.propertyId,
-              propertyTitle: prop?.title,
-              createdAt: curr.createdAt.toISOString(),
+          
               details: { previousOrderId: prev.id, currentOrderId: curr.id },
             })
           }
@@ -461,11 +462,11 @@ regulatorRouter.get(
       }
 
       // Rule 3 & 4: Suspicious transfers / large token movements
-      for (const tx of transactions) {
-        if (tx.type === TransactionType.TOKEN_TRANSFER) {
+     for (const tx of transactions as any[]) {
+        if (tx.type === 'TOKEN_TRANSFER') {
+    const user = userMap.get(tx.userId) as any
           // Large transfers
           if (tx.amount >= 1000) {
-            const user = userMap.get(tx.userId)
             pushAlert({
               id: `transfer-${tx.id}`,
               type: 'SUSPICIOUS_TRANSFER',
@@ -477,8 +478,8 @@ regulatorRouter.get(
               details: { ref: tx.ref, note: tx.note },
             })
           }
-        } else if (tx.type === TransactionType.TOKEN_MINT && tx.amount >= 0.2) {
-          const user = userMap.get(tx.userId)
+        } else if (tx.type === 'TOKEN_MINT' && tx.amount >= 0.2) {
+    const user = userMap.get(tx.userId) as any
           pushAlert({
             id: `mint-${tx.id}`,
             type: 'LARGE_MINT',
@@ -496,8 +497,8 @@ regulatorRouter.get(
       const NEW_USER_DAYS = 7
       const newUserCutoff = Date.now() - NEW_USER_DAYS * 24 * 60 * 60 * 1000
 
-      for (const tx of transactions) {
-        const user = userMap.get(tx.userId)
+      for (const tx of transactions as any[]) {
+        const user = userMap.get(tx.userId) as any
         if (!user) continue
         const isNew = user.createdAt.getTime() >= newUserCutoff
         if (isNew && tx.amount >= 5000) {
