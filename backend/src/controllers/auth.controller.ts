@@ -1,8 +1,22 @@
 import { Router, Request, Response } from 'express'
 import jwt from 'jsonwebtoken'
 import bcrypt from 'bcryptjs'
+import rateLimit from 'express-rate-limit'
 import { prisma } from '../lib/prisma'
 import { auth } from '../middleware/auth'
+import {
+  validateEmail,
+  normalizeEmail,
+  validatePhone,
+  validateNationalId,
+  validatePassword,
+  validateFullName,
+  validateTermsAccepted,
+  maskNationalId,
+  sanitizeForLog,
+  validationErrorMessages
+} from '../lib/validators'
+
 export const authRouter = Router()
 export const usersRouter = Router()
 
@@ -13,17 +27,43 @@ type Role = 'INVESTOR' | 'OWNER' | 'ADMIN' | 'REGULATOR'
 // ============================================================================
 
 const JWT_SECRET = process.env.JWT_SECRET || 'dev-secret-change-in-production'
-const JWT_EXPIRES_IN = process.env.JWT_EXPIRES_IN || '1d'
+const JWT_EXPIRES_IN = process.env.JWT_EXPIRES_IN || '7d'
 const BCRYPT_SALT_ROUNDS = parseInt(process.env.BCRYPT_SALT_ROUNDS || '12')
+
+// ============================================================================
+// Rate Limiting Configuration
+// ============================================================================
+
+// Register rate limiter: 5 attempts per hour per IP
+const registerLimiter = rateLimit({
+  windowMs: 60 * 60 * 1000, // 1 hour
+  max: 5,
+  message: {
+    error: 'rate_limit_exceeded',
+    message: 'Too many registration attempts. Please try again later.'
+  },
+  standardHeaders: true,
+  legacyHeaders: false,
+  skipSuccessfulRequests: false
+})
+
+// Login rate limiter: 10 attempts per 15 minutes per IP
+const loginLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 10,
+  message: {
+    error: 'rate_limit_exceeded',
+    message: 'Too many login attempts. Please try again after 15 minutes.'
+  },
+  standardHeaders: true,
+  legacyHeaders: false
+})
 
 // ============================================================================
 // Helper Functions
 // ============================================================================
 
 async function hashPassword(plain: string): Promise<string> {
-  if (!plain || plain.length < 6) {
-    throw new Error('Password must be at least 6 characters long')
-  }
   return await bcrypt.hash(plain, BCRYPT_SALT_ROUNDS)
 }
 
@@ -32,245 +72,479 @@ async function comparePassword(plain: string, hash: string): Promise<boolean> {
   return await bcrypt.compare(plain, hash)
 }
 
-function generateJwt(payload: {
-  userId: string
+function signToken(user: {
+  id: string
+  email: string
+  role: Role
   tenantId: string
-  role: string
-}): string {
-  return jwt.sign(payload, JWT_SECRET, {
-    expiresIn: JWT_EXPIRES_IN,
-    issuer: 'estathub-mvp',
-    audience: 'estathub-users'
-  } as jwt.SignOptions)
-}
-
-function validateEmail(email: string): boolean {
-  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
-  return emailRegex.test(email)
-}
-
-function validatePassword(password: string): {
-  valid: boolean
-  errors: string[]
-} {
-  const errors: string[] = []
-  if (!password) {
-    errors.push('Password is required')
-  } else {
-    if (password.length < 6) {
-      errors.push('Password must be at least 6 characters long')
-    }
-    if (password.length > 128) {
-      errors.push('Password must be less than 128 characters')
-    }
-  }
-  return { valid: errors.length === 0, errors }
-}
-
-function generateDisplayName(email: string): string {
-  const parts = email.split('@')
-  const name = parts[0]
-    .replace(/[._-]/g, ' ')
-    .replace(/\b\w/g, l => l.toUpperCase())
-  return name
-}
-
-function signToken(user: { id: string; email: string; role: Role; tenantId?: string }) {
+  fullName: string | null
+}) {
   return jwt.sign(
     {
       userId: user.id,
       email: user.email,
       role: user.role,
-      tenantId: user.tenantId || '1'
+      tenantId: user.tenantId,
+      fullName: user.fullName
     },
     JWT_SECRET,
     {
-      issuer: 'estathub-mvp',
-      audience: 'estathub-users',
-      expiresIn: '7d'
-    }
+      expiresIn: JWT_EXPIRES_IN
+    } as any
   )
 }
 
-// POST /api/auth/login
-authRouter.post('/login', async (req: Request, res: Response) => {
-  console.log('🔐 Login request received:', { body: req.body })
-  
+function getErrorMessage(errorCode: string, lang: 'en' | 'ar' = 'en'): string {
+  const message = validationErrorMessages[errorCode]
+  return message ? message[lang] : errorCode
+}
+
+function sanitizeUserForResponse(user: any) {
+  if (!user) return null
+
+  return {
+    id: user.id,
+    email: user.email,
+    fullName: user.fullName,
+    role: user.role,
+    tenantId: user.tenantId,
+    createdAt: user.createdAt,
+    updatedAt: user.updatedAt,
+    emailVerified: user.emailVerified,
+    phoneVerified: user.phoneVerified,
+    kycVerified: user.kycVerified,
+    nationalId: user.nationalId ? maskNationalId(user.nationalId) : null,
+    phoneNumber: user.phoneNumber
+      ? user.phoneNumber.slice(0, -6) + '***' + user.phoneNumber.slice(-3)
+      : null,
+    address: user.address
+  }
+}
+
+// ============================================================================
+// POST /api/auth/register - User Registration
+// ============================================================================
+
+authRouter.post('/register', registerLimiter, async (req: Request, res: Response) => {
+  console.log('🔐 Registration request received:', sanitizeForLog(req.body))
+
   try {
-    const email = String(req.body?.email || '').toLowerCase().trim()
-    if (!email) {
-      console.log('❌ Email missing')
-      return res.status(400).json({ error: 'email_required' })
-    }
-
-  
-
- 
-
-  // Look up existing user first
-let user = await prisma.user.findUnique({ 
-    where: { email } 
-  })
-  // Auto-detect role for NEW users
-  let userRole: Role = 'INVESTOR' // default
-
-if (req.body?.role) {
-  const requestedRole = String(req.body.role).toUpperCase()
-  if (['INVESTOR', 'OWNER', 'ADMIN', 'REGULATOR'].includes(requestedRole)) {
-    userRole = requestedRole as Role
-  }
-} else {
-  if (email.includes('owner')) {
-    userRole = 'OWNER'
-  } else if (email.includes('admin')) {
-    userRole = 'ADMIN'
-  } else if (email.includes('investor')) {
-    userRole = 'INVESTOR'
-  } else if (email.includes('regulat')) {
-    userRole = 'REGULATOR'
-  }
-}
-
-// After the first user lookup and role detection:
-
-if (!user) {
-  // 🔹 Ensure there is a default tenant and use its real id
-  const defaultTenant = await prisma.tenant.findFirst({
-    where: { name: 'Default Tenant' }
-  })
-
-  if (!defaultTenant) {
-    return res.status(500).json({ error: 'default_tenant_not_found' })
-  }
-
-    console.log('👤 Creating new user with role:', userRole)
-  user = await prisma.user.create({
-    data: {
+    const {
+      fullName,
       email,
-      role: userRole,
-      tenantId: defaultTenant.id,
-      passwordHash: 'oauth_placeholder'
-    },
-    include: { tenant: true }
-  })
-} else {
-  console.log('👤 Existing user found with role:', user.role)
-}
+      phoneNumber,
+      nationalId,
+      password,
+      confirmPassword,
+      role,
+      termsAccepted
+    } = req.body
 
-    if (!user) {
-      return res.status(401).json({ error: 'user_authentication_failed' });
+    const lang = (req.headers['accept-language']?.includes('ar') ? 'ar' : 'en') as 'en' | 'ar'
+
+    // Validate Terms Acceptance
+    const termsValidation = validateTermsAccepted(termsAccepted === true)
+    if (!termsValidation.valid) {
+      return res.status(400).json({
+        error: termsValidation.error,
+        message: getErrorMessage(termsValidation.error!, lang)
+      })
     }
 
-    console.log('✅ User authenticated:', { id: user.id, email: user.email, role: user.role })
-    
-    // Include tenant information in token
-    const userWithTenant = {
-      ...user,
-      tenantId: user.tenantId || '1' // Default tenant if no tenant association
+    // Validate Full Name
+    const nameValidation = validateFullName(fullName)
+    if (!nameValidation.valid) {
+      return res.status(400).json({
+        error: nameValidation.error,
+        message: getErrorMessage(nameValidation.error!, lang),
+        field: 'fullName'
+      })
     }
-    const token = signToken(userWithTenant)
-    const response = { 
-      token, 
-      user: { id: user.id, email: user.email, role: user.role } 
+    const normalizedFullName = nameValidation.normalized!
+
+    // Validate Email
+    const emailValidation = validateEmail(email)
+    if (!emailValidation.valid) {
+      return res.status(400).json({
+        error: emailValidation.error,
+        message: getErrorMessage(emailValidation.error!, lang),
+        field: 'email'
+      })
     }
-    
-    console.log('📤 Sending response:', response)
-    return res.status(200).json(response)
-    
-  } catch (e: any) {  
-    console.error('❌ Login error:', e)
-    console.error('Error details:', { message: e.message, stack: e.stack })
-    return res.status(500).json({ error: 'login_failed', details: e.message })
+    const normalizedEmail = normalizeEmail(email)
+
+    // Validate Phone
+    const phoneValidation = validatePhone(phoneNumber)
+    if (!phoneValidation.valid) {
+      return res.status(400).json({
+        error: phoneValidation.error,
+        message: getErrorMessage(phoneValidation.error!, lang),
+        field: 'phoneNumber'
+      })
+    }
+    const normalizedPhone = phoneValidation.normalized!
+
+    // Validate National ID
+    const nationalIdValidation = validateNationalId(nationalId)
+    if (!nationalIdValidation.valid) {
+      return res.status(400).json({
+        error: nationalIdValidation.error,
+        message: getErrorMessage(nationalIdValidation.error!, lang),
+        field: 'nationalId'
+      })
+    }
+
+    // Validate Password
+    const passwordValidation = validatePassword(password)
+    if (!passwordValidation.valid) {
+      return res.status(400).json({
+        error: 'password_validation_failed',
+        errors: passwordValidation.errors,
+        messages: passwordValidation.errors.map(e => getErrorMessage(e, lang)),
+        field: 'password',
+        strength: passwordValidation.strength
+      })
+    }
+
+    if (password !== confirmPassword) {
+      return res.status(400).json({
+        error: 'password_mismatch',
+        message: getErrorMessage('password_mismatch', lang),
+        field: 'confirmPassword'
+      })
+    }
+
+    // Check existing users
+    const existingUserByEmail = await prisma.user.findUnique({
+      where: { email: normalizedEmail }
+    })
+    if (existingUserByEmail) {
+      return res.status(409).json({
+        error: 'email_already_exists',
+        message: getErrorMessage('email_already_exists', lang),
+        field: 'email'
+      })
+    }
+
+    const existingUserByPhone = await prisma.user.findFirst({
+      where: { phoneNumber: normalizedPhone }
+    })
+    if (existingUserByPhone) {
+      return res.status(409).json({
+        error: 'phone_already_exists',
+        message: getErrorMessage('phone_already_exists', lang),
+        field: 'phoneNumber'
+      })
+    }
+
+    const existingUserByNationalId = await prisma.user.findFirst({
+      where: { nationalId: nationalId.trim() }
+    })
+    if (existingUserByNationalId) {
+      return res.status(409).json({
+        error: 'national_id_already_exists',
+        message: getErrorMessage('national_id_already_exists', lang),
+        field: 'nationalId'
+      })
+    }
+
+    // Get or create default tenant
+    let tenant = await prisma.tenant.findFirst({
+      where: { name: 'Default Tenant' }
+    })
+
+    if (!tenant) {
+      tenant = await prisma.tenant.create({
+        data: { name: 'Default Tenant' }
+      })
+    }
+
+    // Hash Password
+    const passwordHash = await hashPassword(password)
+
+    // Create User
+    const userRole = role && ['INVESTOR', 'OWNER', 'ADMIN', 'REGULATOR'].includes(role.toUpperCase())
+      ? role.toUpperCase() as Role
+      : 'INVESTOR'
+
+    const user = await prisma.user.create({
+      data: {
+        fullName: normalizedFullName,
+        email: normalizedEmail,
+        phoneNumber: normalizedPhone,
+        nationalId: nationalId.trim(),
+        passwordHash,
+        role: userRole,
+        tenantId: tenant.id,
+        emailVerified: false,
+        phoneVerified: false,
+        kycVerified: false
+      },
+      include: { tenant: true }
+    })
+
+    console.log('✅ User registered successfully:', { userId: user.id, email: user.email })
+
+    const token = signToken({
+      id: user.id,
+      email: user.email,
+      role: user.role as Role,
+      tenantId: user.tenantId,
+      fullName: user.fullName
+    })
+
+    return res.status(201).json({
+      message: 'registration_success',
+      token,
+      user: sanitizeUserForResponse(user)
+    })
+
+  } catch (error: any) {
+    console.error('❌ Registration error:', error.message)
+    return res.status(500).json({
+      error: 'registration_failed',
+      message: 'An unexpected error occurred. Please try again later.'
+    })
   }
 })
 
-// POST /api/auth/signup
-authRouter.post('/signup', async (req: Request, res: Response) => {
-  console.log('🔐 Signup request received:', { body: req.body })
-  
+// ============================================================================
+// POST /api/auth/login - User Login (Email or Phone + Password)
+// ============================================================================
+
+authRouter.post('/login', loginLimiter, async (req: Request, res: Response) => {
+  const logBody = { ...req.body }
+  if (logBody.password) logBody.password = '[REDACTED]'
+  console.log('🔐 Login request received:', logBody)
+
   try {
-    const { name, email, password, tenantName, role } = req.body
-    
-    // Validate required fields
-    if (!name || !email || !password) {
-      return res.status(400).json({ error: 'missing_required_fields' })
-    }
-    
-    // Validate email format
-    if (!email.includes('@')) {
-      return res.status(400).json({ error: 'invalid_email' })
-    }
-    
-    // Validate password length
-    if (password.length < 8) {
-      return res.status(400).json({ error: 'password_too_short' })
-    }
-    
-    // Check if user already exists
-    const existingUser = await prisma.user.findUnique({
-      where: { email: email.toLowerCase() }
-    })
-    
-    if (existingUser) {
-      return res.status(400).json({ error: 'user_already_exists' })
-    }
-    
-    // Create tenant if provided
-    let tenant = null
-    if (tenantName) {
-      tenant = await prisma.tenant.findFirst({
-        where: { name: tenantName }
+    const { email, phoneNumber, password } = req.body
+    const lang = (req.headers['accept-language']?.includes('ar') ? 'ar' : 'en') as 'en' | 'ar'
+
+    if (!password) {
+      return res.status(400).json({
+        error: 'password_required',
+        message: getErrorMessage('password_required', lang)
       })
-      
-      if (!tenant) {
-        tenant = await prisma.tenant.create({
-          data: { name: tenantName }
+    }
+
+    if (!email && !phoneNumber) {
+      return res.status(400).json({
+        error: 'email_or_phone_required',
+        message: lang === 'ar'
+          ? 'البريد الإلكتروني أو رقم الجوال مطلوب'
+          : 'Email or phone number is required'
+      })
+    }
+
+    let user = null
+
+    if (email) {
+      const emailValidation = validateEmail(email)
+      if (!emailValidation.valid) {
+        return res.status(400).json({
+          error: emailValidation.error,
+          message: getErrorMessage(emailValidation.error!, lang)
         })
       }
-    }
-    
-    // Hash password
-    const passwordHash = await bcrypt.hash(password, 12)
-    
-    // Create user
-    const user = await prisma.user.create({
-      data: {
-        name,
-        email: email.toLowerCase(),
-        passwordHash,
-        role: role || 'INVESTOR',
-tenantId: tenant?.id || '1'  
-    },
-      include: {
-        tenant: true
+      const normalizedEmail = normalizeEmail(email)
+      user = await prisma.user.findUnique({
+        where: { email: normalizedEmail },
+        include: { tenant: true }
+      })
+    } else if (phoneNumber) {
+      const phoneValidation = validatePhone(phoneNumber)
+      if (!phoneValidation.valid) {
+        return res.status(400).json({
+          error: phoneValidation.error,
+          message: getErrorMessage(phoneValidation.error!, lang)
+        })
       }
-    })
-    
-    // Generate JWT token using same function as login
-    const userWithTenant = {
+      const normalizedPhone = phoneValidation.normalized!
+      user = await prisma.user.findFirst({
+        where: { phoneNumber: normalizedPhone },
+        include: { tenant: true }
+      })
+    }
+
+    if (!user) {
+      return res.status(401).json({
+        error: 'invalid_credentials',
+        message: getErrorMessage('invalid_credentials', lang)
+      })
+    }
+
+    const passwordValid = await comparePassword(password, user.passwordHash)
+    if (!passwordValid) {
+      console.log('❌ Login failed: invalid password for user:', user.id)
+      return res.status(401).json({
+        error: 'invalid_credentials',
+        message: getErrorMessage('invalid_credentials', lang)
+      })
+    }
+
+    console.log('✅ User authenticated:', { id: user.id, email: user.email, role: user.role })
+
+    const token = signToken({
       id: user.id,
       email: user.email,
-      role: user.role,
-      tenantId: user.tenant?.id || '1'
+      role: user.role as Role,
+      tenantId: user.tenantId,
+      fullName: user.fullName
+    })
+
+    return res.status(200).json({
+      token,
+      user: sanitizeUserForResponse(user)
+    })
+
+  } catch (error: any) {
+    console.error('❌ Login error:', error.message)
+    return res.status(500).json({
+      error: 'login_failed',
+      message: 'An unexpected error occurred. Please try again later.'
+    })
+  }
+})
+
+// ============================================================================
+// Stub endpoints for Phase 2
+// ============================================================================
+
+authRouter.post('/verify-email', async (_req: Request, res: Response) => {
+  return res.status(501).json({
+    error: 'not_implemented',
+    message: 'Email verification will be available in Phase 2'
+  })
+})
+
+authRouter.post('/verify-phone', async (_req: Request, res: Response) => {
+  return res.status(501).json({
+    error: 'not_implemented',
+    message: 'Phone verification via SMS will be available in Phase 2'
+  })
+})
+
+authRouter.post('/resend-otp', async (_req: Request, res: Response) => {
+  return res.status(501).json({
+    error: 'not_implemented',
+    message: 'OTP resend will be available in Phase 2'
+  })
+})
+
+authRouter.post('/forgot-password', async (_req: Request, res: Response) => {
+  return res.status(501).json({
+    error: 'not_implemented',
+    message: 'Password reset will be available in Phase 2'
+  })
+})
+
+// ============================================================================
+// Legacy signup endpoint (redirects to /register with mapped fields)
+// ============================================================================
+
+authRouter.post('/signup', registerLimiter, async (req: Request, res: Response) => {
+  req.body.fullName = req.body.name || req.body.fullName
+  req.body.termsAccepted = true
+
+  // Forward to register handler
+  try {
+    const {
+      fullName,
+      email,
+      password,
+      confirmPassword,
+      role
+    } = req.body
+
+    const lang = (req.headers['accept-language']?.includes('ar') ? 'ar' : 'en') as 'en' | 'ar'
+
+    if (!fullName || !email || !password) {
+      return res.status(400).json({ error: 'missing_required_fields' })
     }
-    const token = signToken(userWithTenant)
-    console.log('✅ User created successfully:', { userId: user.id, email: user.email })
-    
-    res.json({
+
+    const nameValidation = validateFullName(fullName)
+    if (!nameValidation.valid) {
+      return res.status(400).json({
+        error: nameValidation.error,
+        message: getErrorMessage(nameValidation.error!, lang)
+      })
+    }
+
+    const emailValidation = validateEmail(email)
+    if (!emailValidation.valid) {
+      return res.status(400).json({
+        error: emailValidation.error,
+        message: getErrorMessage(emailValidation.error!, lang)
+      })
+    }
+
+    const passwordValidation = validatePassword(password)
+    if (!passwordValidation.valid) {
+      return res.status(400).json({
+        error: 'password_validation_failed',
+        errors: passwordValidation.errors
+      })
+    }
+
+    if (password !== confirmPassword) {
+      return res.status(400).json({ error: 'password_mismatch' })
+    }
+
+    const normalizedEmail = normalizeEmail(email)
+    const existingUser = await prisma.user.findUnique({
+      where: { email: normalizedEmail }
+    })
+
+    if (existingUser) {
+      return res.status(409).json({ error: 'email_already_exists' })
+    }
+
+    let tenant = await prisma.tenant.findFirst({
+      where: { name: 'Default Tenant' }
+    })
+    if (!tenant) {
+      tenant = await prisma.tenant.create({
+        data: { name: 'Default Tenant' }
+      })
+    }
+
+    const passwordHash = await hashPassword(password)
+    const userRole = role && ['INVESTOR', 'OWNER', 'ADMIN', 'REGULATOR'].includes(role.toUpperCase())
+      ? role.toUpperCase() as Role
+      : 'INVESTOR'
+
+    const user = await prisma.user.create({
+      data: {
+        fullName: nameValidation.normalized!,
+        email: normalizedEmail,
+        passwordHash,
+        role: userRole,
+        tenantId: tenant.id,
+        emailVerified: false,
+        phoneVerified: false,
+        kycVerified: false
+      },
+      include: { tenant: true }
+    })
+
+    const token = signToken({
+      id: user.id,
+      email: user.email,
+      role: user.role as Role,
+      tenantId: user.tenantId,
+      fullName: user.fullName
+    })
+
+    return res.status(201).json({
       message: 'User created successfully',
       token,
-      user: {
-        id: user.id,
-        name: user.name,
-        email: user.email,
-        role: user.role,
-        tenant: user.tenant
-      }
+      user: sanitizeUserForResponse(user)
     })
-    
+
   } catch (error: any) {
-    console.error('❌ Signup error:', error)
-    res.status(500).json({ error: 'signup_failed', details: error.message })
+    console.error('❌ Signup error:', error.message)
+    return res.status(500).json({ error: 'signup_failed' })
   }
 })
 
@@ -278,9 +552,12 @@ tenantId: tenant?.id || '1'
 // Users Management Endpoints
 // ============================================================================
 
-// GET /api/users - Get all users (admin only)
 usersRouter.get('/', auth(true), async (req: Request, res: Response) => {
   try {
+    if ((req as any).user?.role !== 'ADMIN') {
+      return res.status(403).json({ error: 'admin_access_required' })
+    }
+
     const users = await prisma.user.findMany({
       orderBy: { createdAt: 'desc' },
       include: {
@@ -294,7 +571,6 @@ usersRouter.get('/', auth(true), async (req: Request, res: Response) => {
       }
     })
 
-    // Get property counts for owners
     const ownerIds = users.map((u: any) => u.id)
     const propertyCounts = await prisma.property.groupBy({
       by: ['ownerId'],
@@ -306,7 +582,6 @@ usersRouter.get('/', auth(true), async (req: Request, res: Response) => {
       }
     })
 
-    // Create a map of userId -> property count
     const propertyCountMap = propertyCounts.reduce((acc: Record<string, number>, item: any) => {
       if (item.ownerId) {
         acc[item.ownerId] = item._count.id
@@ -316,17 +591,21 @@ usersRouter.get('/', auth(true), async (req: Request, res: Response) => {
 
     const mappedUsers = users.map((user: any) => ({
       id: user.id,
-      name: user.name || user.email,
+      fullName: user.fullName,
       email: user.email,
-      phone: user.phoneNumber || 'Not provided',
+      phone: user.phoneNumber ? maskNationalId(user.phoneNumber) : 'Not provided',
+      nationalId: user.nationalId ? maskNationalId(user.nationalId) : 'Not provided',
       role: user.role.toLowerCase(),
-      status: 'Active', // All users are active by default (you can add a status field later)
+      status: user.kycVerified ? 'Verified' : 'Pending Verification',
       joinedDate: user.createdAt.toISOString().split('T')[0],
       properties: propertyCountMap[user.id] || 0,
       investments: user._count.holdings,
       orders: user._count.orders,
       certificates: user._count.certificates,
-      tenantId: user.tenantId
+      tenantId: user.tenantId,
+      emailVerified: user.emailVerified,
+      phoneVerified: user.phoneVerified,
+      kycVerified: user.kycVerified
     }))
 
     console.log(`👥 Fetched ${mappedUsers.length} users from database`)
@@ -337,9 +616,12 @@ usersRouter.get('/', auth(true), async (req: Request, res: Response) => {
   }
 })
 
-// PATCH /api/users/:id/role - Update user role (admin only)
 usersRouter.patch('/:id/role', auth(true), async (req: Request, res: Response) => {
   try {
+    if ((req as any).user?.role !== 'ADMIN') {
+      return res.status(403).json({ error: 'admin_access_required' })
+    }
+
     const { id } = req.params
     const { role } = req.body
 
@@ -358,8 +640,8 @@ usersRouter.patch('/:id/role', auth(true), async (req: Request, res: Response) =
     })
 
     console.log(`🔄 Updated user ${id} role to ${role}`)
-    res.json({ 
-      success: true, 
+    res.json({
+      success: true,
       message: `User role updated to ${role}`,
       user: {
         id: updatedUser.id,
@@ -373,26 +655,34 @@ usersRouter.patch('/:id/role', auth(true), async (req: Request, res: Response) =
   }
 })
 
-// PATCH /api/users/:id/status - Update user status (admin only)
-usersRouter.patch('/:id/status', auth(true), async (req: Request, res: Response) => {
+usersRouter.patch('/:id/verification', auth(true), async (req: Request, res: Response) => {
   try {
-    const { id } = req.params
-    const { status } = req.body
-
-    if (!id || !status) {
-      return res.status(400).json({ error: 'user_id_and_status_required' })
+    if ((req as any).user?.role !== 'ADMIN') {
+      return res.status(403).json({ error: 'admin_access_required' })
     }
 
-    // For now, we'll just return success since we don't have a status field in the User model
-    // You can add a status field to the User model later
-    console.log(`🔄 Updated user ${id} status to ${status}`)
-    res.json({ 
-      success: true, 
-      message: `User status updated to ${status}`
+    const { id } = req.params
+    const { emailVerified, phoneVerified, kycVerified } = req.body
+
+    const updateData: any = {}
+    if (typeof emailVerified === 'boolean') updateData.emailVerified = emailVerified
+    if (typeof phoneVerified === 'boolean') updateData.phoneVerified = phoneVerified
+    if (typeof kycVerified === 'boolean') updateData.kycVerified = kycVerified
+
+    const updatedUser = await prisma.user.update({
+      where: { id },
+      data: updateData
+    })
+
+    console.log(`🔄 Updated user ${id} verification status`)
+    res.json({
+      success: true,
+      message: 'User verification status updated',
+      user: sanitizeUserForResponse(updatedUser)
     })
   } catch (error) {
-    console.error('❌ Failed to update user status:', error)
-    res.status(500).json({ error: 'failed_to_update_user_status' })
+    console.error('❌ Failed to update user verification status:', error)
+    res.status(500).json({ error: 'failed_to_update_user_verification' })
   }
 })
 

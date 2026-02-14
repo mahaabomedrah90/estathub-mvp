@@ -100,11 +100,16 @@ model User {
   id            String   @id @default(cuid())
   email         String   @unique
   passwordHash  String   // Added for proper authentication
-  name          String?
+  fullName      String?  // Temporarily optional for migration, enforced at app level
   role          Role     @default(INVESTOR)
   tenantId      String   // Multi-tenant support
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
+  
+  // Verification status fields (PDPL compliance)
+  emailVerified Boolean  @default(false)
+  phoneVerified Boolean  @default(false)
+  kycVerified   Boolean  @default(false)  // KYC/National ID verification status
   
   // Relations
   tenant        Tenant         @relation(fields: [tenantId], references: [id], onDelete: Cascade)
@@ -117,13 +122,15 @@ model User {
   bankLinks     BankLink[]
   deeds         DigitalDeed[]
   
-  // Saudi KYC fields
-  nationalId   String?        // Saudi National ID or Iqama
-  phoneNumber  String?
+  // Saudi KYC fields - now with unique constraints
+  nationalId   String?        @unique // Saudi National ID or Iqama - UNIQUE
+  phoneNumber  String?        @unique // Saudi phone in E.164 format - UNIQUE
   address      String?
   
   @@index([tenantId])
   @@index([email])
+  @@index([nationalId])
+  @@index([phoneNumber])
 }
 
 model Property {

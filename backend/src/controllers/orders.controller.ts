@@ -255,7 +255,7 @@ ordersRouter.get('/investments', auth(true), async (req: Request & { user?: any 
         user: {
           select: {
             id: true,
-            name: true,
+            fullName: true,
             email: true,
             phoneNumber: true,
             createdAt: true,
@@ -332,7 +332,7 @@ ordersRouter.get('/investors', auth(true), async (req: Request & { user?: any },
           where: { id: investor.userId },
           select: {
             id: true,
-            name: true,
+            fullName: true,
             email: true,
             phoneNumber: true,
             createdAt: true,
@@ -376,7 +376,7 @@ ordersRouter.get('/investors', auth(true), async (req: Request & { user?: any },
 
         return {
           id: user.id,
-          name: user.name || 'Unknown Investor',
+          name: user.fullName || 'Unknown Investor',
           email: user.email,
           phone: user.phoneNumber || '+966 XX XXX XXXX',
           joinDate: user.createdAt,

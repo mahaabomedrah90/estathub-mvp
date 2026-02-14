@@ -800,7 +800,7 @@ if (!id) {
           select: {
             id: true,
             email: true,
-            name: true,
+            fullName: true,
             role: true
           }
         }
@@ -824,7 +824,7 @@ if (!id) {
       id: h.id,
       userId: h.userId,
       userEmail: h.user.email,
-      userName: h.user.name || h.user.email,
+      userName: h.user.fullName || h.user.email,
       tokens: h.tokens,
       ownershipPercentage: ((h.tokens / property.totalTokens) * 100).toFixed(2)
     }))

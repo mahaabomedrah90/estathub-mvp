@@ -107,7 +107,7 @@ regulatorRouter.get(
             select: {
               id: true,
               email: true,
-              name: true,
+              fullName: true,
               role: true,
               createdAt: true,
             },
@@ -122,7 +122,7 @@ regulatorRouter.get(
         id: h.id,
         userId: h.userId,
         userEmail: h.user.email,
-        userName: h.user.name || h.user.email,
+        userName: h.user.fullName || h.user.email,
         role: h.user.role,
         tokens: h.tokens,
         ownershipPct:

@@ -1,77 +1,66 @@
 import React, { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { fetchJson, setToken } from '../lib/api'
-import { Building2, Mail, Lock, AlertCircle, Loader2, UserPlus } from 'lucide-react'
+import { Building2, Mail, Lock, AlertCircle, Loader2, UserPlus, Phone } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 
 export default function Login() {
-  const { t, i18n } = useTranslation('pages')
-  const isRtl = i18n.dir() === 'rtl'
-  const [email, setEmail] = useState('admin@estathub.local')
-  const [password, setPassword] = useState('Demo123!')
+  const [identifier, setIdentifier] = useState('')
+  const [password, setPassword] = useState('')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
   const navigate = useNavigate()
+  const { i18n } = useTranslation('pages')
+  const lang = i18n.language
 
-  async function onSubmit(e) {    
+  const isEmail = (value) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value)
+
+  async function onSubmit(e) {
     e.preventDefault()
     setError('')
     setLoading(true)
-    
-    console.log('🔐 Starting login...', { email, password })
-    
+
     try {
+      const isEmailInput = isEmail(identifier)
+      const payload = isEmailInput
+        ? { email: identifier.toLowerCase().trim(), password }
+        : { phoneNumber: identifier.trim(), password }
+
       const res = await fetchJson('/api/auth/login', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email, password }),
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept-Language': lang
+        },
+        body: JSON.stringify(payload)
       })
-      
-      console.log('✅ Login response:', res)
-      
+
       if (!res || !res.token) {
         throw new Error('Invalid response from server')
       }
-      
+
       setToken(res.token)
-      
-      // Store user data from server response
-      const rawRole = (res.user?.role || 'INVESTOR')
-      const userRole = String(rawRole).toLowerCase() // normalize
+
+      const userRole = (res.user?.role || 'INVESTOR').toLowerCase()
       localStorage.setItem('role', userRole)
       localStorage.setItem('userId', res.user?.id || '')
-      localStorage.setItem('userName', res.user?.name || res.user?.email || '')
-      localStorage.setItem('tenantName', res.user?.tenant?.name || '')
-      
-      console.log('✅ Login successful - Role:', userRole, 'UserId:', res.user?.id)
-      
-      console.log('💾 Stored in localStorage:', {
-        role: userRole,
-        userId: res.user?.id,
-        userName: res.user?.name,
-        tenantName: res.user?.tenant?.name,
-        token: !!localStorage.getItem('estathub_token')
-      })
-      
-      // Navigate based on role from server
+      localStorage.setItem('userName', res.user?.fullName || res.user?.email || '')
+      localStorage.setItem('tenantId', res.user?.tenantId || '')
+
       const redirectUrl =
-        userRole === 'admin'
-          ? '/admin/overview'
-          : userRole === 'owner'
-          ? '/owner/dashboard'
-          : userRole === 'regulator'
-          ? '/regulator/overview'
-          : '/investor/dashboard'
-      
-      console.log('🚀 Redirecting to:', redirectUrl)
-      
-      // Use React Router for navigation
+        userRole === 'admin' ? '/admin/overview'
+          : userRole === 'owner' ? '/owner/dashboard'
+            : userRole === 'regulator' ? '/regulator/overview'
+              : '/investor/dashboard'
+
       navigate(redirectUrl)
     } catch (err) {
-  console.error('❌ Login error:', err)
-  setError(err.message || t('auth.login.errorInvalid'))
-  setLoading(false)
-}
+      console.error('Login error:', err)
+      setError(err.message || (lang === 'ar'
+        ? 'البريد الإلكتروني/الجوال أو كلمة المرور غير صحيحة'
+        : 'Invalid email/phone or password'))
+      setLoading(false)
+    }
   }
 
   return (
@@ -83,52 +72,63 @@ export default function Login() {
             <Building2 className="text-emerald-600" size={40} />
             <span className="text-3xl font-bold text-gray-900">ALWASM</span>
           </div>
-         <h1 className="text-2xl font-bold text-gray-900 mb-2">
-            {t('auth.login.welcomeBack')}
+          <h1 className="text-2xl font-bold text-gray-900 mb-2">
+            {lang === 'ar' ? 'مرحباً بعودتك' : 'Welcome Back'}
           </h1>
           <p className="text-gray-600">
-            {t('auth.login.subtitle')}
+            {lang === 'ar' ? 'سجّل الدخول للوصول إلى محفظتك الاستثمارية' : 'Sign in to access your investment portfolio'}
           </p>
         </div>
 
         {/* Login Form Card */}
         <div className="bg-white border border-gray-200 rounded-xl shadow-lg p-8">
           <form onSubmit={onSubmit} className="space-y-5">
+            {/* Email/Phone Field */}
             <div>
-              <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-2">
-                {t('auth.login.emailLabel')}
+              <label htmlFor="identifier" className="block text-sm font-medium text-gray-700 mb-2">
+                {lang === 'ar' ? 'البريد الإلكتروني أو رقم الجوال' : 'Email or Phone Number'}
               </label>
               <div className="relative">
                 <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                  <Mail className="text-gray-400" size={20} />
+                  {isEmail(identifier) || identifier.includes('@') ? (
+                    <Mail className="text-gray-400" size={20} />
+                  ) : (
+                    <Phone className="text-gray-400" size={20} />
+                  )}
                 </div>
                 <input
-                  id="email"
-                  type="email"
-                  value={email}
-                  onChange={e => setEmail(e.target.value)}
+                  id="identifier"
+                  type="text"
+                  value={identifier}
+                  onChange={e => setIdentifier(e.target.value)}
                   className="border border-gray-300 rounded-lg w-full pl-10 pr-4 py-3 focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 transition-colors"
-                  placeholder={t('auth.login.emailPlaceholder')}
+                  placeholder={lang === 'ar' ? 'you@example.com أو 05XXXXXXXX' : 'you@example.com or 05XXXXXXXX'}
                   required
                 />
               </div>
+              <p className="mt-1 text-xs text-gray-500">
+                {lang === 'ar'
+                  ? 'أدخل بريدك الإلكتروني أو رقم جوالك المسجل'
+                  : 'Enter your registered email or phone number'}
+              </p>
             </div>
 
+            {/* Password Field */}
             <div>
               <label htmlFor="password" className="block text-sm font-medium text-gray-700 mb-2">
-                {t('auth.login.passwordLabel')}
+                {lang === 'ar' ? 'كلمة المرور' : 'Password'}
               </label>
               <div className="relative">
                 <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                   <Lock className="text-gray-400" size={20} />
                 </div>
-                  <input
+                <input
                   id="password"
                   type="password"
                   value={password}
                   onChange={e => setPassword(e.target.value)}
                   className="border border-gray-300 rounded-lg w-full pl-10 pr-4 py-3 focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 transition-colors"
-                  placeholder={t('auth.login.passwordPlaceholder')}
+                  placeholder="••••••••••"
                   required
                 />
               </div>
@@ -141,49 +141,60 @@ export default function Login() {
               </div>
             )}
 
-            <button 
+            <button
               type="submit"
-              disabled={loading} 
+              disabled={loading}
               className="w-full flex items-center justify-center gap-2 rounded-lg bg-emerald-600 hover:bg-emerald-700 disabled:bg-gray-300 disabled:cursor-not-allowed text-white px-4 py-3 font-semibold transition-colors"
             >
               {loading ? (
                 <>
                   <Loader2 className="animate-spin" size={20} />
-                  <span>{t('auth.login.signingIn')}</span>
+                  <span>{lang === 'ar' ? 'جاري تسجيل الدخول...' : 'Signing in...'}</span>
                 </>
               ) : (
                 <>
                   <Lock size={20} />
-                  <span>{t('auth.login.signIn')}</span>  
+                  <span>{lang === 'ar' ? 'تسجيل الدخول' : 'Sign In'}</span>
                 </>
               )}
             </button>
           </form>
 
-          {/* Demo Notice */}
-          <div className="mt-6 p-4 bg-blue-50 border border-blue-200 rounded-lg">
-          <p className="text-sm text-blue-800 font-medium mb-2">
-          <strong>{t('auth.login.demoCredentials')}</strong>
-          </p>
-          <div className="text-xs text-blue-700 space-y-1">
-          <p><strong>{t('auth.login.adminUser')}:</strong> admin@estathub.local / Demo123!</p>
-          <p><strong>{t('auth.login.investorUser')}:</strong> investor@estathub.local / Demo123!</p>
-          <p><strong>{t('auth.login.ownerUser')}:</strong> owner@estathub.local / Demo123!</p>
-          </div>
+          {/* Password Reset Link */}
+          <div className="mt-4 text-center">
+            <button
+              type="button"
+              onClick={() => navigate('/forgot-password')}
+              className="text-sm text-emerald-600 hover:text-emerald-700 font-medium"
+            >
+              {lang === 'ar' ? 'نسيت كلمة المرور؟' : 'Forgot password?'}
+            </button>
           </div>
         </div>
 
         {/* Footer Links */}
         <div className="mt-6 text-center text-sm text-gray-600">
           <p>
-            {t('auth.login.noAccount')} {' '}
-           <button 
-            onClick={() => navigate('/signup')}
-            className="text-emerald-600 hover:text-emerald-700 font-medium"
-          >
-            {t('auth.login.signupLink')}
-          </button>
+            {lang === 'ar' ? 'ليس لديك حساب؟ ' : "Don't have an account? "}
+            <button
+              onClick={() => navigate('/signup')}
+              className="text-emerald-600 hover:text-emerald-700 font-medium"
+            >
+              {lang === 'ar' ? 'إنشاء حساب' : 'Sign up'}
+            </button>
           </p>
+        </div>
+
+        {/* Security Notice */}
+        <div className="mt-6 text-center">
+          <div className="inline-flex items-center gap-2 px-4 py-2 bg-gray-50 rounded-full">
+            <Lock className="text-emerald-600" size={14} />
+            <span className="text-xs text-gray-500">
+              {lang === 'ar'
+                ? 'تسجيل الدخول محمي بتشفير SSL ومراقبة الأمان'
+                : 'Secure SSL encryption and security monitoring'}
+            </span>
+          </div>
         </div>
       </div>
     </div>

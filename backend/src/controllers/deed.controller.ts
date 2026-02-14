@@ -28,7 +28,7 @@ deedRouter.get('/', auth(true), async (req: Request & { user?: any }, res: Respo
     const deeds = await prisma.digitalDeed.findMany({
       where,
       include: {
-        user: { select: { id: true, name: true, email: true } },
+        user: { select: { id: true, fullName: true, email: true } },
         property: { select: { id: true, title: true, location: true } },
         events: { orderBy: { createdAt: 'asc' } },
       },
@@ -52,7 +52,7 @@ deedRouter.get('/:deedNumber', auth(true), async (req: Request & { user?: any },
     const deed = await prisma.digitalDeed.findUnique({
       where: { deedNumber },
       include: {
-        user: { select: { id: true, name: true, email: true } },
+        user: { select: { id: true, fullName: true, email: true } },
         property: {
           select: {
             id: true,
@@ -161,7 +161,7 @@ deedRouter.post('/issue', auth(true), async (req: Request & { user?: any }, res:
 
     const { pdfUrl, pdfHash } = await generateDeedPDF({
       deedNumber,
-      userName: user.name || user.email,
+      userName: user.fullName || user.email,
       propertyTitle: property.title,
       ownedTokens: updatedOwnedTokens,
       ownershipPct,
@@ -317,7 +317,7 @@ deedRouter.post('/verify', async (req: Request, res: Response) => {
     const deed = await prisma.digitalDeed.findUnique({
       where: { deedNumber },
       include: {
-        user: { select: { name: true, email: true } },
+        user: { select: { fullName: true, email: true } },
         property: { select: { title: true, location: true } }
       }
     })
@@ -344,8 +344,8 @@ deedRouter.post('/verify', async (req: Request, res: Response) => {
       deed: isValid ? {
         deedNumber: deed.deedNumber,
         status: deed.status,
-        userName: deed.user.name || deed.user.email,
-        propertyTitle: deed.property.title,
+        userName: (deed as any).user.fullName || (deed as any).user.email,
+        propertyTitle: (deed as any).property.title,
         ownedTokens: deed.ownedTokens,
         ownershipPct: deed.ownershipPct,
         issuedAt: deed.issuedAt
@@ -371,7 +371,7 @@ deedRouter.get('/user/:userId', auth(true), async (req: Request & { user?: any }
         user: {
           select: {
             id: true,
-            name: true,
+            fullName: true,
             email: true,
             nationalId: true,
           },

@@ -30,7 +30,7 @@ ownerRouter.get('/:ownerId/investors', auth(true), async (req: Request, res: Res
     const holdings = await prisma.holding.findMany({
       where: { propertyId: { in: propertyIds } },
       include: {
-        user: { select: { id: true, name: true, email: true } },
+        user: { select: { id: true, fullName: true, email: true } },
         property: { select: { id: true, title: true, tokenPrice: true } }
       }
     })
@@ -46,7 +46,7 @@ ownerRouter.get('/:ownerId/investors', auth(true), async (req: Request, res: Res
       if (!investorMap.has(key)) {
         investorMap.set(key, {
           userId: h.userId,
-          name: h.user.name || h.user.email,
+          name: h.user.fullName || h.user.email,
           email: h.user.email,
           totalTokens: 0,
           totalInvestment: 0,
