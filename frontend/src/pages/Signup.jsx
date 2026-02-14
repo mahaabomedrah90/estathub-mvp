@@ -111,7 +111,7 @@ const validateForm = () => {
         <div className="text-center mb-8">
           <div className="flex items-center justify-center gap-2 mb-4">
             <Building2 className="text-emerald-600" size={40} />
-            <span className="text-3xl font-bold text-gray-900">Estathub</span>
+            <span className="text-3xl font-bold text-gray-900">ALWASM</span>
           </div>
       <h1 className="text-2xl font-bold text-gray-900 mb-2">
   {t('auth.signup.title')}

@@ -153,7 +153,7 @@ export default function Sidebar({ role, isOpen, onClose }) {
               </div>
               {!isCollapsed && (
                 <div>
-                  <h1 className="text-white font-bold text-xl">Estathub</h1>
+                  <h1 className="text-white font-bold text-xl">ALWASM</h1>
                   <p className="text-white/80 text-xs">
                     {t('meta.portalLabel', { role: t(`roles.${role}`) || role })}
                   </p>

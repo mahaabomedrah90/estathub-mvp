@@ -57,13 +57,13 @@
   "acceptedAllRequiredDeclarations": "You have accepted all required declarations for this property submission.",
   "acceptDeclarations": "Please review and accept all declarations above to proceed.",
   "legalNotice": "Legal Notice",
-  "submitPropertyTokenization": "By submitting this property for tokenization on Estathub, you acknowledge and agree to the following:",
+  "submitPropertyTokenization": "By submitting this property for tokenization on ALWASM, you acknowledge and agree to the following:",
   "complySaudiRealEstate": "You will comply with all applicable Saudi real estate, financial, and anti‑money‑laundering regulations.",
   "allowPlatformAdmin": "You authorize the platform administrator to review your documents and property information for compliance.",
   "maintainPropertyRecords": "You will maintain accurate and up‑to‑date property records and notify the platform of any material changes.",
   "distributeRentalIncome": "You agree that rental income and tokenization proceeds will be distributed according to the token structure and platform policies.",
   "payPlatformFees": "You agree to pay any applicable platform fees and charges related to listing and tokenizing this property.",
-  "platformOperatesSaudiLaws": "Estathub operates under Saudi laws and regulations. All disputes will be subject to the jurisdiction of the competent Saudi authorities.",
+  "platformOperatesSaudiLaws": "ALWASM operates under Saudi laws and regulations. All disputes will be subject to the jurisdiction of the competent Saudi authorities.",
   "readyToSubmit": "You’re ready to submit your property",
   "propertySubmissionComplete": "All steps are complete and all declarations have been accepted. You can now submit your property for review.",
   "declarationAccepted": "Accepted",
@@ -72,9 +72,9 @@
   "declarationLegalResponsibilityTitle": "Legal Responsibility",
   "declarationLegalResponsibilityDescription": "I understand that I am legally responsible for the accuracy of the information provided and for complying with all applicable laws and regulations.",
   "declarationTokenizationApprovalTitle": "Approval for Tokenization",
-  "declarationTokenizationApprovalDescription": "I approve listing this property on Estathub and tokenizing it according to the platform’s structure, terms, and conditions.",
+  "declarationTokenizationApprovalDescription": "I approve listing this property on ALWASM and tokenizing it according to the platform’s structure, terms, and conditions.",
   "declarationDocumentSharingApprovalTitle": "Approval to Share Documents",
-  "declarationDocumentSharingApprovalDescription": "I authorize Estathub to share necessary property documents and information with regulators, valuers, and other relevant parties for verification and compliance.",
+  "declarationDocumentSharingApprovalDescription": "I authorize ALWASM to share necessary property documents and information with regulators, valuers, and other relevant parties for verification and compliance.",
   "auth": {
     "login": {
       "welcomeBack": "Welcome Back",
@@ -95,8 +95,8 @@
       "errorInvalid": "Login failed. Please check your credentials and try again."
     },
     "signup": {
-      "title": "Create your Estathub account",
-      "subtitle": "Join Estathub and start investing in real estate.",
+      "title": "Create your ALWASM account",
+      "subtitle": "Join ALWASM and start investing in real estate.",
       "nameLabel": "Full Name *",
       "namePlaceholder": "John Doe",
       "emailLabel": "Email Address *",
@@ -129,7 +129,7 @@
     "badge": "Blockchain-Powered Real Estate Investment",
     "heroTitle1": "Invest in Real Estate,",
     "heroTitle2": "One Token at a Time",
-    "heroSubtitle": "Estathub democratizes real estate investment through blockchain tokenization.",
+    "heroSubtitle": "ALWASM democratizes real estate investment through blockchain tokenization.",
     "heroCTA": " Start building your property portfolio with as little as one token.",
     "exploreOpportunities": "Explore Opportunities",
     "viewBlockchain": "View Blockchain",
@@ -142,7 +142,7 @@
     "feature4Title": "Easy Payments",
     "feature4Description": "Invest using local payment methods in SAR. Simple, fast, and secure transactions.",
     "ctaTitle": "Ready to Start Investing?",
-    "ctaSubtitle": "Join Estathub today and start building your real estate portfolio with blockchain-powered fractional ownership.",
+    "ctaSubtitle": "Join ALWASM today and start building your real estate portfolio with blockchain-powered fractional ownership.",
     "browseProperties": "Browse Properties"
   },
   "admin": {
@@ -806,7 +806,7 @@
       "statusRevoked": "Revoked",
       "statusTransferred": "Transferred",
       "modalTitle": "Digital Title Deed",
-      "modalHeaderMain": "Digital Title Deed – Estathub",
+      "modalHeaderMain": "Digital Title Deed – ALWASM",
       "modalSubtitle": "صك ملكية رقمي",
       "detailPropertyTitle": "Property Details",
       "detailTitle": "Title:",
@@ -834,9 +834,9 @@
       "issuingAuthority": "Issuing Entity:",
       "digitalRegistryNumber": "Digital Registry Number:",
       "blockchainSystem": "Blockchain Network:",
-      "blockchainSystemValue": "Private blockchain network via Estathub platform",
-      "digitalSeal": "Blockchain-authenticated digital document – Estathub Digital Certificate",
-      "disclaimer": "This is a digital ownership document recorded on a private blockchain network via the Estathub platform. It is not a substitute for the official title deed issued by the General Real Estate Authority or the Real Property Registry.",
+      "blockchainSystemValue": "Private blockchain network via ALWASM platform",
+      "digitalSeal": "Blockchain-authenticated digital document – ALWASM Digital Certificate",
+      "disclaimer": "This is a digital ownership document recorded on a private blockchain network via the ALWASM platform. It is not a substitute for the official title deed issued by the General Real Estate Authority or the Real Property Registry.",
       "qrTitle": "Verification QR Code",
       "qrDescription": "Scan to verify deed authenticity",
       "blockchainTitle": "Blockchain Verification",
@@ -1272,11 +1272,11 @@
     ]
   },
   "about": {
-    "title": "About Estathub",
+    "title": "About ALWASM",
     "subtitle": "A platform that makes real estate investing more accessible through technology and transparency.",
     "ourStory": {
       "title": "Our Story",
-      "content1": "Estathub was founded with a clear vision: democratizing real estate investment in Saudi Arabia through innovative blockchain technology.",
+      "content1": "ALWASM was founded with a clear vision: democratizing real estate investment in Saudi Arabia through innovative blockchain technology.",
       "content2": "Our team combines expertise in real estate, finance, and technology to create a platform that provides transparency, security, and accessibility for all investors."
     },
     "visionMission": {
@@ -1415,10 +1415,10 @@
   },
   "faq": {
     "title": "Frequently Asked Questions",
-    "subtitle": "Common questions about Estathub and property tokens",
+    "subtitle": "Common questions about ALWASM and property tokens",
     "investorQuestions": {
       "title": "For Investors",
-      "description": "Everything you need to know about investing with Estathub"
+      "description": "Everything you need to know about investing with ALWASM"
     },
     "ownerQuestions": {
       "title": "For Property Owners",
@@ -1426,8 +1426,8 @@
     },
     "questions": [
       {
-        "question": "What is Estathub?",
-        "answer": "Estathub is a Saudi proptech platform that enables fractional investment in real estate through blockchain tokens."
+        "question": "What is ALWASM?",
+        "answer": "ALWASM is a Saudi proptech platform that enables fractional investment in real estate through blockchain tokens."
       },
       {
         "question": "How do I get started?",
@@ -1453,8 +1453,8 @@
     "stillHaveQuestions": {
       "title": "Still have questions?",
       "description": "Our support team is here to help with any inquiries",
-      "email": "support@estathub.sa",
-      "phone": "+966 12 345 6789"
+      "email": "support@alwsm.sa",
+      "phone": "+966530103099"
     },
     "items": [
       {
@@ -1477,15 +1477,15 @@
   },
   "terms": {
     "title": "Terms of Use",
-    "subtitle": "Please read these terms carefully before using Estathub.",
+    "subtitle": "Please read these terms carefully before using ALWASM.",
     "lastUpdated": "Last updated: February 8, 2026",
     "veryImportant": {
       "title": "Very Important",
-      "description": "Please read these terms carefully. By using the Estathub platform, you agree to comply with these terms and conditions. If you do not agree to these terms, please stop using the platform immediately."
+      "description": "Please read these terms carefully. By using the ALWASM platform, you agree to comply with these terms and conditions. If you do not agree to these terms, please stop using the platform immediately."
     },
     "acceptanceOfTerms": {
       "title": "1. Acceptance of terms",
-      "content1": "By accessing or using the Estathub platform (\"Platform\"), you agree to comply with these terms and conditions (\"Terms\") and our privacy policy. If you do not agree to these terms, you must stop using the platform immediately.",
+      "content1": "By accessing or using the ALWASM platform (\"Platform\"), you agree to comply with these terms and conditions (\"Terms\") and our privacy policy. If you do not agree to these terms, you must stop using the platform immediately.",
       "content2": "We reserve the right to modify these terms at any time. You will be notified of any changes through the platform or via your registered email. Continued use of the platform after any modifications constitutes acceptance of the modified terms."
     },
     "eligibilityAcceptance": {
@@ -1558,8 +1558,8 @@
     "contactInformation": {
       "title": "7. Contact Information",
       "description": "For any inquiries about these terms, please contact us:",
-      "email": "legal@estathub.sa",
-      "phone": "+966 12 345 6789",
+      "email": "support@alwsm.sa",
+      "phone": "+966530103099",
       "address": "الرياض، المملكة العربية السعودية"
     },
     "sections": [
@@ -1585,21 +1585,21 @@
       },
       {
         "title": "6. Limitation of liability",
-        "content": "To the extent permitted by law, Estathub is not liable for indirect or consequential losses."
+        "content": "To the extent permitted by law, ALWASM is not liable for indirect or consequential losses."
       },
       {
         "title": "7. Contact",
-        "content": "For inquiries: legal@estathub.sa"
+        "content": "For inquiries: support@alwsm.sa"
       }
     ]
   },
   "privacy": {
     "title": "Privacy Policy",
-    "subtitle": "How we collect, use, and protect your data at Estathub.",
+    "subtitle": "How we collect, use, and protect your data at ALWASM.",
     "lastUpdated": "Last updated: February 8, 2026",
     "privacyCommitment": {
       "title": "Our Privacy Commitment",
-      "description": "At Estathub, we are committed to protecting your privacy and the security of your personal data. This policy explains how we collect, use, and protect your information in accordance with personal data protection regulations in Saudi Arabia."
+      "description": "At ALWASM, we are committed to protecting your privacy and the security of your personal data. This policy explains how we collect, use, and protect your information in accordance with personal data protection regulations in Saudi Arabia."
     },
     "dataWeCollect": {
       "title": "1. Data We Collect",
@@ -1688,7 +1688,7 @@
           "description": "Object to how your data is processed"
         }
       ],
-      "note": "To exercise these rights, please contact us at privacy@estathub.sa"
+      "note": "To exercise these rights, please contact us at support@alwsm.sa"
     },
     "cookies": {
       "title": "5. Cookies",
@@ -1703,8 +1703,8 @@
     "contactInformation": {
       "title": "6. Contact Information",
       "description": "For any inquiries about the privacy policy, please contact us:",
-      "email": "privacy@estathub.sa",
-      "phone": "+966 12 345 6789",
+      "email": "support@alwsm.sa",
+      "phone": "+966530103099",
       "address": "الرياض، المملكة العربية السعودية"
     },
     "sections": [
@@ -1730,7 +1730,7 @@
       },
       {
         "title": "6. Contact",
-        "content": "For privacy inquiries: privacy@estathub.sa"
+        "content": "For privacy inquiries: support@alwsm.sa"
       }
     ]
   }

@@ -57,13 +57,13 @@
   "acceptedAllRequiredDeclarations": "لقد قمت بقبول جميع الإقرارات المطلوبة لتقديم هذا العقار.",
   "acceptDeclarations": "يرجى مراجعة جميع الإقرارات أعلاه وقبولها للمتابعة.",
   "legalNotice": "ملاحظة قانونية",
-  "submitPropertyTokenization": "بتقديم هذا العقار للتوكنة على منصة Estathub، فإنك تقر وتوافق على ما يلي:",
+  "submitPropertyTokenization": "بتقديم هذا العقار للتوكنة على منصة الوسم، فإنك تقر وتوافق على ما يلي:",
   "complySaudiRealEstate": "الالتزام بجميع أنظمة ولوائح العقار والأنظمة المالية ومكافحة غسل الأموال المعمول بها في المملكة العربية السعودية.",
   "allowPlatformAdmin": "تخويل إدارة المنصة بمراجعة مستندات وبيانات العقار للتحقق والامتثال.",
   "maintainPropertyRecords": "الالتزام بتحديث بيانات العقار وإبلاغ المنصة بأي تغييرات جوهرية.",
   "distributeRentalIncome": "الموافقة على أن يتم توزيع عوائد الإيجار وعوائد التوكنة وفق هيكل التوكنات وسياسات المنصة.",
   "payPlatformFees": "الموافقة على سداد أي رسوم أو تكاليف خاصة بالمنصة مرتبطة بإدراج هذا العقار وتوكنته.",
-  "platformOperatesSaudiLaws": "تعمل منصة Estathub وفق أنظمة ولوائح المملكة العربية السعودية، وتخضع أي نزاعات لاختصاص الجهات القضائية المختصة.",
+  "platformOperatesSaudiLaws": "تعمل منصة الوسم وفق أنظمة ولوائح المملكة العربية السعودية، وتخضع أي نزاعات لاختصاص الجهات القضائية المختصة.",
   "readyToSubmit": "جاهز لتقديم عقارك",
   "propertySubmissionComplete": "تم استكمال جميع الخطوات وقبول جميع الإقرارات. يمكنك الآن تقديم عقارك للمراجعة.",
   "declarationAccepted": "تم القبول",
@@ -77,12 +77,12 @@
   "declarationLegalResponsibilityDescriptionAr": "أفهم أنني أتحمل المسؤولية القانونية الكاملة عن صحة المعلومات المقدمة والالتزام بجميع الأنظمة واللوائح ذات الصلة.",
   "declarationTokenizationApprovalTitle": "الموافقة على التوكنة",
   "declarationTokenizationApprovalTitleAr": "الموافقة على التوكنة",
-  "declarationTokenizationApprovalDescription": "I approve listing this property on Estathub and tokenizing it according to the platform’s structure, terms, and conditions.",
-  "declarationTokenizationApprovalDescriptionAr": "أوافق على إدراج هذا العقار على منصة Estathub وتوكنته وفق هيكل التوكنات وشروط وأحكام المنصة.",
+  "declarationTokenizationApprovalDescription": "I approve listing this property on الوسم and tokenizing it according to the platform’s structure, terms, and conditions.",
+  "declarationTokenizationApprovalDescriptionAr": "أوافق على إدراج هذا العقار على منصة الوسم وتوكنته وفق هيكل التوكنات وشروط وأحكام المنصة.",
   "declarationDocumentSharingApprovalTitle": "الموافقة على مشاركة المستندات",
   "declarationDocumentSharingApprovalTitleAr": "الموافقة على مشاركة المستندات",
-  "declarationDocumentSharingApprovalDescription": "I authorize Estathub to share necessary property documents and information with regulators, valuers, and other relevant parties for verification and compliance.",
-  "declarationDocumentSharingApprovalDescriptionAr": "أفوض منصة Estathub بمشاركة المستندات والمعلومات اللازمة عن العقار مع الجهات التنظيمية والمقيمين والأطراف ذات العلاقة لأغراض التحقق والامتثال.",
+  "declarationDocumentSharingApprovalDescription": "I authorize الوسم to share necessary property documents and information with regulators, valuers, and other relevant parties for verification and compliance.",
+  "declarationDocumentSharingApprovalDescriptionAr": "أفوض منصة الوسم بمشاركة المستندات والمعلومات اللازمة عن العقار مع الجهات التنظيمية والمقيمين والأطراف ذات العلاقة لأغراض التحقق والامتثال.",
   "auth": {
     "login": {
       "welcomeBack": "مرحباً بعودتك",
@@ -162,8 +162,8 @@
       }
     },
     "signup": {
-      "title": "إنشاء حساب في Estathub",
-      "subtitle": "انضم إلى Estathub وابدأ الاستثمار في العقار.",
+      "title": "إنشاء حساب في الوسم",
+      "subtitle": "انضم إلى الوسم وابدأ الاستثمار في العقار.",
       "nameLabel": "الاسم الكامل *",
       "namePlaceholder": "محمد أحمد",
       "emailLabel": "البريد الإلكتروني *",
@@ -205,7 +205,7 @@
     "badge": "استثمار عقاري مدعوم بالبلوكشين",
     "heroTitle1": "استثمر في العقار،",
     "heroTitle2": "توكن واحد في كل مرة",
-    "heroSubtitle": "Estathub يسهّل الاستثمار في العقار عن طريق توكنات على البلوكشين.",
+    "heroSubtitle": "الوسم يسهّل الاستثمار في العقار عن طريق توكنات على البلوكشين.",
     "heroCTA": " ابدأ بمحفظة عقارية بمبلغ بسيط.",
     "exploreOpportunities": "استكشاف الفرص العقارية",
     "viewBlockchain": "عرض البلوكشين",
@@ -218,7 +218,7 @@
     "feature4Title": "مدفوعات سهلة",
     "feature4Description": "استثمر بالريال السعودي عبر طرق دفع محلية بسيطة وآمنة.",
     "ctaTitle": "جاهز لتبدأ؟",
-    "ctaSubtitle": "انضم إلى Estathub اليوم وابدأ في بناء محفظتك العقارية عبر التوكنات.",
+    "ctaSubtitle": "انضم إلى الوسم اليوم وابدأ في بناء محفظتك العقارية عبر التوكنات.",
     "browseProperties": "تصفح العقارات"
   },
   "admin": {
@@ -877,7 +877,7 @@
       "statusRevoked": "ملغى",
       "statusTransferred": "منقول",
       "modalTitle": "صك ملكية رقمي",
-      "modalHeaderMain": "صك ملكية رقمي – Estathub",
+      "modalHeaderMain": "صك ملكية رقمي – الوسم",
       "modalSubtitle": "صك ملكية رقمي",
       "detailPropertyTitle": "بيانات العقار",
       "detailTitle": "العنوان:",
@@ -905,9 +905,9 @@
       "issuingAuthority": "جهة الإصدار:",
       "digitalRegistryNumber": "رقم السجل العقاري الرقمي:",
       "blockchainSystem": "نظام البلوكشين:",
-      "blockchainSystemValue": "شبكة بلوكشين خاصة عبر منصة Estathub",
-      "digitalSeal": "وثيقة رقمية موثقة بالبلوكتشين – Estathub Digital Certificate",
-      "disclaimer": "هذه وثيقة ملكية رقمية مبنية على شبكة بلوكشين خاصة عبر منصة Estathub، وليست بديلاً عن الصك الصادر من الهيئة العامة للعقار أو السجل العيني للعقار.",
+      "blockchainSystemValue": "شبكة بلوكشين خاصة عبر منصة الوسم",
+      "digitalSeal": "وثيقة رقمية موثقة بالبلوكتشين – الوسم Digital Certificate",
+      "disclaimer": "هذه وثيقة ملكية رقمية مبنية على شبكة بلوكشين خاصة عبر منصة الوسم، وليست بديلاً عن الصك الصادر من الهيئة العامة للعقار أو السجل العيني للعقار.",
       "qrTitle": "رمز QR للتحقق",
       "qrDescription": "امسح الرمز للتحقق من صحة الصك",
       "blockchainTitle": "التحقق من البلوكشين",
@@ -1500,8 +1500,8 @@
     "stillHaveQuestions": {
       "title": "هل لديك أسئلة أخرى؟",
       "description": "فريق الدعم لدينا هنا لمساعدتك في أي استفسارات",
-      "email": "support@estathub.sa",
-      "phone": "+966 12 345 6789"
+      "email": "support@alwsm.sa",
+      "phone": "+966530103099"
     }
   },
   "terms": {
@@ -1587,8 +1587,8 @@
     "contactInformation": {
       "title": "7. معلومات الاتصال",
       "description": "لأي استفسارات حول هذه الشروط، يرجى التواصل معنا:",
-      "email": "legal@estathub.sa",
-      "phone": "+966 12 345 6789",
+      "email": "support@alwsm.sa",
+      "phone": "+966530103099",
       "address": "الرياض، المملكة العربية السعودية"
     }
   },
@@ -1687,7 +1687,7 @@
           "description": "الاعتراض على كيفية معالجة بياناتك"
         }
       ],
-      "note": "لممارسة هذه الحقوق، يرجى التواصل معنا على privacy@estathub.sa"
+      "note": "لممارسة هذه الحقوق، يرجى التواصل معنا على support@alwsm.sa"
     },
     "cookies": {
       "title": "5. ملفات تعريف الارتباط",
@@ -1702,8 +1702,8 @@
     "contactInformation": {
       "title": "6. معلومات الاتصال",
       "description": "لأي استفسارات حول سياسة الخصوصية، يرجى التواصل معنا:",
-      "email": "privacy@estathub.sa",
-      "phone": "+966 12 345 6789",
+      "email": "support@alwsm.sa",
+      "phone": "+966530103099",
       "address": "الرياض، المملكة العربية السعودية"
     }
   }

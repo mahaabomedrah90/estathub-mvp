@@ -39,7 +39,7 @@ export default function MyDeeds() {
               E
             </div>
             <div style="text-align: left;">
-              <div style="font-size: 13px; font-weight: 700; color: #111827;">Estathub</div>
+              <div style="font-size: 13px; font-weight: 700; color: #111827;">ALWASM</div>
               <div style="font-size: 10px; color: #6b7280;">Digital Real Estate Platform</div>
             </div>
           </div>
@@ -155,7 +155,7 @@ export default function MyDeeds() {
               <tbody>
                 <tr>
                   <td style="padding: 4px 0; color: #6b7280;">${t('investor.deeds.issuingAuthority')}</td>
-                  <td style="padding: 4px 0; font-weight: 500;">Estathub</td>
+                  <td style="padding: 4px 0; font-weight: 500;">ALWASM</td>
                 </tr>
                 <tr>
                   <td style="padding: 4px 0; color: #6b7280;">${t('investor.deeds.digitalRegistryNumber')}</td>
@@ -633,7 +633,7 @@ export default function MyDeeds() {
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-xs md:text-sm mb-3">
                     <div className="flex justify-between gap-4">
                       <span className="text-gray-500">{t('investor.deeds.issuingAuthority')}</span>
-                      <span className="font-medium">Estathub</span>
+                      <span className="font-medium">ALWASM</span>
                     </div>
                     <div className="flex justify-between gap-4">
                       <span className="text-gray-500">{t('investor.deeds.digitalRegistryNumber')}</span>

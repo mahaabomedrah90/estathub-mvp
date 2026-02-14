@@ -76,11 +76,11 @@ export default function FAQ() {
         <h2 className="text-2xl font-semibold mb-4">{t('faq.stillHaveQuestions.title')}</h2>
         <p className="text-emerald-100 mb-6">{t('faq.stillHaveQuestions.description')}</p>
         <div className="flex flex-col sm:flex-row gap-4 justify-center">
-          <a href="mailto:support@estathub.sa" className="flex items-center justify-center gap-2 bg-white text-emerald-600 px-6 py-3 rounded-lg font-medium hover:bg-emerald-50 transition-colors">
+          <a href="mailto:support@alwsm.sa" className="flex items-center justify-center gap-2 bg-white text-emerald-600 px-6 py-3 rounded-lg font-medium hover:bg-emerald-50 transition-colors">
             <Mail size={20} />
             {t('faq.stillHaveQuestions.email')}
           </a>
-          <a href="tel:+966123456789" className="flex items-center justify-center gap-2 bg-white/20 backdrop-blur-sm text-white px-6 py-3 rounded-lg font-medium hover:bg-white/30 transition-colors">
+          <a href="tel:+966530103099" className="flex items-center justify-center gap-2 bg-white/20 backdrop-blur-sm text-white px-6 py-3 rounded-lg font-medium hover:bg-white/30 transition-colors">
             <Phone size={20} />
             {t('faq.stillHaveQuestions.phone')}
           </a>

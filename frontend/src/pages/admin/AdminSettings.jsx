@@ -12,7 +12,7 @@ export default function AdminSettings() {
   const [message, setMessage] = useState({ type: '', text: '' })
   const [settings, setSettings] = useState({
     general: {
-      platformName: 'Estathub',
+      platformName: 'ALWASM',
       maintenanceMode: false,
       allowNewRegistrations: true,
       requireEmailVerification: true,
