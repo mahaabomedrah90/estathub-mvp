@@ -30,7 +30,8 @@ export default function Login() {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Accept-Language': lang
+          'Accept-Language': lang,
+          'X-Request-ID': crypto.randomUUID ? crypto.randomUUID() : Date.now().toString()
         },
         body: JSON.stringify(payload)
       })
@@ -55,12 +56,55 @@ export default function Login() {
 
       navigate(redirectUrl)
     } catch (err) {
-      console.error('Login error:', err)
-      setError(err.message || (lang === 'ar'
+  console.error('Login error:', err)
+
+  // 🔍 استخراج status بطريقة آمنة (axios / fetch / custom errors)
+  const status =
+    err?.status ??
+    err?.response?.status ??
+    err?.error?.status ??
+    null
+
+  // 🔍 استخراج رسالة السيرفر لو كانت JSON نظيفة
+  const serverMessage =
+    err?.response?.data?.message ??
+    err?.error?.message ??
+    null
+
+  // 🛡 فلترة أي رسالة تقنية غير مرغوبة
+  const isSafeMessage = (msg) =>
+    typeof msg === 'string' &&
+    msg.length <= 150 &&
+    !/http|<\/?html|<Error>|AccessDenied|Non-JSON|stack|trace|cloudfront|s3/i.test(msg)
+
+  let errorMessage
+
+  if (status === 401) {
+    // ✅ رسالة موحدة لبيانات الدخول الخاطئة
+    errorMessage =
+      lang === 'ar'
         ? 'البريد الإلكتروني/الجوال أو كلمة المرور غير صحيحة'
-        : 'Invalid email/phone or password'))
-      setLoading(false)
-    }
+        : 'Invalid email/phone or password'
+
+  } else if (status === 429) {
+    errorMessage =
+      lang === 'ar'
+        ? 'عدد محاولات كثيرة. يرجى المحاولة لاحقاً.'
+        : 'Too many attempts. Please try again later.'
+
+  } else {
+    // أي خطأ آخر
+    errorMessage =
+      isSafeMessage(serverMessage)
+        ? serverMessage
+        : (lang === 'ar'
+            ? 'حدث خطأ غير متوقع. يرجى المحاولة مرة أخرى.'
+            : 'Unexpected error occurred. Please try again.')
+  }
+
+  setError(errorMessage)
+  setLoading(false)
+}
   }
 
   return (

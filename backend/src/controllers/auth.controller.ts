@@ -318,7 +318,7 @@ authRouter.post('/login', loginLimiter, async (req: Request, res: Response) => {
   console.log('🔐 Login request received:', logBody)
 
   try {
-    const { email, phoneNumber, password } = req.body
+    const { email, phoneNumber, emailOrPhone, password } = req.body
     const lang = (req.headers['accept-language']?.includes('ar') ? 'ar' : 'en') as 'en' | 'ar'
 
     if (!password) {
@@ -328,32 +328,77 @@ authRouter.post('/login', loginLimiter, async (req: Request, res: Response) => {
       })
     }
 
-    if (!email && !phoneNumber) {
+    // Support multiple formats: separate email/phone, combined emailOrPhone, or phone field
+    let finalEmail = email
+    let finalPhoneNumber = phoneNumber
+    
+    if (emailOrPhone && !email && !phoneNumber) {
+      // Check if emailOrPhone looks like email or phone
+      if (emailOrPhone.includes('@')) {
+        finalEmail = emailOrPhone
+      } else {
+        finalPhoneNumber = emailOrPhone
+      }
+    }
+    
+    // Also support legacy 'phone' field
+    if (!finalPhoneNumber && req.body.phone) {
+      finalPhoneNumber = req.body.phone
+    }
+    
+    console.log('🔍 [DEBUG] Processing login:', { 
+      originalEmail: email, 
+      originalPhone: phoneNumber, 
+      emailOrPhone, 
+      originalPhoneField: req.body.phone,
+      finalEmail, 
+      finalPhoneNumber 
+    })
+
+    if (!finalEmail && !finalPhoneNumber) {
       return res.status(400).json({
         error: 'email_or_phone_required',
         message: lang === 'ar'
           ? 'البريد الإلكتروني أو رقم الجوال مطلوب'
-          : 'Email or phone number is required'
+          : 'Email or phone number is required',
+        details: {
+          received: { email, phoneNumber, emailOrPhone, phone: req.body.phone },
+          expected: 'email or phoneNumber or emailOrPhone field required'
+        }
       })
     }
 
     let user = null
 
-    if (email) {
-      const emailValidation = validateEmail(email)
+    if (finalEmail) {
+      const emailValidation = validateEmail(finalEmail)
       if (!emailValidation.valid) {
         return res.status(400).json({
           error: emailValidation.error,
           message: getErrorMessage(emailValidation.error!, lang)
         })
       }
-      const normalizedEmail = normalizeEmail(email)
-      user = await prisma.user.findUnique({
-        where: { email: normalizedEmail },
-        include: { tenant: true }
-      })
-    } else if (phoneNumber) {
-      const phoneValidation = validatePhone(phoneNumber)
+      const normalizedEmail = normalizeEmail(finalEmail)
+      
+      try {
+        console.log('🔍 [DEBUG] Prisma: Finding user by email:', normalizedEmail)
+        user = await prisma.user.findUnique({
+          where: { email: normalizedEmail },
+          include: { tenant: true }
+        })
+        console.log('✅ [DEBUG] Prisma: User lookup completed, found:', !!user)
+      } catch (dbError: any) {
+        console.error('❌ [CRITICAL] Prisma DB Error in user lookup:', {
+          message: dbError.message,
+          stack: dbError.stack,
+          code: dbError.code,
+          meta: dbError.meta,
+          cause: dbError.cause
+        })
+        throw new Error(`Database connection failed: ${dbError.message}`)
+      }
+    } else if (finalPhoneNumber) {
+      const phoneValidation = validatePhone(finalPhoneNumber)
       if (!phoneValidation.valid) {
         return res.status(400).json({
           error: phoneValidation.error,
@@ -361,16 +406,30 @@ authRouter.post('/login', loginLimiter, async (req: Request, res: Response) => {
         })
       }
       const normalizedPhone = phoneValidation.normalized!
-      user = await prisma.user.findFirst({
-        where: { phoneNumber: normalizedPhone },
-        include: { tenant: true }
-      })
+      
+      try {
+        console.log('🔍 [DEBUG] Prisma: Finding user by phone:', normalizedPhone)
+        user = await prisma.user.findFirst({
+          where: { phoneNumber: normalizedPhone },
+          include: { tenant: true }
+        })
+        console.log('✅ [DEBUG] Prisma: User lookup completed, found:', !!user)
+      } catch (dbError: any) {
+        console.error('❌ [CRITICAL] Prisma DB Error in user lookup:', {
+          message: dbError.message,
+          stack: dbError.stack,
+          code: dbError.code,
+          meta: dbError.meta,
+          cause: dbError.cause
+        })
+        throw new Error(`Database connection failed: ${dbError.message}`)
+      }
     }
 
     if (!user) {
       return res.status(401).json({
-        error: 'invalid_credentials',
-        message: getErrorMessage('invalid_credentials', lang)
+        code: 'INVALID_CREDENTIALS',
+        message: 'البريد الإلكتروني/الجوال أو كلمة المرور غير صحيحة'
       })
     }
 
@@ -378,8 +437,8 @@ authRouter.post('/login', loginLimiter, async (req: Request, res: Response) => {
     if (!passwordValid) {
       console.log('❌ Login failed: invalid password for user:', user.id)
       return res.status(401).json({
-        error: 'invalid_credentials',
-        message: getErrorMessage('invalid_credentials', lang)
+        code: 'INVALID_CREDENTIALS',
+        message: 'البريد الإلكتروني/الجوال أو كلمة المرور غير صحيحة'
       })
     }
 
@@ -399,7 +458,15 @@ authRouter.post('/login', loginLimiter, async (req: Request, res: Response) => {
     })
 
   } catch (error: any) {
-    console.error('❌ Login error:', error.message)
+    console.error('❌ Login error:', {
+      message: error.message,
+      stack: error.stack,
+      name: error.name,
+      cause: error.cause,
+      isPrismaError: error.constructor.name.includes('Prisma'),
+      errorCode: error.code,
+      errorMeta: error.meta
+    })
     return res.status(500).json({
       error: 'login_failed',
       message: 'An unexpected error occurred. Please try again later.'

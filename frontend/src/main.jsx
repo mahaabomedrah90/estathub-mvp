@@ -22,6 +22,7 @@ import HowItWorks from './pages/HowItWorks.jsx'
 import FAQ from './pages/FAQ.jsx'
 import Terms from './pages/Terms.jsx'
 import Privacy from './pages/Privacy.jsx'
+import ForgotPassword from './pages/ForgotPassword.jsx'
 // Investor Pages
 import InvestorDashboard from './pages/investor/InvestorDashboard.jsx'
 import Portfolio from './pages/Investor/Portfolio.jsx'
@@ -81,6 +82,7 @@ const router = createBrowserRouter([
       { path: 'faq', element: <FAQ /> },
       { path: 'terms', element: <Terms /> },
       { path: 'privacy', element: <Privacy /> },
+      { path: 'forgot-password', element: <ForgotPassword /> },
       {
         path: 'wallet',
         element: (() => {

@@ -20,6 +20,8 @@ import { useTranslation } from 'react-i18next'
 
 const InputField = React.memo(({ icon: Icon, label, name, type = 'text', placeholder, hint, maxLength }) => {
   const { formData, handleInputChange, fieldErrors } = useFormContext()
+  const { i18n } = useTranslation('pages')
+  const isRtl = i18n.dir() === 'rtl'
   
   return (
     <div>
@@ -27,7 +29,7 @@ const InputField = React.memo(({ icon: Icon, label, name, type = 'text', placeho
         {label} <span className="text-red-500">*</span>
       </label>
       <div className="relative">
-        <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+        <div className={`absolute inset-y-0 ${isRtl ? 'right-0 pr-3' : 'left-0 pl-3'} flex items-center pointer-events-none`}>
           <Icon className="text-gray-400" size={20} />
         </div>
         <input
@@ -36,7 +38,7 @@ const InputField = React.memo(({ icon: Icon, label, name, type = 'text', placeho
           value={formData[name] || ''}
           onChange={handleInputChange}
           maxLength={maxLength}
-          className={`border ${fieldErrors[name] ? 'border-red-500 focus:ring-red-500 focus:border-red-500' : 'border-gray-300 focus:ring-emerald-500 focus:border-emerald-500'} rounded-lg w-full pl-10 pr-4 py-3 focus:ring-2 transition-colors block text-sm font-medium text-gray-700`}
+          className={`border ${fieldErrors[name] ? 'border-red-500 focus:ring-red-500 focus:border-red-500' : 'border-gray-300 focus:ring-emerald-500 focus:border-emerald-500'} rounded-lg w-full ${isRtl ? 'pl-4 pr-10' : 'pl-10 pr-4'} py-3 focus:ring-2 transition-colors block text-sm font-medium text-gray-700`}
           placeholder={placeholder}
           required
         />
@@ -159,20 +161,63 @@ const SignupForm = React.memo(() => {
           : '/investor/dashboard'
       navigate(redirectUrl)
     } catch (err) {
-      console.error('Registration error:', err)
-      if (err.status === 409) {
-        const field = err.error?.field || 'email'
-        setFieldErrors(prev => ({
-          ...prev,
-          [field]: err.message || (lang === 'ar' ? 'هذا البيان مسجل مسبقاً' : 'This information is already registered')
-        }))
-      } else if (err.status === 429) {
-        setError(lang === 'ar' ? 'عدد محاولات كثيرة. يرجى المحاولة لاحقاً.' : 'Too many attempts. Please try again later.')
-      } else {
-        setError(err.message || (lang === 'ar' ? 'فشل إنشاء الحساب. يرجى المحاولة مرة أخرى.' : 'Registration failed. Please try again.'))
-      }
-      setLoading(false)
-    }
+  console.error('Registration error:', err)
+
+  // ✅ Normalize status + safe message (works with axios/fetch/custom errors)
+  const status =
+    err?.status ??
+    err?.response?.status ??
+    err?.error?.status ??
+    null
+
+  // message priority: backend JSON {message} then fallback (but never show raw technical details)
+  const serverMessage =
+    err?.response?.data?.message ??
+    err?.error?.message ??
+    null
+
+  const isSafeText = (s) =>
+    typeof s === 'string' &&
+    s.length <= 160 &&
+    !/http|<\/?html|<Error>|AccessDenied|Non-JSON|stack|trace|cloudfront|s3/i.test(s)
+
+  const safeMessage = isSafeText(serverMessage) ? serverMessage : null
+
+  if (status === 409) {
+    // ✅ conflict field error (email/phone/nationalId)
+    const field =
+      err?.response?.data?.field ??
+      err?.error?.field ??
+      'email'
+
+    setFieldErrors(prev => ({
+      ...prev,
+      [field]:
+        safeMessage ||
+        (lang === 'ar'
+          ? 'هذا البيان مسجل مسبقاً'
+          : 'This information is already registered')
+    }))
+
+  } else if (status === 429) {
+    setError(
+      lang === 'ar'
+        ? 'عدد محاولات كثيرة. يرجى المحاولة لاحقاً.'
+        : 'Too many attempts. Please try again later.'
+    )
+
+  } else {
+    // ✅ generic and clean
+    setError(
+      safeMessage ||
+      (lang === 'ar'
+        ? 'فشل إنشاء الحساب. يرجى المحاولة مرة أخرى.'
+        : 'Registration failed. Please try again.')
+    )
+  }
+
+  setLoading(false)
+}
   }
 
   return (
@@ -235,7 +280,7 @@ const SignupForm = React.memo(() => {
                 {lang === 'ar' ? 'كلمة المرور' : 'Password'} <span className="text-red-500">*</span>
               </label>
               <div className="relative">
-                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                <div className={`absolute inset-y-0 ${isRtl ? 'right-0 pr-3' : 'left-0 pl-3'} flex items-center pointer-events-none`}>
                   <Lock className="text-gray-400" size={20} />
                 </div>
                 <input
@@ -244,12 +289,12 @@ const SignupForm = React.memo(() => {
                   value={formData.password || ''}
                   onChange={handleInputChange}
                   key="password"
-                  className={`border ${fieldErrors.password ? 'border-red-500 focus:ring-red-500 focus:border-red-500' : 'border-gray-300 focus:ring-emerald-500 focus:border-emerald-500'} rounded-lg w-full pl-10 pr-12 py-3 focus:ring-2 transition-colors block text-sm font-medium text-gray-700`}
+                  className={`border ${fieldErrors.password ? 'border-red-500 focus:ring-red-500 focus:border-red-500' : 'border-gray-300 focus:ring-emerald-500 focus:border-emerald-500'} rounded-lg w-full ${isRtl ? 'pl-4 pr-12' : 'pl-10 pr-12'} py-3 focus:ring-2 transition-colors block text-sm font-medium text-gray-700`}
                   placeholder={lang === 'ar' ? '10 أحرف على الأقل' : 'Min. 10 characters'}
                   required
                 />
-                <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute inset-y-0 right-0 pr-3 flex items-center">
-                  {showPassword ? <EyeOff className="text-gray-400" size={20} /> : <Eye className="text-gray-400" size={20} />}
+                <button type="button" onClick={() => setShowPassword(!showPassword)} className={`absolute inset-y-0 ${isRtl ? 'left-0 pl-3' : 'right-0 pr-3'} flex items-center`}>
+                  {showPassword ? <Eye className="text-gray-400" size={20} /> : <EyeOff className="text-gray-400" size={20} />}
                 </button>
               </div>
               {fieldErrors.password && <p className="mt-1 text-sm text-red-600">{fieldErrors.password}</p>}
@@ -267,7 +312,7 @@ const SignupForm = React.memo(() => {
                 {lang === 'ar' ? 'تأكيد كلمة المرور' : 'Confirm Password'} <span className="text-red-500">*</span>
               </label>
               <div className="relative">
-                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                <div className={`absolute inset-y-0 ${isRtl ? 'right-0 pr-3' : 'left-0 pl-3'} flex items-center pointer-events-none`}>
                   <Lock className="text-gray-400" size={20} />
                 </div>
                 <input
@@ -276,12 +321,12 @@ const SignupForm = React.memo(() => {
                   value={formData.confirmPassword || ''}
                   onChange={handleInputChange}
                   key="confirmPassword"
-                  className={`border ${fieldErrors.confirmPassword ? 'border-red-500 focus:ring-red-500 focus:border-red-500' : 'border-gray-300 focus:ring-emerald-500 focus:border-emerald-500'} rounded-lg w-full pl-10 pr-12 py-3 focus:ring-2 transition-colors block text-sm font-medium text-gray-700`}
+                  className={`border ${fieldErrors.confirmPassword ? 'border-red-500 focus:ring-red-500 focus:border-red-500' : 'border-gray-300 focus:ring-emerald-500 focus:border-emerald-500'} rounded-lg w-full ${isRtl ? 'pl-4 pr-12' : 'pl-10 pr-12'} py-3 focus:ring-2 transition-colors block text-sm font-medium text-gray-700`}
                   placeholder={lang === 'ar' ? 'أعد كتابة كلمة المرور' : 'Re-enter password'}
                   required
                 />
-                <button type="button" onClick={() => setShowConfirmPassword(!showConfirmPassword)} className="absolute inset-y-0 right-0 pr-3 flex items-center">
-                  {showConfirmPassword ? <EyeOff className="text-gray-400" size={20} /> : <Eye className="text-gray-400" size={20} />}
+                <button type="button" onClick={() => setShowConfirmPassword(!showConfirmPassword)} className={`absolute inset-y-0 ${isRtl ? 'left-0 pl-3' : 'right-0 pr-3'} flex items-center`}>
+                  {showConfirmPassword ? <Eye className="text-gray-400" size={20} /> : <EyeOff className="text-gray-400" size={20} />}
                 </button>
               </div>
               {fieldErrors.confirmPassword && <p className="mt-1 text-sm text-red-600">{fieldErrors.confirmPassword}</p>}
