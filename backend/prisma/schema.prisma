@@ -127,6 +127,10 @@ model User {
   phoneNumber  String?        @unique // Saudi phone in E.164 format - UNIQUE
   address      String?
   
+  // Password reset fields
+  passwordResetToken     String?   // Hashed reset token
+  passwordResetExpiresAt DateTime? // Token expiry timestamp
+  
   @@index([tenantId])
   @@index([email])
   @@index([nationalId])

@@ -23,6 +23,7 @@ import FAQ from './pages/FAQ.jsx'
 import Terms from './pages/Terms.jsx'
 import Privacy from './pages/Privacy.jsx'
 import ForgotPassword from './pages/ForgotPassword.jsx'
+import ResetPassword from './pages/ResetPassword.jsx'
 // Investor Pages
 import InvestorDashboard from './pages/investor/InvestorDashboard.jsx'
 import Portfolio from './pages/Investor/Portfolio.jsx'
@@ -83,6 +84,7 @@ const router = createBrowserRouter([
       { path: 'terms', element: <Terms /> },
       { path: 'privacy', element: <Privacy /> },
       { path: 'forgot-password', element: <ForgotPassword /> },
+      { path: 'reset-password', element: <ResetPassword /> },
       {
         path: 'wallet',
         element: (() => {

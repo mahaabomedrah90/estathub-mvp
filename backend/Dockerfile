@@ -41,10 +41,15 @@ COPY --from=builder /app/prisma ./prisma
 
 RUN mkdir -p /app/uploads && chown -R appuser:appuser /app/uploads
 
+# ensure uploads paths are writable by appuser
+RUN mkdir -p /app/uploads \
+    && mkdir -p /app/dist/uploads/properties \
+    && chown -R appuser:appuser /app/uploads /app/dist/uploads
+    
 USER appuser
 EXPOSE 5001
 
-HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
+HEALTHCHECK --interval=30s --timeout=5s --start-period=90s --retries=3 \
   CMD curl -f http://localhost:5001/health || exit 1
 
-CMD ["node", "dist/index.js"]
+CMD ["node", "dist/src/index.js"]

@@ -2,8 +2,10 @@ import { Router, Request, Response } from 'express'
 import jwt from 'jsonwebtoken'
 import bcrypt from 'bcryptjs'
 import rateLimit from 'express-rate-limit'
+import crypto from 'crypto'
 import { prisma } from '../lib/prisma'
 import { auth } from '../middleware/auth'
+import { sendEmail, buildPasswordResetEmail } from '../lib/emailService'
 import {
   validateEmail,
   normalizeEmail,
@@ -47,6 +49,18 @@ const registerLimiter = rateLimit({
   skipSuccessfulRequests: false
 })
 
+// Forgot password rate limiter: 3 attempts per hour per IP
+const forgotPasswordLimiter = rateLimit({
+  windowMs: 60 * 60 * 1000, // 1 hour
+  max: 3,
+  message: {
+    error: 'rate_limit_exceeded',
+    message: 'Too many password reset attempts. Please try again later.'
+  },
+  standardHeaders: true,
+  legacyHeaders: false
+})
+
 // Login rate limiter: 10 attempts per 15 minutes per IP
 const loginLimiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
@@ -72,6 +86,23 @@ async function comparePassword(plain: string, hash: string): Promise<boolean> {
   return await bcrypt.compare(plain, hash)
 }
 
+async function generateResetToken(): Promise<string> {
+  return crypto.randomBytes(32).toString('hex')
+}
+
+async function hashResetToken(token: string): Promise<string> {
+  return await bcrypt.hash(token, BCRYPT_SALT_ROUNDS)
+}
+
+async function verifyResetToken(token: string, hashedToken: string): Promise<boolean> {
+  return await bcrypt.compare(token, hashedToken)
+}
+
+function buildResetLink(token: string): string {
+  const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:5173'
+  return `${frontendUrl}/reset-password?token=${token}`
+}
+
 function signToken(user: {
   id: string
   email: string
@@ -89,7 +120,9 @@ function signToken(user: {
     },
     JWT_SECRET,
     {
-      expiresIn: JWT_EXPIRES_IN
+      expiresIn: JWT_EXPIRES_IN,
+      issuer: 'estathub-mvp',
+      audience: 'estathub-users'
     } as any
   )
 }
@@ -499,11 +532,185 @@ authRouter.post('/resend-otp', async (_req: Request, res: Response) => {
   })
 })
 
-authRouter.post('/forgot-password', async (_req: Request, res: Response) => {
-  return res.status(501).json({
-    error: 'not_implemented',
-    message: 'Password reset will be available in Phase 2'
-  })
+authRouter.post('/forgot-password', forgotPasswordLimiter, async (req: Request, res: Response) => {
+  console.log('🔐 Forgot password request received:', sanitizeForLog(req.body))
+
+  try {
+    const { email } = req.body
+    const lang = (req.headers['accept-language']?.includes('ar') ? 'ar' : 'en') as 'en' | 'ar'
+
+    // Validate Email
+    if (!email) {
+      return res.status(400).json({
+        error: 'email_required',
+        message: lang === 'ar' ? 'البريد الإلكتروني مطلوب' : 'Email is required',
+        field: 'email'
+      })
+    }
+
+    const emailValidation = validateEmail(email)
+    if (!emailValidation.valid) {
+      return res.status(400).json({
+        error: emailValidation.error,
+        message: getErrorMessage(emailValidation.error!, lang),
+        field: 'email'
+      })
+    }
+    const normalizedEmail = normalizeEmail(email)
+
+    // Find user (but don't reveal if exists or not)
+    const user = await prisma.user.findUnique({
+      where: { email: normalizedEmail }
+    })
+
+    if (user) {
+      // Generate and store reset token
+      const resetToken = await generateResetToken()
+      const hashedToken = await hashResetToken(resetToken)
+      const expiresAt = new Date(Date.now() + 30 * 60 * 1000) // 30 minutes
+
+      await prisma.user.update({
+        where: { id: user.id },
+        data: {
+          passwordResetToken: hashedToken,
+          passwordResetExpiresAt: expiresAt
+        }
+      })
+
+      const resetLink = buildResetLink(resetToken)
+      
+      // Send email (real in production, logged in development)
+      if (process.env.NODE_ENV === 'production') {
+        // Production: Send real email via AWS SES
+        const emailContent = buildPasswordResetEmail(resetLink, lang === 'ar')
+        const emailSent = await sendEmail({
+          to: user.email,
+          subject: emailContent.subject,
+          html: emailContent.html,
+          text: emailContent.text
+        })
+        
+        if (emailSent) {
+          console.log('� Password reset email sent to:', user.email)
+        } else {
+          console.error('❌ Failed to send password reset email')
+        }
+      } else {
+        // Development: Log reset link
+        console.log('🔗 [DEV] Password reset link:', resetLink)
+        console.log('📧 [DEV] Would send to email:', user.email)
+      }
+    }
+
+    // Always return success to prevent user enumeration
+    console.log('✅ Forgot password processed for:', { email: normalizedEmail, userFound: !!user })
+    return res.status(200).json({
+      message: lang === 'ar' 
+        ? 'إذا كان البريد الإلكتروني مسجلاً لدينا، فسيتم إرسال رابط إعادة التعيين' 
+        : 'If the email is registered with us, a reset link will be sent'
+    })
+
+  } catch (error: any) {
+    console.error('❌ Forgot password error:', error.message)
+    const lang = (req.headers['accept-language']?.includes('ar') ? 'ar' : 'en') as 'en' | 'ar'
+    return res.status(500).json({
+      error: 'forgot_password_failed',
+      message: lang === 'ar' ? 'حدث خطأ ما. حاول مرة أخرى لاحقاً' : 'An error occurred. Please try again later.'
+    })
+  }
+})
+
+authRouter.post('/reset-password', async (req: Request, res: Response) => {
+  console.log('🔐 Reset password request received')
+
+  try {
+    const { token, password, confirmPassword } = req.body
+    const lang = (req.headers['accept-language']?.includes('ar') ? 'ar' : 'en') as 'en' | 'ar'
+
+    // Validate required fields
+    if (!token || !password || !confirmPassword) {
+      return res.status(400).json({
+        error: 'missing_required_fields',
+        message: lang === 'ar' ? 'جميع الحقول مطلوبة' : 'All fields are required'
+      })
+    }
+
+    // Validate password
+    const passwordValidation = validatePassword(password)
+    if (!passwordValidation.valid) {
+      return res.status(400).json({
+        error: 'password_validation_failed',
+        errors: passwordValidation.errors,
+        messages: passwordValidation.errors.map(e => getErrorMessage(e, lang)),
+        field: 'password',
+        strength: passwordValidation.strength
+      })
+    }
+
+    // Check password confirmation
+    if (password !== confirmPassword) {
+      return res.status(400).json({
+        error: 'password_mismatch',
+        message: getErrorMessage('password_mismatch', lang),
+        field: 'confirmPassword'
+      })
+    }
+
+    // Find user with valid reset token
+    const users = await prisma.user.findMany({
+      where: {
+        passwordResetToken: { not: null },
+        passwordResetExpiresAt: { not: null }
+      }
+    })
+
+    let validUser = null
+    for (const user of users) {
+      if (user.passwordResetToken && await verifyResetToken(token, user.passwordResetToken)) {
+        // Check if token is not expired
+        if (user.passwordResetExpiresAt && user.passwordResetExpiresAt > new Date()) {
+          validUser = user
+          break
+        }
+      }
+    }
+
+    if (!validUser) {
+      return res.status(400).json({
+        error: 'invalid_or_expired_token',
+        message: lang === 'ar' ? 'الرمز غير صالح أو منتهي الصلاحية' : 'Invalid or expired reset token'
+      })
+    }
+
+    // Hash new password
+    const newPasswordHash = await hashPassword(password)
+
+    // Update user password and clear reset token
+    await prisma.user.update({
+      where: { id: validUser.id },
+      data: {
+        passwordHash: newPasswordHash,
+        passwordResetToken: null,
+        passwordResetExpiresAt: null
+      }
+    })
+
+    console.log('✅ Password reset successful for user:', { userId: validUser.id, email: validUser.email })
+    
+    return res.status(200).json({
+      message: lang === 'ar' 
+        ? 'تم إعادة تعيين كلمة المرور بنجاح' 
+        : 'Password reset successful'
+    })
+
+  } catch (error: any) {
+    console.error('❌ Reset password error:', error.message)
+    const lang = (req.headers['accept-language']?.includes('ar') ? 'ar' : 'en') as 'en' | 'ar'
+    return res.status(500).json({
+      error: 'reset_password_failed',
+      message: lang === 'ar' ? 'حدث خطأ ما. حاول مرة أخرى لاحقاً' : 'An error occurred. Please try again later.'
+    })
+  }
 })
 
 // ============================================================================

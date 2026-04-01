@@ -1,0 +1,11 @@
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Sid": "AllowReadDbUrlOnly",
+      "Effect": "Allow",
+      "Action": ["ssm:GetParameter","ssm:GetParameters"],
+      "Resource": "arn:aws:ssm:eu-central-1:101143944706:parameter/alwsm/prod/DATABASE_URL"
+    }
+  ]
+}

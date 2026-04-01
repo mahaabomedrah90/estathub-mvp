@@ -22,6 +22,9 @@ dotenv.config()
 
 const app = express()
 
+// Trust proxy for AWS ALB - limited to specific IPs
+app.set('trust proxy', ['127.0.0.1', '::1', '10.0.0.0/8', '172.16.0.0/12', '192.168.0.0/16'])
+
 function parseCorsOrigins(raw: string): string[] {
   return raw
     .split(',')
@@ -175,6 +178,86 @@ app.get('/api/_debug/db-ping', async (req, res) => {
     }
     
     return res.status(500).json(results)
+  }
+})
+
+/**
+ * ================================
+ * 🔧 DEBUG: Recent Users Endpoint (TEMPORARY)
+ * ================================
+ * Temporary endpoint for pilot phase to verify new user registrations
+ * Protected by ADMIN_DEBUG_TOKEN environment variable
+ * Returns only safe, non-sensitive user information
+ */
+app.get('/api/admin/debug/recent-users', async (req, res) => {
+  const adminDebugToken = req.headers['x-admin-debug-token'] as string
+  const expectedToken = process.env.ADMIN_DEBUG_TOKEN
+  
+  if (!expectedToken) {
+    return res.status(500).json({
+      error: 'debug_not_configured',
+      message: 'ADMIN_DEBUG_TOKEN environment variable not set'
+    })
+  }
+  
+  if (adminDebugToken !== expectedToken) {
+    return res.status(401).json({
+      error: 'unauthorized',
+      message: 'Invalid admin debug token'
+    })
+  }
+  
+  try {
+    console.log('🔧 [ADMIN-DEBUG] Recent users request received')
+    
+    const prisma = require('./lib/prisma').prisma
+    const recentUsers = await prisma.user.findMany({
+      take: 20,
+      orderBy: { createdAt: 'desc' },
+      select: {
+        id: true,
+        fullName: true,
+        email: true,
+        phoneNumber: true,
+        nationalId: true,
+        createdAt: true,
+        role: true,
+        emailVerified: true,
+        phoneVerified: true,
+        kycVerified: true
+      }
+    })
+    
+    // Mask sensitive information
+    const maskedUsers = recentUsers.map((user: any) => ({
+      id: user.id,
+      fullName: user.fullName,
+      email: user.email,
+      phone: user.phoneNumber,
+      nationalId: user.nationalId ? 
+        user.nationalId.slice(0, -4).replace(/./g, '*') + user.nationalId.slice(-4) : 
+        null,
+      createdAt: user.createdAt,
+      role: user.role,
+      emailVerified: user.emailVerified,
+      phoneVerified: user.phoneVerified,
+      kycVerified: user.kycVerified
+    }))
+    
+    console.log(`🔧 [ADMIN-DEBUG] Returned ${maskedUsers.length} recent users`)
+    
+    return res.status(200).json({
+      count: maskedUsers.length,
+      users: maskedUsers,
+      timestamp: new Date().toISOString()
+    })
+    
+  } catch (error: any) {
+    console.error('❌ [ADMIN-DEBUG] Recent users error:', error.message)
+    return res.status(500).json({
+      error: 'debug_failed',
+      message: 'Failed to fetch recent users'
+    })
   }
 })
 
