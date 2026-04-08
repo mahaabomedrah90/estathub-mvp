@@ -123,7 +123,7 @@ export default function Dashboard() {
     : 0
 
   return (
-    <div className="space-y-6">
+    <div className="max-w-7xl mx-auto px-6 space-y-8">
       {/* Header */}
       <div>
         <h1 className="text-3xl font-bold text-gray-900">Analytics Dashboard</h1>
@@ -131,14 +131,14 @@ export default function Dashboard() {
       </div>
 
       {/* Key Metrics */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+      <div className="grid grid-cols-4 gap-6">
         {/* Total Properties */}
-        <div className="bg-white border border-gray-200 rounded-xl p-6">
+        <div className="bg-white border border-gray-200 rounded-lg p-6 shadow-sm">
           <div className="flex items-center justify-between mb-4">
-            <div className="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center">
-              <Building2 className="text-blue-600" size={24} />
+            <div className="w-12 h-12 bg-brand-primary/10 rounded-lg flex items-center justify-center">
+              <Building2 className="text-brand-primary" size={24} />
             </div>
-            <div className="flex items-center gap-1 text-sm text-green-600">
+            <div className="flex items-center gap-1 text-sm text-brand-accent">
               <ArrowUpRight size={16} />
               <span>Active</span>
             </div>
@@ -148,12 +148,12 @@ export default function Dashboard() {
         </div>
 
         {/* Total Investment Value */}
-        <div className="bg-white border border-gray-200 rounded-xl p-6">
+        <div className="bg-white border border-gray-200 rounded-lg p-6 shadow-sm">
           <div className="flex items-center justify-between mb-4">
-            <div className="w-12 h-12 bg-emerald-100 rounded-lg flex items-center justify-center">
-              <DollarSign className="text-emerald-600" size={24} />
+            <div className="w-12 h-12 bg-brand-primary/10 rounded-lg flex items-center justify-center">
+              <DollarSign className="text-brand-primary" size={24} />
             </div>
-            <div className="flex items-center gap-1 text-sm text-emerald-600">
+            <div className="flex items-center gap-1 text-sm text-brand-primary">
               <TrendingUp size={16} />
               <span>{soldPercentage}%</span>
             </div>
@@ -165,12 +165,12 @@ export default function Dashboard() {
         </div>
 
         {/* Revenue Generated */}
-        <div className="bg-white border border-gray-200 rounded-xl p-6">
+        <div className="bg-white border border-gray-200 rounded-lg p-6 shadow-sm">
           <div className="flex items-center justify-between mb-4">
-            <div className="w-12 h-12 bg-purple-100 rounded-lg flex items-center justify-center">
-              <TrendingUp className="text-purple-600" size={24} />
+            <div className="w-12 h-12 bg-brand-primary/10 rounded-lg flex items-center justify-center">
+              <TrendingUp className="text-brand-primary" size={24} />
             </div>
-            <div className="flex items-center gap-1 text-sm text-purple-600">
+            <div className="flex items-center gap-1 text-sm text-brand-primary">
               <Activity size={16} />
               <span>Revenue</span>
             </div>
@@ -182,12 +182,12 @@ export default function Dashboard() {
         </div>
 
         {/* Average Yield */}
-        <div className="bg-white border border-gray-200 rounded-xl p-6">
+        <div className="bg-white border border-gray-200 rounded-lg p-6 shadow-sm">
           <div className="flex items-center justify-between mb-4">
-            <div className="w-12 h-12 bg-orange-100 rounded-lg flex items-center justify-center">
-              <PieChart className="text-orange-600" size={24} />
+            <div className="w-12 h-12 bg-brand-accent/10 rounded-lg flex items-center justify-center">
+              <PieChart className="text-brand-accent" size={24} />
             </div>
-            <div className="flex items-center gap-1 text-sm text-orange-600">
+            <div className="flex items-center gap-1 text-sm text-brand-accent">
               <BarChart3 size={16} />
               <span>Monthly</span>
             </div>
@@ -198,9 +198,9 @@ export default function Dashboard() {
       </div>
 
       {/* Charts Row */}
-      <div className="grid md:grid-cols-2 gap-6">
+      <div className="grid grid-cols-2 gap-6">
         {/* Token Sales Overview */}
-        <div className="bg-white border border-gray-200 rounded-xl p-6">
+        <div className="bg-white border border-gray-200 rounded-lg p-6 shadow-sm">
           <h2 className="text-xl font-semibold text-gray-900 mb-4">Token Sales Overview</h2>
           <div className="space-y-4">
             <div>
@@ -210,9 +210,9 @@ export default function Dashboard() {
                   {stats.totalTokensSold.toLocaleString()} / {stats.totalTokensAvailable.toLocaleString()}
                 </span>
               </div>
-              <div className="w-full bg-gray-200 rounded-full h-4">
+              <div className="w-full bg-surface-border rounded-full h-4">
                 <div 
-                  className="bg-emerald-600 h-4 rounded-full transition-all flex items-center justify-end pr-2" 
+                  className="bg-brand-accent h-4 rounded-full transition-all flex items-center justify-end pr-2" 
                   style={{ width: `${soldPercentage}%` }}
                 >
                   <span className="text-xs text-white font-semibold">{soldPercentage}%</span>
@@ -221,9 +221,9 @@ export default function Dashboard() {
             </div>
 
             <div className="grid grid-cols-2 gap-4 pt-4">
-              <div className="bg-emerald-50 rounded-lg p-4">
-                <div className="text-emerald-600 text-sm mb-1">Sold</div>
-                <div className="text-2xl font-bold text-emerald-700">
+              <div className="bg-brand-accent/10 rounded-lg p-4">
+                <div className="text-brand-accent text-sm mb-1">Sold</div>
+                <div className="text-2xl font-bold text-brand-accent">
                   {stats.totalTokensSold.toLocaleString()}
                 </div>
               </div>
@@ -238,7 +238,7 @@ export default function Dashboard() {
         </div>
 
         {/* Wallet Summary */}
-        <div className="bg-white border border-gray-200 rounded-xl p-6">
+        <div className="bg-white border border-gray-200 rounded-lg p-6 shadow-sm">
           <h2 className="text-xl font-semibold text-gray-900 mb-4">Wallet Summary</h2>
           {wallet ? (
             <div className="space-y-4">
@@ -281,7 +281,7 @@ export default function Dashboard() {
       </div>
 
       {/* Properties Performance */}
-      <div className="bg-white border border-gray-200 rounded-xl p-6">
+      <div className="bg-white border border-gray-200 rounded-lg p-6 shadow-sm">
         <h2 className="text-xl font-semibold text-gray-900 mb-4">Properties Performance</h2>
         
         {properties.length === 0 ? (
@@ -316,33 +316,33 @@ export default function Dashboard() {
                       </div>
                     </div>
                     <div className="text-right">
-                      <div className="text-sm font-semibold text-emerald-600">{monthlyYield}% Yield</div>
+                      <div className="text-sm font-semibold text-brand-accent">{monthlyYield}% Yield</div>
                       <div className="text-xs text-gray-500">{revenue.toLocaleString()} SAR Revenue</div>
                     </div>
                   </div>
 
                   <div className="grid grid-cols-4 gap-3 mb-3">
                     <div className="bg-gray-50 rounded p-2">
-                      <div className="text-xs text-gray-500">Price</div>
-                      <div className="text-sm font-semibold text-gray-900">{tokenPrice.toLocaleString()} SAR</div>
+                      <div className="text-brand-primary text-xs">Price</div>
+                      <div className="text-sm font-semibold text-brand-primary">{tokenPrice.toLocaleString()} SAR</div>
                     </div>
-                    <div className="bg-blue-50 rounded p-2">
-                      <div className="text-xs text-blue-600">Total</div>
-                      <div className="text-sm font-semibold text-blue-700">{totalTokens.toLocaleString()}</div>
+                    <div className="bg-brand-primary/10 rounded p-2">
+                      <div className="text-brand-primary text-xs">Total</div>
+                      <div className="text-sm font-semibold text-brand-primary">{totalTokens.toLocaleString()}</div>
                     </div>
-                    <div className="bg-emerald-50 rounded p-2">
-                      <div className="text-xs text-emerald-600">Sold</div>
-                      <div className="text-sm font-semibold text-emerald-700">{soldTokens.toLocaleString()}</div>
+                    <div className="bg-brand-accent/10 rounded p-2">
+                      <div className="text-brand-accent text-xs">Sold</div>
+                      <div className="text-sm font-semibold text-brand-accent">{soldTokens.toLocaleString()}</div>
                     </div>
-                    <div className="bg-purple-50 rounded p-2">
-                      <div className="text-xs text-purple-600">Progress</div>
-                      <div className="text-sm font-semibold text-purple-700">{percentageSold}%</div>
+                    <div className="bg-brand-primary/10 rounded p-2">
+                      <div className="text-brand-primary text-xs">Progress</div>
+                      <div className="text-sm font-semibold text-brand-primary">{percentageSold}%</div>
                     </div>
                   </div>
 
                   <div className="w-full bg-gray-200 rounded-full h-2">
                     <div 
-                      className="bg-emerald-600 h-2 rounded-full transition-all" 
+                      className="bg-brand-accent h-2 rounded-full transition-all" 
                       style={{ width: `${percentageSold}%` }}
                     />
                   </div>
