@@ -64,7 +64,7 @@ function createCorsOptions() {
     },
     credentials: true,
     methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
-    allowedHeaders: ['Content-Type', 'Authorization', 'user-id'],
+    allowedHeaders: ['Content-Type', 'Authorization', 'user-id', 'x-request-id'],
   }
 
   return options
