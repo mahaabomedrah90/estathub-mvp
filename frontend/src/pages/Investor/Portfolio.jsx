@@ -258,11 +258,11 @@ export default function Portfolio() {
                   </div>
                   <div className="flex justify-between">
                     <span className="text-gray-500">{isRtl ? 'اسم الحساب' : 'Account Name'}</span>
-                    <span className="font-semibold text-[#1E1958]">الوسم / ALWSM</span>
+                    <span className="font-semibold text-[#1E1958]">شركة الوسم العصري</span>
                   </div>
                   <div className="flex justify-between">
                     <span className="text-gray-500">IBAN</span>
-                    <span className="font-mono font-semibold text-[#1E1958] text-xs">SA00 0000 0000 0000 0000 0000</span>
+                    <span className="font-mono font-semibold text-[#1E1958] text-xs">SA57 0500 0068 2073 1569 00</span>
                   </div>
                 </div>
 
