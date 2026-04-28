@@ -67,8 +67,8 @@ const ImageUpload = ({ images = [], onChange, maxImages = 10 }) => {
         <div
           className={`border-2 border-dashed rounded-lg p-8 text-center transition-colors ${
             isDragging
-              ? 'border-blue-500 bg-blue-50'
-              : 'border-gray-300 hover:border-gray-400'
+              ? 'border-brand-accent bg-brand-accent-soft'
+              : 'border-gray-300 hover:border-brand-accent'
           }`}
           onDrop={handleDrop}
           onDragOver={handleDragOver}
@@ -124,7 +124,7 @@ const ImageUpload = ({ images = [], onChange, maxImages = 10 }) => {
               <div className="absolute bottom-0 left-0 right-0 bg-black bg-opacity-50 text-white p-2 rounded-b-lg">
                 <p className="text-xs truncate">{preview.name}</p>
                 {index === 0 && (
-                  <p className="text-xs text-blue-300">Primary Image</p>
+                  <p className="text-xs text-brand-accent">Primary Image</p>
                 )}
               </div>
             </div>

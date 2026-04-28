@@ -7,26 +7,36 @@ export default function Footer() {
   const { t } = useTranslation('common')
 
   return (
-    <footer className="bg-gray-900 border-t border-gray-800 text-gray-300">
-      <div className="mx-auto max-w-7xl px-4 py-12">
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
+    <footer className="bg-brand-primary text-white/70">
+      <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-12 lg:py-16">
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
           <div className="space-y-4">
-            <div className="flex items-center gap-2">
-              <Building2 className="text-emerald-500" size={28} />
-              <span className="text-white font-bold text-xl">{t('appName')}</span>
+            <div>
+              <img 
+                src="/Full Logo 3.png" 
+                alt="ALWSM" 
+                className="h-10 w-auto object-contain mb-6"
+                onError={(e) => {
+                  // Fallback to icon if image not found
+                  e.target.style.display = 'none';
+                  const fallback = document.createElement('div');
+                  fallback.innerHTML = '<div class="flex items-center gap-2"><svg class="text-brand-accent" width="28" height="28" viewBox="0 0 24 24" fill="currentColor"><path d="M3 13h1v7c0 1.103.897 2 2 2h12c1.103 0 2-.897 2-2v-7h1a1 1 0 0 0 .707-1.707l-9-9a.999.999 0 0 0-1.414 0l-9 9A1 1 0 0 0 3 13zm7 7v-5h4v5h-4zm2-15.586 6 6H15l.001 4H9v-4H6l6-6z"/></svg><span class="text-white font-bold text-xl">ALWSM</span></div>';
+                  e.target.parentNode.replaceChild(fallback.firstElementChild, e.target);
+                }}
+              />
             </div>
-            <p className="text-sm text-gray-400">
+            <p className="text-sm text-white/60">
               {t('footer.tagline')}
             </p>
             <div className="flex gap-3">
               {/* same social icons */}
-              <a href="#" className="text-gray-400 hover:text-emerald-500 transition-colors">
+              <a href="#" className="text-white/50 hover:text-brand-accent transition-colors">
                 <Twitter size={20} />
               </a>
-              <a href="#" className="text-gray-400 hover:text-emerald-500 transition-colors">
+              <a href="#" className="text-white/50 hover:text-brand-accent transition-colors">
                 <Linkedin size={20} />
               </a>
-              <a href="#" className="text-gray-400 hover:text-emerald-500 transition-colors">
+              <a href="#" className="text-white/50 hover:text-brand-accent transition-colors">
                 <Github size={20} />
               </a>
             </div>
@@ -36,23 +46,18 @@ export default function Footer() {
             <h3 className="text-white font-semibold mb-4">{t('footer.quickLinks')}</h3>
             <ul className="space-y-2 text-sm">
               <li>
-                <Link to="/" className="hover:text-emerald-500 transition-colors">
+                <Link to="/" className="hover:text-brand-accent transition-colors">
                   {t('footer.links.home')}
                 </Link>
               </li>
               <li>
-                <Link to="/opportunities" className="hover:text-emerald-500 transition-colors">
+                <Link to="/opportunities" className="hover:text-brand-accent transition-colors">
                   {t('footer.links.opportunities')}
                 </Link>
               </li>
               <li>
-                <Link to="/wallet" className="hover:text-emerald-500 transition-colors">
+                <Link to="/wallet" className="hover:text-brand-accent transition-colors">
                   {t('footer.links.wallet')}
-                </Link>
-              </li>
-              <li>
-                <Link to="/blockchain" className="hover:text-emerald-500 transition-colors">
-                  {t('footer.links.blockchainExplorer')}
                 </Link>
               </li>
             </ul>
@@ -62,28 +67,18 @@ export default function Footer() {
             <h3 className="text-white font-semibold mb-4">{t('footer.resources')}</h3>
             <ul className="space-y-2 text-sm">
               <li>
-                <Link to="/about" className="hover:text-emerald-500 transition-colors">
+                <Link to="/about" className="hover:text-brand-accent transition-colors">
                   {t('footer.links.about')}
                 </Link>
               </li>
               <li>
-                <Link to="/how-it-works" className="hover:text-emerald-500 transition-colors">
+                <Link to="/how-it-works" className="hover:text-brand-accent transition-colors">
                   {t('footer.links.howItWorks')}
                 </Link>
               </li>
               <li>
-                <Link to="/faq" className="hover:text-emerald-500 transition-colors">
+                <Link to="/faq" className="hover:text-brand-accent transition-colors">
                   {t('footer.links.faq')}
-                </Link>
-              </li>
-              <li>
-                <Link to="/terms" className="hover:text-emerald-500 transition-colors">
-                  {t('footer.links.terms')}
-                </Link>
-              </li>
-              <li>
-                <Link to="/privacy" className="hover:text-emerald-500 transition-colors">
-                  {t('footer.links.privacy')}
                 </Link>
               </li>
             </ul>
@@ -98,13 +93,13 @@ export default function Footer() {
               </li>
               <li className="flex items-center gap-2">
                 <Mail size={16} className="flex-shrink-0" />
-                <a href="mailto:support@alwsm.sa" className="hover:text-emerald-500 transition-colors">
+                <a href="mailto:support@alwsm.sa" className="hover:text-brand-accent transition-colors">
                   support@alwsm.sa
                 </a>
               </li>
               <li className="flex items-center gap-2">
                 <Phone size={16} className="flex-shrink-0" />
-                <a href="tel:+966530103099" className="hover:text-emerald-500 transition-colors">
+                <a href="tel:+966530103099" className="hover:text-brand-accent transition-colors">
                   +966 53 010 3099
                 </a>
               </li>
@@ -112,8 +107,8 @@ export default function Footer() {
           </div>
         </div>
 
-        <div className="border-t border-gray-800 mt-8 pt-8 text-sm text-center text-gray-400">
-          <p>© {new Date().getFullYear()} {t('appName')}. {t('footer.copyright')}</p>
+        <div className="border-t border-white/10 mt-6 pt-6 text-sm text-center text-white/40">
+          <p> {new Date().getFullYear()} {t('appName')}. {t('footer.copyright')}</p>
         </div>
       </div>
     </footer>

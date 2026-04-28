@@ -179,38 +179,39 @@ description: p.description || t('admin.opportunities.defaults.description'),
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
-         <h1 className="text-2xl font-bold text-gray-900">
-  {t('admin.opportunities.headerTitle')}
-</h1>
-<p className="text-gray-600 mt-1">
-  {t('admin.opportunities.headerSubtitle')}
-</p>        </div>
-        <div className="flex gap-2">
-          {['all', 'pending', 'approved', 'rejected'].map((status) => (
-            <button
-              key={status}
-                  onClick={() => setFilter(status)}
-              className={`px-4 py-2 rounded-lg font-medium transition-colors ${
-                filter === status
-                  ? 'bg-blue-600 text-white'
-                  : 'bg-white text-gray-700 hover:bg-gray-100'
-              }`}
-            >
-              {t(`admin.opportunities.filters.${status}`)}
-            </button>
-          ))}
-        </div>
+      <div>
+        <h1 className="text-3xl font-bold text-[#1E1958]">
+          {t('admin.opportunities.headerTitle')}
+        </h1>
+        <p className="text-gray-600 mt-2">
+          {t('admin.opportunities.headerSubtitle')}
+        </p>
+      </div>
+
+      {/* Filter Tabs */}
+      <div className="flex gap-2">
+        {['all', 'pending', 'approved', 'rejected'].map((status) => (
+          <button
+            key={status}
+            onClick={() => setFilter(status)}
+            className={`px-6 py-3 rounded-xl font-medium transition-all duration-200 ${
+              filter === status
+                ? 'bg-gradient-to-r from-[#1E1958] to-[#2a2458] text-white shadow-lg'
+                : 'bg-white border border-gray-200 text-gray-600 hover:border-[#41EAD4] hover:text-[#41EAD4]'
+            }`}
+          >
+            {t(`admin.opportunities.filters.${status}`)}
+          </button>
+        ))}
       </div>
 
       {/* Properties Table */}
-      <div className="bg-white/80 backdrop-blur-sm rounded-xl border border-white/20 shadow-lg overflow-hidden">
+      <div className="bg-white rounded-xl border border-gray-200 overflow-hidden shadow-sm">
         <div className="overflow-x-auto">
           <table className="w-full">
-            <thead className="bg-gray-50 border-b border-gray-200">
+            <thead className="bg-[#1E1958]/5 border-b border-gray-200">
               <tr>
-                <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
+                <th className="px-6 py-4 text-left text-xs font-semibold text-[#1E1958] uppercase tracking-wider">
                   {t('admin.opportunities.table.property')}
                 </th>
                 <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">

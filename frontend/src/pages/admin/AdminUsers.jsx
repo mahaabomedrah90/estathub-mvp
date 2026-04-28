@@ -1,15 +1,15 @@
 import React, { useState, useEffect } from 'react'
-import { Users, Edit2, Ban, CheckCircle, Mail, Phone, Shield, User, Loader2 } from 'lucide-react'
+import { Users, Edit2, Ban, CheckCircle, Mail, Phone, Shield, User, Loader2, TrendingUp } from 'lucide-react'
 import { authHeader, fetchJson } from '../../lib/api'
-import { useTranslation } from 'react-i18next';
-
+import { useTranslation } from 'react-i18next'
 
 export default function AdminUsers() {
-  const { t } = useTranslation('pages');
+  const { t, i18n } = useTranslation('pages')
+  const isArabic = i18n.language === 'ar'
   const [users, setUsers] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
-const [filter, setFilter] = useState('all')
+  const [filter, setFilter] = useState('all')
   const [selectedUser, setSelectedUser] = useState(null)
   const [confirmRole, setConfirmRole] = useState(null)
   const [successMessage, setSuccessMessage] = useState('')
@@ -78,13 +78,8 @@ const [filter, setFilter] = useState('all')
       console.log(`🔄 Updated user ${id} role to ${newRole}`)
       
       // Show success message with logout reminder
-     setSuccessMessage(
-  t('admin.users.messages.roleUpdateSuccess', {
-    role: newRole.toUpperCase(),
-    name: updatedUser.name,
-  })
-)
-      setTimeout(() => setSuccessMessage(''), 8000) // Auto-hide after 8 seconds
+      setSuccessMessage(t('admin.users.messages.roleUpdateSuccess'))
+      setConfirmRole(null)
     } catch (err) {
       console.error('❌ Failed to update user role:', err)
       setError(t('admin.users.messages.roleUpdateFailed'));
@@ -94,21 +89,21 @@ const [filter, setFilter] = useState('all')
 
   const filteredUsers = filter === 'all'
   ? users
-  : users.filter(u => u.role === filter)
+  : users.filter(p => p.role === filter)
 
   const getRoleBadge = (role) => {
     const styles = {
-      owner: 'bg-amber-100 text-amber-700',
-      investor: 'bg-emerald-100 text-emerald-700',
-      admin: 'bg-blue-100 text-blue-700'
+      owner: 'bg-[#CDB9A1]/20 text-[#1E1958] border border-[#CDB9A1]/40',
+      investor: 'bg-[#41EAD4]/20 text-[#1E1958] border border-[#41EAD4]/40',
+      admin: 'bg-[#986F9A]/20 text-[#1E1958] border border-[#986F9A]/40'
     }
     return styles[role] || 'bg-gray-100 text-gray-700'
   }
 
   const getStatusBadge = (status) => {
     return status === 'Active' 
-      ? 'bg-green-100 text-green-700' 
-      : 'bg-red-100 text-red-700'
+      ? 'bg-[#41EAD4]/10 text-[#41EAD4] border border-[#41EAD4]/30' 
+      : 'bg-[#ED9072]/10 text-[#ED9072] border border-[#ED9072]/30'
   }
 
   if (loading) {
@@ -117,8 +112,8 @@ const [filter, setFilter] = useState('all')
         <div className="flex items-center gap-3">
           <Loader2 className="animate-spin text-blue-600" size={24} />
           <span className="text-gray-600">
-  {t('admin.users.loading')}
-</span>
+            {t('admin.users.loading')}
+          </span>
         </div>
       </div>
     )
@@ -129,12 +124,12 @@ const [filter, setFilter] = useState('all')
       <div className="flex items-center justify-center py-12">
         <div className="text-center">
           <div className="text-red-600 mb-2">{error}</div>
-         <button
-  onClick={() => window.location.reload()}
-  className="text-blue-600 hover:text-blue-700 underline"
->
-  {t('admin.users.errorTryAgain')}
-</button>
+          <button
+            onClick={() => window.location.reload()}
+            className="text-blue-600 hover:text-blue-700 underline"
+          >
+            {t('admin.users.errorTryAgain')}
+          </button>
         </div>
       </div>
     )
@@ -143,300 +138,252 @@ const [filter, setFilter] = useState('all')
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
-         <h1 className="text-2xl font-bold text-gray-900">
-  {t('admin.users.headerTitle')}
-</h1>
-<p className="text-gray-600 mt-1">
-  {t('admin.users.headerSubtitle')}
-</p>
-        </div>
-        <div className="flex gap-2">
-         {['all', 'owner', 'investor', 'admin'].map((role) => (
-  <button
-    key={role}
-    onClick={() => setFilter(role)}
-    className={`px-4 py-2 rounded-lg font-medium transition-colors ${
-      filter === role
-        ? 'bg-blue-600 text-white'
-        : 'bg-white text-gray-700 hover:bg-gray-100'
-    }`}
-  >
-    {t(`admin.users.filters.${role}`)}
-  </button>
-))}
-        </div>
+      <div>
+        <h1 className="text-3xl font-bold text-[#1E1958]">
+          {t('admin.users.headerTitle')}
+        </h1>
+        <p className="text-gray-600 mt-2">
+          {t('admin.users.headerSubtitle')}
+        </p>
+      </div>
+
+      {/* Filter Tabs */}
+      <div className="flex gap-2">
+        {['all', 'owner', 'investor', 'admin'].map((role) => (
+          <button
+            key={role}
+            onClick={() => setFilter(role)}
+            className={`px-6 py-3 rounded-xl font-medium transition-all duration-200 ${
+              filter === role
+                ? 'bg-gradient-to-r from-[#1E1958] to-[#2a2458] text-white shadow-lg'
+                : 'bg-white border border-gray-200 text-gray-600 hover:border-[#41EAD4] hover:text-[#41EAD4]'
+            }`}
+          >
+            {t(`admin.users.filters.${role}`)}
+          </button>
+        ))}
       </div>
 
       {/* Stats Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-        <div className="bg-white/80 backdrop-blur-sm rounded-xl p-4 border border-white/20 shadow-lg">
-          <div className="flex items-center gap-3">
-            <div className="w-12 h-12 bg-blue-50 rounded-lg flex items-center justify-center">
-              <Users className="text-blue-600" size={24} />
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+        {/* Total Users Card */}
+        <div className="bg-gradient-to-br from-[#1E1958] to-[#2a2458] rounded-xl p-6 text-white">
+          <div className="flex items-center justify-between mb-4">
+            <div className="w-12 h-12 bg-white/20 rounded-lg flex items-center justify-center">
+              <Users className="text-white" size={24} />
             </div>
-            <div>
-             <p className="text-sm text-gray-600">
-  {t('admin.users.stats.totalUsers')}
-</p>
+            <div className="flex items-center gap-1 text-sm bg-white/20 px-2 py-1 rounded">
+              <TrendingUp size={14} />
+              <span>{isArabic ? 'إجمالي' : 'Total'}</span>
+            </div>
+          </div>
+          <div className="text-3xl font-bold mb-1">{users.length}</div>
+          <div className="text-white/80 text-sm">
+            {t('admin.users.stats.totalUsers')}
+          </div>
+        </div>
 
-              <p className="text-2xl font-bold text-gray-900">{users.length}</p>
+        {/* Owners Card */}
+        <div className="bg-[#CDB9A1]/30 border border-[#CDB9A1]/50 rounded-xl p-6">
+          <div className="flex items-center justify-between mb-4">
+            <div className="w-12 h-12 bg-[#1E1958]/10 rounded-lg flex items-center justify-center">
+              <Shield className="text-[#1E1958]" size={24} />
+            </div>
+            <div className="flex items-center gap-1 text-sm text-[#1E1958]">
+              <Shield size={14} />
+              <span>{isArabic ? 'مالك' : 'Owners'}</span>
             </div>
           </div>
-        </div>
-        <div className="bg-white/80 backdrop-blur-sm rounded-xl p-4 border border-white/20 shadow-lg">
-          <div className="flex items-center gap-3">
-            <div className="w-12 h-12 bg-amber-50 rounded-lg flex items-center justify-center">
-              <Shield className="text-amber-600" size={24} />
-            </div>
-            <div>
-              <p className="text-sm text-gray-600">
-  {t('admin.users.stats.owners')}
-</p>
-              <p className="text-2xl font-bold text-gray-900">
-                {users.filter(u => u.role === 'owner').length}
-              </p>
-            </div>
+          <div className="text-3xl font-bold text-[#1E1958] mb-1">
+            {users.filter(u => u.role === 'owner').length}
+          </div>
+          <div className="text-sm text-gray-600">
+            {t('admin.users.stats.owners')}
           </div>
         </div>
-        <div className="bg-white/80 backdrop-blur-sm rounded-xl p-4 border border-white/20 shadow-lg">
-          <div className="flex items-center gap-3">
-            <div className="w-12 h-12 bg-emerald-50 rounded-lg flex items-center justify-center">
-              <User className="text-emerald-600" size={24} />
-            </div>
-            <div>
-              <p className="text-sm text-gray-600">
-  {t('admin.users.stats.investors')}
-</p>
-              <p className="text-2xl font-bold text-gray-900">
-                {users.filter(u => u.role === 'investor').length}
-              </p>
-            </div>
-          </div>
-        </div>
-        <div className="bg-white/80 backdrop-blur-sm rounded-xl p-4 border border-white/20 shadow-lg">
-          <div className="flex items-center gap-3">
-            <div className="w-12 h-12 bg-green-50 rounded-lg flex items-center justify-center">
-              <CheckCircle className="text-green-600" size={24} />
-            </div>
-            <div>   
-              <p className="text-sm text-gray-600">
-  {t('admin.users.stats.active')}
-</p>
-              <p className="text-2xl font-bold text-gray-900">
-                {users.filter(u => u.status === 'Active').length}
-              </p>
-            </div>
-          </div>
-        </div>
-      </div>
 
-      {/* Users Table */}
-      <div className="bg-white/80 backdrop-blur-sm rounded-xl border border-white/20 shadow-lg overflow-hidden">
-        <div className="overflow-x-auto">
-          <table className="w-full">
-            <thead className="bg-gray-50 border-b border-gray-200">
-              <tr>
-                <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
-                  {t('admin.users.table.user')}
-                </th>
-                <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
-                  {t('admin.users.table.contact')}
-                </th>
-                <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
-                  {t('admin.users.table.role')}
-                </th>
-                <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
-                  {t('admin.users.table.status')}
-                </th>
-                <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
-                  {t('admin.users.table.joined')}
-                </th>
-                <th className="px-6 py-4 text-right text-xs font-semibold text-gray-600 uppercase tracking-wider">
-                  {t('admin.users.table.actions')}
-                </th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-gray-200">
-              {filteredUsers.map((user) => (
-                <tr key={user.id} className="hover:bg-gray-50 transition-colors">
-                  <td className="px-6 py-4">
-                    <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full flex items-center justify-center text-white font-bold">
-                        {user.name.charAt(0)}
-                      </div>
-                      <div>
-                        <div className="font-semibold text-gray-900">{user.name}</div>
-                        <div className="text-xs text-gray-500">
-                          {user.role === 'owner' && `${user.properties} properties`}
-                          {user.role === 'investor' && `${user.investments} investments`}
-                        </div>
-                      </div>
-                    </div>
-                  </td>
-                  <td className="px-6 py-4">
-                    <div className="space-y-1">
-                      <div className="flex items-center gap-2 text-sm text-gray-600">
-                        <Mail size={14} />
-                        {user.email}
-                      </div>
-                      <div className="flex items-center gap-2 text-sm text-gray-600">
-                        <Phone size={14} />
-                        {user.phone}
-                      </div>
-                    </div>
-                  </td>
-                  <td className="px-6 py-4">
-                    <span className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold capitalize ${getRoleBadge(user.role)}`}>
-                      {user.role}
-                    </span>
-                  </td>
-                  <td className="px-6 py-4">
-                    <span className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold ${getStatusBadge(user.status)}`}>
-                     {user.status === 'Active'
-    ? t('admin.users.status.active')
-    : t('admin.users.status.suspended')}
-</span>
-                  </td>
-                  <td className="px-6 py-4">
-                    <span className="text-sm text-gray-600">{user.joinedDate}</span>
-                  </td>
-                  <td className="px-6 py-4 text-right">
-                    <div className="flex items-center justify-end gap-2">
-                      <button
-                        onClick={() => setSelectedUser(user)}
-                        className="p-2 bg-blue-100 text-blue-600 rounded-lg hover:bg-blue-200 transition-colors"
-                        title={t('admin.users.actions.edit')}
-                      >
-                        <Edit2 size={16} />
-                      </button>
-                      <button
-                        onClick={() => handleStatusToggle(user.id)}
-                        className={`p-2 rounded-lg transition-colors ${
-                          user.status === 'Active'
-                            ? 'bg-red-100 text-red-600 hover:bg-red-200'
-                            : 'bg-green-100 text-green-600 hover:bg-green-200'
-                        }`}
-                        title={
-  user.status === 'Active'
-    ? t('admin.users.actions.suspend')
-    : t('admin.users.actions.activate')
-}
-                      > 
-                        {user.status === 'Active' ? <Ban size={16} /> : <CheckCircle size={16} />}
-                      </button>
-                    </div>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+        {/* Investors Card */}
+        <div className="bg-[#41EAD4]/10 border border-[#41EAD4]/30 rounded-xl p-6">
+          <div className="flex items-center justify-between mb-4">
+            <div className="w-12 h-12 bg-[#41EAD4]/20 rounded-lg flex items-center justify-center">
+              <User className="text-[#41EAD4]" size={24} />
+            </div>
+            <div className="flex items-center gap-1 text-sm text-[#41EAD4]">
+              <User size={14} />
+              <span>{isArabic ? 'مستثمر' : 'Investors'}</span>
+            </div>
+          </div>
+          <div className="text-3xl font-bold text-[#1E1958] mb-1">
+            {users.filter(u => u.role === 'investor').length}
+          </div>
+          <div className="text-sm text-gray-600">
+            {t('admin.users.stats.investors')}
+          </div>
+        </div>
+
+        {/* Admins Card */}
+        <div className="bg-[#986F9A]/10 border border-[#986F9A]/30 rounded-xl p-6">
+          <div className="flex items-center justify-between mb-4">
+            <div className="w-12 h-12 bg-[#986F9A]/20 rounded-lg flex items-center justify-center">
+              <Edit2 className="text-[#986F9A]" size={24} />
+            </div>
+            <div className="flex items-center gap-1 text-sm text-[#986F9A]">
+              <Edit2 size={14} />
+              <span>{isArabic ? 'مشرف' : 'Admins'}</span>
+            </div>
+          </div>
+          <div className="text-3xl font-bold text-[#1E1958] mb-1">
+            {users.filter(u => u.role === 'admin').length}
+          </div>
+          <div className="text-sm text-gray-600">
+            {t('admin.users.stats.admins')}
+          </div>
         </div>
       </div>
 
       {/* Success Message */}
       {successMessage && (
-        <div className="fixed top-4 right-4 z-50 max-w-md animate-slide-in">
-          <div className="bg-green-50 border-2 border-green-500 rounded-xl p-4 shadow-lg">
-            <div className="flex items-start gap-3">
-              <CheckCircle className="text-green-600 flex-shrink-0 mt-0.5" size={20} />
-              <div className="flex-1">
-                <p className="text-sm font-medium text-green-900">{t('admin.users.messages.success')}</p>
-              </div>
-              <button
-                onClick={() => setSuccessMessage('')}
-                className="text-green-600 hover:text-green-700"
-              >
-                ×
-              </button>
-            </div>
+        <div className="max-w-7xl mx-auto px-6">
+          <div className="bg-green-50 border border-green-200 rounded-lg p-4 flex items-center gap-2">
+            <CheckCircle className="text-green-600" size={20} />
+            <span className="text-green-700">{successMessage}</span>
           </div>
         </div>
       )}
 
-      {/* Edit Role Modal */}
-      {selectedUser && !confirmRole && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-2xl max-w-md w-full p-6">
-            <h2 className="text-xl font-bold text-gray-900 mb-4">
-  {t('admin.users.actions.changeRole')}
-</h2>
-<p className="text-gray-600 mb-6">
-  {t('admin.users.texts.selectNewRole', { name: selectedUser.name })}
-</p>
-            <div className="space-y-3">
-              {['investor', 'owner', 'admin'].map((role) => (
-                <button
-                  key={role}
-                  onClick={() => setConfirmRole(role)}
-                  disabled={selectedUser.role === role}
-                  className={`w-full p-4 rounded-xl border-2 transition-all ${
-                    selectedUser.role === role
-                      ? 'border-gray-300 bg-gray-50 opacity-50 cursor-not-allowed'
-                      : 'border-gray-200 hover:border-blue-300 hover:bg-blue-50'
-                  }`}
-                >
-                  <div className="flex items-center justify-between">
-                    <span className="font-semibold capitalize">
-  {t(`admin.users.role.${role}`)}
-</span>
-{selectedUser.role === role && (
-  <span className="text-xs text-gray-500">
-    {t('admin.users.texts.currentRole')}
-  </span>
-)}
-                  </div>
-                </button>
-              ))}
-            </div>
-            <button
-              onClick={() => setSelectedUser(null)}
-              className="w-full mt-4 px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors"
-            >
-                  {t('admin.users.actions.cancel')}
-
-            </button>
+      {/* Users Table */}
+      <div className="bg-white rounded-xl border border-gray-200 overflow-hidden shadow-sm">
+        <div className="overflow-x-auto">
+          <table className="w-full">
+            <thead className="bg-[#1E1958]/5 border-b border-gray-200">
+              <tr>
+                <th className="px-6 py-4 text-left text-sm font-semibold text-[#1E1958]">
+                  {t('admin.users.table.name')}
+                </th>
+                <th className="px-6 py-4 text-left text-sm font-semibold text-[#1E1958]">
+                  {t('admin.users.table.email')}
+                </th>
+                <th className="px-6 py-4 text-left text-sm font-semibold text-[#1E1958]">
+                  {t('admin.users.table.role')}
+                </th>
+                <th className="px-6 py-4 text-left text-sm font-semibold text-[#1E1958]">
+                  {t('admin.users.table.status')}
+                </th>
+                <th className="px-6 py-4 text-left text-sm font-semibold text-[#1E1958]">
+                  {t('admin.users.table.registered')}
+                </th>
+                <th className="px-6 py-4 text-right text-sm font-semibold text-[#1E1958]">
+                  {t('admin.users.table.actions')}
+                </th>
+              </tr>
+            </thead>
+              <tbody>
+                {filteredUsers.map((user) => (
+                  <tr key={user.id} className="border-b border-gray-100 hover:bg-gray-50">
+                    <td className="px-6 py-4">
+                      <div className="flex items-center gap-3">
+                        <div className="w-8 h-8 bg-gray-100 rounded-full flex items-center justify-center">
+                          <span className="text-xs font-medium text-gray-600">
+                            {user.fullName?.charAt(0)?.toUpperCase() || user.email?.charAt(0)?.toUpperCase()}
+                          </span>
+                        </div>
+                        <div>
+                          <div className="font-medium text-gray-900">
+                            {user.fullName || user.email}
+                          </div>
+                          <div className="text-sm text-gray-500">
+                            {user.email}
+                          </div>
+                        </div>
+                      </div>
+                    </td>
+                    <td className="px-6 py-4 text-sm text-gray-600">
+                      {user.email}
+                    </td>
+                    <td className="px-6 py-4">
+                      <span className={`px-2 py-1 rounded-full text-xs font-medium ${getRoleBadge(user.role)}`}>
+                        {user.role}
+                      </span>
+                    </td>
+                    <td className="px-6 py-4">
+                      <span className={`px-2 py-1 rounded-full text-xs font-medium ${getStatusBadge(user.status)}`}>
+                        {user.status}
+                      </span>
+                    </td>
+                    <td className="px-6 py-4 text-sm text-gray-600">
+                      {new Date(user.createdAt).toLocaleDateString()}
+                    </td>
+                    <td className="px-6 py-4">
+                      <div className="flex items-center justify-end gap-2">
+                        <button
+                          onClick={() => handleStatusToggle(user.id)}
+                          className={`px-4 py-2 rounded-xl text-sm font-medium transition-all duration-200 ${
+                            user.status === 'Active' 
+                              ? 'bg-[#ED9072] hover:bg-[#ED9072]/80 text-white shadow-sm' 
+                              : 'bg-[#41EAD4] hover:bg-[#41EAD4]/80 text-white shadow-sm'
+                          }`}
+                        >
+                          {user.status === 'Active' ? (
+                            <>
+                              <Ban size={14} className="inline mr-1" />
+                              {t('admin.users.actions.suspend')}
+                            </>
+                          ) : (
+                            <>
+                              <CheckCircle size={14} className="inline mr-1" />
+                              {t('admin.users.actions.activate')}
+                            </>
+                          )}
+                        </button>
+                        <button
+                          onClick={() => {
+                            setSelectedUser(user)
+                            setConfirmRole(user.role === 'admin' ? 'owner' : 'admin')
+                          }}
+                          className="p-2 text-gray-600 hover:text-[#1E1958] hover:bg-[#1E1958]/10 rounded-xl transition-colors"
+                          title={t('admin.users.actions.changeRole')}
+                        >
+                          <Edit2 size={16} />
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
           </div>
         </div>
-      )}
 
-      {/* Confirmation Modal */}
-      {confirmRole && selectedUser && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-2xl max-w-md w-full p-6">
-            <div className="w-12 h-12 bg-amber-100 rounded-full flex items-center justify-center mx-auto mb-4">
-              <Shield className="text-amber-600" size={24} />
+      {/* Role Change Modal */}
+      {selectedUser && confirmRole && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50">
+          <div className="bg-white rounded-2xl p-8 max-w-md w-full mx-4 shadow-2xl border border-gray-100">
+            <div className="w-16 h-16 bg-[#1E1958]/10 rounded-full flex items-center justify-center mx-auto mb-6">
+              <Edit2 className="text-[#1E1958]" size={32} />
             </div>
-             <h2 className="text-xl font-bold text-gray-900 mb-2 text-center">
-  {t('admin.users.actions.confirmRole')}
-</h2>
-<p className="text-gray-600 mb-6 text-center">
-  {t('admin.users.messages.roleChangeConfirm', {
-    name: selectedUser.name,
-    from: selectedUser.role,
-    to: confirmRole,
-  })}
-</p>
-            <div className="bg-amber-50 border border-amber-200 rounded-lg p-4 mb-6">
-              <p className="text-sm text-amber-800">
-  <strong>⚠️ {t('admin.users.texts.important')}</strong>{' '}
-  {t('admin.users.texts.roleChangeLoginNote')}
-</p>
-            </div>
+            <h3 className="text-2xl font-bold text-[#1E1958] mb-4 text-center">
+              {t('admin.users.roleChange.title')}
+            </h3>
+            <p className="text-gray-600 mb-8 text-center leading-relaxed">
+              {t('admin.users.roleChange.message', { 
+                currentRole: selectedUser.role, 
+                newRole: confirmRole,
+                userName: selectedUser.fullName || selectedUser.email 
+              })}
+            </p>
             <div className="flex gap-3">
               <button
                 onClick={() => {
                   setConfirmRole(null)
                   setSelectedUser(null)
                 }}
-                className="flex-1 px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors font-medium"
+                className="flex-1 px-6 py-3 bg-gray-100 text-gray-700 rounded-xl hover:bg-gray-200 transition-colors font-medium"
               >
                 {t('admin.users.actions.cancel')}
               </button>
               <button
                 onClick={() => handleRoleChange(selectedUser.id, confirmRole)}
-                className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium"
+                className="flex-1 px-6 py-3 bg-gradient-to-r from-[#1E1958] to-[#2a2458] text-white rounded-xl hover:shadow-lg transition-all duration-200 font-medium"
               >
                 {t('admin.users.actions.confirm_change')}
               </button>

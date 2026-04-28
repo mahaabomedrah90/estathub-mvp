@@ -4,27 +4,27 @@ import { fetchJson, authHeader } from '../../lib/api'
 import { useTranslation } from 'react-i18next'
 
 export default function IssueDeeds() {
-  const { t } = useTranslation('pages')
+  const { t, i18n } = useTranslation('pages')
+  const isArabic = i18n.language === 'ar'
   // NEW VERSION LOADED - Authentication and caching fixed!
   console.log(' IssueDeeds FIXED VERSION loaded!')
-  
+
   const [properties, setProperties] = useState([])
   const [selectedProperty, setSelectedProperty] = useState(null)
   const [investors, setInvestors] = useState([])
   const [issuedDeeds, setIssuedDeeds] = useState([])
   const [issuing, setIssuing] = useState(false)
   const [results, setResults] = useState([])
-  const [existingDeeds, setExistingDeeds] = useState(new Map()) // Changed to Map to store deed details
-  const [viewingProperty, setViewingProperty] = useState(null) // For property details modal
-  const [viewingInvestor, setViewingInvestor] = useState(null) // For investor details modal
-  const [confirmIssue, setConfirmIssue] = useState(null) // { userId, propertyId, userName } | null
+  const [existingDeeds, setExistingDeeds] = useState(new Map())
+  const [viewingProperty, setViewingProperty] = useState(null)
+  const [viewingInvestor, setViewingInvestor] = useState(null)
+  const [confirmIssue, setConfirmIssue] = useState(null)
 
-  // Calculate token status for a property
   const getTokenStatus = (property) => {
     const soldTokens = property.totalTokens - property.remainingTokens
     const issuedTokens = issuedDeeds.filter(deed => deed.propertyId === property.id).length
     const pendingTokens = soldTokens - issuedTokens
-    
+
     return {
       total: property.totalTokens,
       sold: soldTokens,
@@ -37,7 +37,6 @@ export default function IssueDeeds() {
 
   useEffect(() => {
     console.log(' IssueDeeds component mounted, forcing cache clear...')
-    // Clear any potential caches
     if ('caches' in window) {
       caches.keys().then(names => {
         names.forEach(name => {
@@ -46,7 +45,6 @@ export default function IssueDeeds() {
         })
       })
     }
-    // Force reload after a short delay to ensure cache is cleared
     setTimeout(() => {
       console.log(' Loading properties after cache clear...')
       loadProperties()
@@ -56,15 +54,14 @@ export default function IssueDeeds() {
   async function loadProperties() {
     try {
       console.log(' Loading properties for deed issuance...')
-      
-      // Check authentication
+
       const token = localStorage.getItem('estathub_token')
       console.log(' Auth token exists:', !!token)
       if (!token) {
         console.error(' No authentication token found')
         return
       }
-      
+
       const headers = {
         'Content-Type': 'application/json',
         'Authorization': `Bearer ${token}`,
@@ -72,34 +69,33 @@ export default function IssueDeeds() {
         'Pragma': 'no-cache',
         'Expires': '0'
       }
-      
+
       const apiBase = import.meta.env.VITE_API_BASE || 'http://localhost:5001'
       console.log(' Making API call to:', `${apiBase}/api/properties`)
       const response = await fetch(`${apiBase}/api/properties?t=${Date.now()}`, { headers })
       console.log(' Response status:', response.status)
-      
+
       if (!response.ok) {
         throw new Error(`HTTP ${response.status}: ${response.statusText}`)
       }
-      
+
       const data = await response.json()
       console.log(' Properties loaded:', data?.length || 0, 'properties')
       if (data && data.length > 0) {
         console.log(' Sample property:', data[0])
       }
       setProperties(data || [])
-      
-      // Load issued deeds for token status calculation
+
       try {
         const deedsResponse = await fetch(`${apiBase}/api/deeds?t=${Date.now()}`, { headers })
         if (deedsResponse.ok) {
-        const deedsData = await deedsResponse.json()
-        setIssuedDeeds(deedsData || [])
-        console.log(' Issued deeds loaded:', deedsData?.length || 0, 'deeds')
+          const deedsData = await deedsResponse.json()
+          setIssuedDeeds(deedsData || [])
+          console.log(' Issued deeds loaded:', deedsData?.length || 0, 'deeds')
         }
       } catch (deedErr) {
-       console.warn(' Failed to load issued deeds:', deedErr)
- setIssuedDeeds([])
+        console.warn(' Failed to load issued deeds:', deedErr)
+        setIssuedDeeds([])
       }
     } catch (err) {
       console.error(' Failed to load properties:', err)
@@ -108,14 +104,11 @@ export default function IssueDeeds() {
 
   async function loadInvestors(propertyId) {
     try {
-          // Get all holdings for this property
       const holdings = await fetchJson(`/api/properties/${propertyId}/holdings?t=${Date.now()}`, { headers: { ...authHeader() } })
       console.log(' Investors loaded:', holdings?.length || 0, 'investors')
       setInvestors(holdings || [])
-      
-      // Get existing deeds for this property
+
       const deeds = await fetchJson(`/api/deeds?propertyId=${propertyId}&t=${Date.now()}`, { headers: { ...authHeader() } })
-      // Store deed details including token count and issuance events - group by userId to handle multiple deeds
       const deedMap = new Map()
       deeds?.forEach(deed => {
         if (!deedMap.has(deed.userId)) {
@@ -136,7 +129,7 @@ export default function IssueDeeds() {
       })
       setExistingDeeds(deedMap)
       console.log(' Existing deeds loaded:', deedMap.size, 'users with deeds')
-       } catch (err) {
+    } catch (err) {
       console.error(' Failed to load investors:', err)
       setInvestors([])
       setExistingDeeds(new Map())
@@ -151,7 +144,6 @@ export default function IssueDeeds() {
         headers: { 'Content-Type': 'application/json', ...authHeader() },
         body: JSON.stringify({ userId, propertyId })
       })
-      // API already returns success: true, so just return the result
       return result
     } catch (err) {
       return { success: false, error: err.message }
@@ -159,7 +151,6 @@ export default function IssueDeeds() {
   }
 
   async function issueSingleDeed(userId, propertyId, userName) {
-    // Open custom confirmation modal instead of native window.confirm
     setConfirmIssue({ userId, propertyId, userName })
   }
 
@@ -171,7 +162,6 @@ export default function IssueDeeds() {
     const result = await issueDeed(userId, propertyId)
     setResults([{ investorName: userName, ...result }])
 
-    // Refresh investors list to update deed status
     if (selectedProperty) {
       await loadInvestors(selectedProperty.id)
     }
@@ -182,10 +172,10 @@ export default function IssueDeeds() {
 
   async function issueAllDeeds() {
     if (!selectedProperty) return
-    
+
     setIssuing(true)
     setResults([])
-    
+
     const newResults = []
     for (const investor of investors) {
       const result = await issueDeed(investor.userId, selectedProperty.id)
@@ -195,316 +185,359 @@ export default function IssueDeeds() {
       })
       setResults([...newResults])
     }
- // Refresh issued deeds to update token status
-  try {
-    const token = localStorage.getItem('estathub_token')
-    const headers = {
- 'Content-Type': 'application/json',
- 'Authorization': `Bearer ${token}`,
- 'Cache-Control': 'no-cache',
- 'Pragma': 'no-cache',
- 'Expires': '0'
- }
- const apiBase = import.meta.env.VITE_API_BASE || 'http://localhost:5001'
- const deedsResponse = await fetch(`${apiBase}/api/deeds?t=${Date.now()}`, { headers })
- if (deedsResponse.ok) {
- const deedsData = await deedsResponse.json()
- setIssuedDeeds(deedsData || [])
- console.log('✅ Refreshed issued deeds after issuance')
- }
- } catch (err) {
- console.warn('⚠️ Failed to refresh issued deeds:', err)
- }
-    
-    // Refresh investors list to update deed status
+
+    try {
+      const token = localStorage.getItem('estathub_token')
+      const headers = {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`,
+        'Cache-Control': 'no-cache',
+        'Pragma': 'no-cache',
+        'Expires': '0'
+      }
+      const apiBase = import.meta.env.VITE_API_BASE || 'http://localhost:5001'
+      const deedsResponse = await fetch(`${apiBase}/api/deeds?t=${Date.now()}`, { headers })
+      if (deedsResponse.ok) {
+        const deedsData = await deedsResponse.json()
+        setIssuedDeeds(deedsData || [])
+        console.log('✅ Refreshed issued deeds after issuance')
+      }
+    } catch (err) {
+      console.warn('⚠️ Failed to refresh issued deeds:', err)
+    }
+
     if (selectedProperty) {
       await loadInvestors(selectedProperty.id)
     }
-    
+
     setIssuing(false)
   }
 
+  const totalPendingTokens = properties.reduce((sum, p) => {
+    const status = getTokenStatus(p)
+    return sum + status.pending
+  }, 0)
+
   return (
-    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-      <div className="mb-8">
-        <h1 className="text-3xl font-bold text-gray-900">{t('admin.issueDeeds.headerTitle')}</h1>
-        <p className="mt-2 text-gray-600">
+    <div className="space-y-6">
+      {/* Header */}
+      <div>
+        <h1 className="text-3xl font-bold text-[#1E1958]">{t('admin.issueDeeds.headerTitle')}</h1>
+        <p className="text-gray-600 mt-2">
           {t('admin.issueDeeds.headerSubtitle')}
         </p>
       </div>
-{/* Token Summary Cards */}
- <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
- <div className="bg-white rounded-lg shadow p-6">
- <div className="flex items-center">
- <div className="p-3 bg-blue-100 rounded-lg">
- <PieChart className="h-6 w-6 text-blue-600" />
- </div>
- <div className="ml-4">
- <p className="text-sm font-medium text-gray-600">{t('admin.issueDeeds.stats.totalProperties')}</p>
- <p className="text-2xl font-bold text-gray-900">{properties.length}</p>
- </div>
- </div>
- </div>
- <div className="bg-white rounded-lg shadow p-6">
- <div className="flex items-center">
- <div className="p-3 bg-orange-100 rounded-lg">
- <TrendingUp className="h-6 w-6 text-orange-600" />
- </div>
- <div className="ml-4">
- <p className="text-sm font-medium text-gray-600">{t('admin.issueDeeds.stats.pendingIssuance')}</p>
- <p className="text-2xl font-bold text-orange-600">
- {properties.reduce((sum, p) => {
- const status = getTokenStatus(p)
- return sum + status.pending
- }, 0)}
- </p>
- </div>
- </div>
- </div>
- <div className="bg-white rounded-lg shadow p-6">
- <div className="flex items-center">
- <div className="p-3 bg-green-100 rounded-lg">
- <CheckCircle className="h-6 w-6 text-green-600" />
- </div>
- <div className="ml-4">
- <p className="text-sm font-medium text-gray-600">{t('admin.issueDeeds.stats.alreadyIssued')}</p>
- <p className="text-2xl font-bold text-green-600">
- {properties.reduce((sum, p) => {
- const status = getTokenStatus(p)
- return sum + status.issued
- }, 0)}
- </p>
- </div>
- </div>
- </div>
- </div>
-      {/* Property Selection */}
-      <div className="bg-white rounded-lg shadow p-6 mb-6">
-        <h2 className="text-lg font-semibold text-gray-900 mb-4">
-  {t('admin.issueDeeds.selectProperty.title')}
-</h2>
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {properties.map((property) => {
-            const tokenStatus = getTokenStatus(property)
-            const isSelected = selectedProperty?.id === property.id
-            return (
-              <div
-                key={property.id}
-                onClick={() => {
-                  if (property.status === 'APPROVED') {
-                    setSelectedProperty(property)
-                    loadInvestors(property.id)
-                  }
-                }}
-                className={`p-4 border-2 rounded-lg transition-all ${
-                  isSelected
-                    ? 'border-blue-500 bg-blue-50'
-                    : property.status === 'APPROVED'
-                    ? 'border-gray-200 hover:border-blue-300 cursor-pointer'
-                    : 'border-gray-200 opacity-50 cursor-not-allowed'
-                }`}
-                title={property.status !== 'APPROVED' ? 'Only approved properties can issue deeds' : ''}
-              >
-                <div className="flex items-start justify-between">
-                  <div className="flex-1">
-                    <h3 className="font-semibold text-gray-900">{property.title || property.name}</h3>
-                    <p className="text-sm text-gray-600">{property.location}</p>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation()
-                        setViewingProperty(property)
-                      }}
-                      className="p-2 hover:bg-blue-100 rounded-lg transition-colors"
-                      title="View property details"
-                    >
-                      <Eye className="w-4 h-4 text-blue-600" />
-                    </button>
-                    <span
-                      className={`px-2 py-1 text-xs font-semibold rounded-full ${
-                        property.status === 'APPROVED'
-                          ? 'bg-green-100 text-green-800'
-                          : property.status === 'PENDING'
-                          ? 'bg-yellow-100 text-yellow-800'
-                          : 'bg-red-100 text-red-800'
-                      }`}
-                    >
-                      {property.status}
-                    </span>
-                  </div>
+
+      {/* Token Summary Cards */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        {/* Total Properties Card */}
+        <div className="bg-gradient-to-br from-[#1E1958] to-[#2a2458] rounded-xl p-6 text-white">
+          <div className="flex items-center justify-between mb-4">
+            <div className="w-12 h-12 bg-white/20 rounded-lg flex items-center justify-center">
+              <FileText className="text-white" size={24} />
+            </div>
+            <div className="flex items-center gap-1 text-sm bg-white/20 px-2 py-1 rounded">
+              <PieChart size={14} />
+              <span>{isArabic ? 'إجمالي' : 'Total'}</span>
+            </div>
+          </div>
+          <div className="text-3xl font-bold mb-1">{properties.length}</div>
+          <div className="text-white/80 text-sm">
+            {t('admin.issueDeeds.stats.totalProperties')}
+          </div>
+        </div>
+
+        {/* Pending Issuance Card */}
+        <div className="bg-[#ED9072]/10 border border-[#ED9072]/30 rounded-xl p-6">
+          <div className="flex items-center justify-between mb-4">
+            <div className="w-12 h-12 bg-[#ED9072]/20 rounded-lg flex items-center justify-center">
+              <TrendingUp className="text-[#ED9072]" size={24} />
+            </div>
+            <div className="flex items-center gap-1 text-sm text-[#ED9072]">
+              <TrendingUp size={14} />
+              <span>{isArabic ? 'معلق' : 'Pending'}</span>
+            </div>
+          </div>
+          <div className="text-3xl font-bold text-[#1E1958] mb-1">{totalPendingTokens}</div>
+          <div className="text-sm text-gray-600">
+            {t('admin.issueDeeds.stats.pendingIssuance')}
+          </div>
+        </div>
+
+        {/* Already Issued Card */}
+        <div className="bg-[#41EAD4]/10 border border-[#41EAD4]/30 rounded-xl p-6">
+          <div className="flex items-center justify-between mb-4">
+            <div className="w-12 h-12 bg-[#41EAD4]/20 rounded-lg flex items-center justify-center">
+              <CheckCircle className="text-[#41EAD4]" size={24} />
+            </div>
+            <div className="flex items-center gap-1 text-sm text-[#41EAD4]">
+              <CheckCircle size={14} />
+              <span>{isArabic ? 'مصدر' : 'Issued'}</span>
+            </div>
+          </div>
+          <div className="text-3xl font-bold text-[#1E1958] mb-1">
+            {properties.reduce((sum, p) => {
+              const status = getTokenStatus(p)
+              return sum + status.issued
+            }, 0)}
+          </div>
+          <div className="text-sm text-gray-600">
+            {t('admin.issueDeeds.stats.alreadyIssued')}
+          </div>
+        </div>
+
+      </div>
+
+      {/* Property Selection — full-width below KPI cards */}
+      <div className="bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden">
+        <div className="p-8">
+          <div className="flex items-center justify-between mb-6">
+            <h2 className="text-2xl font-bold text-[#1E1958]">{t('admin.issueDeeds.selectProperty.title')}</h2>
+            <div className="text-sm text-gray-600">
+              {selectedProperty
+                ? `${t('admin.issueDeeds.selectProperty.selected')} ${selectedProperty.title || selectedProperty.name}`
+                : t('admin.issueDeeds.selectProperty.noSelection')
+              }
+            </div>
+          </div>
+            {!selectedProperty && (
+              <div className="text-center py-12">
+                <div className="w-16 h-16 bg-[#41EAD4]/10 rounded-full flex items-center justify-center mx-auto mb-4">
+                  <FileText className="text-[#41EAD4]" size={32} />
                 </div>
-                <p className="text-xs text-gray-500 mt-2">
-                  {t('admin.issueDeeds.selectProperty.tokensSold', {
-                    sold: tokenStatus.sold,
-                    total: tokenStatus.total,
-                  })}
+                <h3 className="text-lg font-semibold text-gray-900 mb-2">
+                  {t('admin.issueDeeds.selectProperty.noSelectionTitle')}
+                </h3>
+                <p className="text-gray-600 max-w-md mx-auto">
+                  {t('admin.issueDeeds.selectProperty.noSelectionDescription')}
                 </p>
-                <p className="text-xs text-gray-500">
-                  {t('admin.issueDeeds.selectProperty.tokensIssued', {
-                    issued: tokenStatus.issued,
-                    sold: tokenStatus.sold,
-                  })}
-                </p>
+              </div>
+            )}
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {properties.map((property) => {
+                const tokenStatus = getTokenStatus(property)
+                const isSelected = selectedProperty?.id === property.id
+                return (
+                  <div
+                    key={property.id}
+                    onClick={() => {
+                      if (property.status === 'APPROVED') {
+                        setSelectedProperty(property)
+                        loadInvestors(property.id)
+                      }
+                    }}
+                    className={`p-6 border-2 rounded-xl transition-all cursor-pointer ${
+                      isSelected
+                        ? 'border-[#1E1958] bg-[#1E1958]/5 shadow-lg'
+                        : property.status === 'APPROVED'
+                        ? 'border-[#41EAD4]/30 bg-[#41EAD4]/5 hover:border-[#41EAD4] hover:shadow-md'
+                        : 'border-gray-200 opacity-50 cursor-not-allowed'
+                    }`}
+                    title={property.status !== 'APPROVED' ? 'Only approved properties can issue deeds' : ''}
+                  >
+                    <div className="flex items-start justify-between">
+                      <div className="flex-1">
+                        <h3 className="font-bold text-lg text-[#1E1958] mb-1">{property.title || property.name}</h3>
+                        <p className="text-sm text-gray-600 mb-3">{property.location}</p>
+                        <div className="flex items-center gap-2 text-xs text-gray-500">
+                          <FileText size={12} />
+                          <span>{t('admin.issueDeeds.selectProperty.tokensSold', {
+                            sold: tokenStatus.sold,
+                            total: tokenStatus.total,
+                          })}</span>
+                        </div>
+                        <div className="flex items-center gap-2 text-xs text-gray-500">
+                          <CheckCircle size={12} />
+                          <span>{t('admin.issueDeeds.selectProperty.tokensIssued', {
+                            issued: tokenStatus.issued,
+                            sold: tokenStatus.sold,
+                          })}</span>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-3">
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation()
+                            setViewingProperty(property)
+                          }}
+                          className="p-2 hover:bg-[#41EAD4]/10 rounded-lg transition-colors"
+                          title="View property details"
+                        >
+                          <Eye className="w-4 h-4 text-[#41EAD4]" />
+                        </button>
+                        <span
+                          className={`px-3 py-1 text-xs font-semibold rounded-full ${
+                            property.status === 'APPROVED'
+                              ? 'bg-[#41EAD4]/10 text-[#41EAD4]'
+                              : property.status === 'PENDING'
+                              ? 'bg-[#ED9072]/10 text-[#ED9072]'
+                              : 'bg-red-100 text-red-800'
+                          }`}
+                        >
+                          {property.status}
+                        </span>
+                      </div>
+                    </div>
+                    <p className="text-xs text-gray-500 mt-2">
+                      {t('admin.issueDeeds.selectProperty.tokensSold', {
+                        sold: tokenStatus.sold,
+                        total: tokenStatus.total,
+                      })}
+                    </p>
+                    <p className="text-xs text-gray-500">
+                      {t('admin.issueDeeds.selectProperty.tokensIssued', {
+                        issued: tokenStatus.issued,
+                        sold: tokenStatus.sold,
+                      })}
+                    </p>
 
-                {/* Inline investors list for selected property */}
-                {isSelected && (
-                  <div className="mt-4 border-t border-gray-200 pt-3">
-                    <h3 className="text-sm font-semibold text-gray-900 mb-2">
-                      {t('admin.issueDeeds.investors.title', { count: investors.length })}
-                    </h3>
-                    {investors.length === 0 ? (
-                      <p className="text-xs text-gray-500">
-                        {t('admin.issueDeeds.investors.empty')}
-                      </p>
-                    ) : (
-                      <div className="space-y-2">
-                        {investors.map((investor, idx) => {
-                          const userDeedInfo = existingDeeds.get(investor.userId)
-                          const totalIssuedTokens = userDeedInfo?.totalIssuedTokens || 0
-                          const pendingTokens = investor.tokens - totalIssuedTokens
-                          const needsIssuance = pendingTokens > 0
-                          const fullyIssued = pendingTokens === 0
+                    {/* Inline investors list for selected property */}
+                    {isSelected && (
+                      <div className="mt-6 border-t border-gray-200 pt-6">
+                        <h3 className="text-lg font-semibold text-[#1E1958] mb-4">
+                          {t('admin.issueDeeds.investors.title', { count: investors.length })}
+                        </h3>
+                        {investors.length === 0 ? (
+                          <div className="text-center py-8">
+                            <div className="w-16 h-16 bg-[#ED9072]/10 rounded-full flex items-center justify-center mx-auto mb-4">
+                              <Users className="text-[#ED9072]" size={24} />
+                            </div>
+                            <h4 className="text-lg font-semibold text-gray-900 mb-2">
+                              {t('admin.issueDeeds.investors.empty')}
+                            </h4>
+                            <p className="text-gray-600 max-w-md mx-auto">
+                              {t('admin.issueDeeds.investors.noInvestors')}
+                            </p>
+                          </div>
+                        ) : (
+                          <div className="space-y-3">
+                            {investors.map((investor, idx) => {
+                              const userDeedInfo = existingDeeds.get(investor.userId)
+                              const totalIssuedTokens = userDeedInfo?.totalIssuedTokens || 0
+                              const pendingTokens = investor.tokens - totalIssuedTokens
+                              const needsIssuance = pendingTokens > 0
+                              const fullyIssued = pendingTokens === 0
 
-                          return (
-                            <div
-                              key={idx}
-                              className={`flex items-center justify-between p-3 border rounded-lg ${
-                                needsIssuance
-                                  ? 'border-orange-300 bg-orange-50'
-                                  : fullyIssued
-                                  ? 'border-green-300 bg-green-50'
-                                  : 'border-gray-200'
-                              }`}
-                            >
-                              <div className="flex-1">
-                                <div className="flex items-center gap-2">
-                                  <p className="font-medium text-gray-900">{investor.userName}</p>
-                                  {fullyIssued && (
-                                    <span className="px-2 py-1 text-xs font-semibold bg-green-100 text-green-800 rounded-full">
-                                      ✓ {t('admin.issueDeeds.investors.buttonFullyIssued')}
-                                    </span>
-                                  )}
-                                  {needsIssuance && (
-                                    <span className="px-2 py-1 text-xs font-semibold bg-orange-100 text-orange-800 rounded-full">
-                                      {t('admin.issueDeeds.investors.badgeNewTokens', {
-                                        count: pendingTokens,
-                                      })}
-                                    </span>
-                                  )}
-                                </div>
-                                <p className="text-xs text-gray-600 mt-1">
-                                  {t('admin.issueDeeds.investors.holdings', {
-                                    tokens: investor.tokens,
-                                    percent: ((investor.tokens / property.totalTokens) * 100).toFixed(2),
-                                  })}
-                                  {userDeedInfo && (
-                                    <span className="ml-2 text-[11px] text-gray-500">
-                                      {needsIssuance
-                                        ? t('admin.issueDeeds.investors.issuedSummaryWithPending', {
-                                            issued: totalIssuedTokens,
-                                            deedCount: userDeedInfo.deeds.length,
-                                            pending: pendingTokens,
-                                          })
-                                        : t('admin.issueDeeds.investors.issuedSummary', {
-                                            issued: totalIssuedTokens,
-                                            deedCount: userDeedInfo.deeds.length,
-                                          })}
-                                    </span>
-                                  )}
-                                </p>
-                              </div>
-                              <div className="flex items-center gap-2">
-                                <button
-                                  onClick={(e) => {
-                                    e.stopPropagation()
-                                    setViewingInvestor({ ...investor, userDeedInfo, selectedProperty: property })
-                                  }}
-                                  className="p-2 hover:bg-blue-100 rounded-lg transition-colors"
-                                  title="View investor details"
-                                >
-                                  <Eye className="w-4 h-4 text-blue-600" />
-                                </button>
-                                <button
-                                  onClick={(e) => {
-                                    e.stopPropagation()
-                                    issueSingleDeed(investor.userId, property.id, investor.userName)
-                                  }}
-                                  disabled={issuing || fullyIssued}
-                                  className={`px-3 py-1.5 text-xs rounded-lg ${
-                                    fullyIssued
-                                      ? 'bg-gray-400 text-white cursor-not-allowed'
-                                      : needsIssuance
-                                      ? 'bg-orange-600 text-white hover:bg-orange-700'
-                                      : 'bg-green-600 text-white hover:bg-green-700 disabled:bg-gray-400'
+                              return (
+                                <div
+                                  key={idx}
+                                  className={`flex items-center justify-between p-4 border rounded-xl ${
+                                    needsIssuance
+                                      ? 'border-[#ED9072]/30 bg-[#ED9072]/5'
+                                      : fullyIssued
+                                      ? 'border-[#41EAD4]/30 bg-[#41EAD4]/5'
+                                      : 'border-gray-200 bg-gray-50'
                                   }`}
                                 >
-                                  {fullyIssued
-                                    ? t('admin.issueDeeds.investors.buttonFullyIssued')
-                                    : needsIssuance
-                                    ? t('admin.issueDeeds.investors.buttonIssueTokens', {
-                                        count: pendingTokens,
-                                      })
-                                    : t('admin.issueDeeds.investors.buttonIssueDeed')}
-                                </button>
-                              </div>
-                            </div>
-                          )
-                        })}
+                                  <div>
+                                    <p className="font-medium text-gray-900">{investor.userName}</p>
+                                    <p className="text-xs text-gray-600">
+                                      {t('admin.issueDeeds.investors.holdings', {
+                                        tokens: investor.tokens,
+                                        percent: ((investor.tokens / property.totalTokens) * 100).toFixed(2),
+                                      })}
+                                      {userDeedInfo && (
+                                        <span className="ml-2 text-[11px] text-gray-500">
+                                          {needsIssuance
+                                            ? t('admin.issueDeeds.investors.issuedSummaryWithPending', {
+                                                issued: totalIssuedTokens,
+                                                deedCount: userDeedInfo.deeds.length,
+                                                pending: pendingTokens,
+                                              })
+                                            : t('admin.issueDeeds.investors.issuedSummary', {
+                                                issued: totalIssuedTokens,
+                                                deedCount: userDeedInfo.deeds.length,
+                                              })}
+                                        </span>
+                                      )}
+                                    </p>
+                                  </div>
+                                  <div className="flex items-center gap-2">
+                                    <button
+                                      onClick={(e) => {
+                                        e.stopPropagation()
+                                        setViewingInvestor({ ...investor, userDeedInfo, selectedProperty: property })
+                                      }}
+                                      className="p-2 hover:bg-[#41EAD4]/10 rounded-lg transition-colors"
+                                    >
+                                      <Eye className="w-4 h-4 text-[#41EAD4]" />
+                                    </button>
+                                    <button
+                                      onClick={(e) => {
+                                        e.stopPropagation()
+                                        issueSingleDeed(investor.userId, property.id, investor.userName)
+                                      }}
+                                      disabled={!needsIssuance || issuing}
+                                      className={`px-3 py-1.5 text-sm rounded-lg font-medium transition-colors ${
+                                        needsIssuance
+                                          ? 'bg-[#ED9072] text-white hover:bg-[#ED9072]/90'
+                                          : 'bg-gray-100 text-gray-400 cursor-not-allowed'
+                                      }`}
+                                    >
+                                      {needsIssuance
+                                        ? t('admin.issueDeeds.investors.buttonIssueTokens', {
+                                            count: pendingTokens,
+                                          })
+                                        : t('admin.issueDeeds.investors.buttonIssueDeed')}
+                                    </button>
+                                  </div>
+                                </div>
+                              )
+                            })}
+                          </div>
+                        )}
                       </div>
                     )}
                   </div>
-                )}
-              </div>
-            )
-          })}
+                )
+              })}
+            </div>
+          </div>
         </div>
 
       {/* Results */}
       {results.length > 0 && (
-        <div className="bg-white rounded-lg shadow p-6">
-          <h2 className="text-lg font-semibold text-gray-900 mb-4">
-            {t('admin.issueDeeds.results.title')}
-</h2>
-          <div className="space-y-2">
-            {results.map((result, idx) => {
-              const alreadyExists = result.alreadyExists || result.message?.includes('already exists')
-              const bgColor = result.success ? (alreadyExists ? 'bg-yellow-50' : 'bg-green-50') : 'bg-red-50'
-              const iconColor = result.success ? (alreadyExists ? 'text-yellow-600' : 'text-green-600') : 'text-red-600'
-              const textColor = result.success ? (alreadyExists ? 'text-yellow-700' : 'text-green-700') : 'text-red-700'
-              
-              return (
-                <div
-                  key={idx}
-                  className={`flex items-center gap-3 p-3 rounded-lg ${bgColor}`}
-                >
-                  {result.success ? (
-                    <CheckCircle className={`w-5 h-5 ${iconColor}`} />
-                  ) : (
-                    <AlertCircle className="w-5 h-5 text-red-600" />
-                  )}
-                  <div className="flex-1">
-                    <p className="font-medium">{result.investorName}</p>
+        <div className="bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden">
+          <div className="p-8">
+            <h2 className="text-2xl font-bold text-[#1E1958] mb-6">{t('admin.issueDeeds.results.title')}</h2>
+            <div className="space-y-3">
+              {results.map((result, idx) => {
+                const alreadyExists = result.alreadyExists || result.message?.includes('already exists')
+                const bgColor = result.success ? (alreadyExists ? 'bg-[#F59E0B]/10' : 'bg-[#41EAD4]/10') : 'bg-red-50'
+                const iconColor = result.success ? (alreadyExists ? 'text-[#F59E0B]' : 'text-[#41EAD4]') : 'text-red-600'
+                const textColor = result.success ? (alreadyExists ? 'text-[#F59E0B]' : 'text-[#41EAD4]') : 'text-red-700'
+
+                return (
+                  <div
+                    key={idx}
+                    className={`flex items-center gap-4 p-4 rounded-xl border ${bgColor}`}
+                  >
                     {result.success ? (
+                      <CheckCircle className={`w-6 h-6 ${iconColor}`} />
+                    ) : (
+                      <AlertCircle className="w-6 h-6 text-red-600" />
+                    )}
+                    <div className="flex-1">
+                      <p className="font-semibold text-lg">{result.investorName}</p>
                       <p className={`text-sm ${textColor}`}>
-                        {alreadyExists ? (
-                          <>
-                            {t('admin.issueDeeds.results.deedAlreadyExists', { deedNumber: result.deed?.deedNumber })}
-                            <span className="ml-2 text-xs">({t('admin.issueDeeds.results.skipped')})</span>
-                          </>
+                        {result.success ? (
+                          alreadyExists ? (
+                            <>
+                              {t('admin.issueDeeds.results.deedAlreadyExists', { deedNumber: result.deed?.deedNumber })}
+                              <span className="ml-2 text-xs opacity-75">({t('admin.issueDeeds.results.skipped')})</span>
+                            </>
+                          ) : (
+                            <>{t('admin.issueDeeds.results.deedIssued', { deedNumber: result.deed?.deedNumber })}</>
+                          )
                         ) : (
-                          <>{t('admin.issueDeeds.results.deedIssued', { deedNumber: result.deed?.deedNumber })}</>
+                          <>{t('admin.issueDeeds.results.errorPrefix', { message: result.error })}</>
                         )}
                       </p>
-                    ) : (
-                      <p className="text-sm text-red-700">
-                        {t('admin.issueDeeds.results.errorPrefix', { message: result.error })}
-                      </p>
-                    )}
+                    </div>
                   </div>
-                </div>
-              )
-            })}
+                )
+              })}
+            </div>
           </div>
         </div>
       )}
@@ -513,7 +546,7 @@ export default function IssueDeeds() {
       {confirmIssue && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
           <div
-            className="bg-white rounded-2xl shadow-xl max-w-md w-full p-6" 
+            className="bg-white rounded-2xl shadow-xl max-w-md w-full p-6"
             dir="rtl"
           >
             <h3 className="text-lg font-semibold text-gray-900 mb-2">
@@ -1011,7 +1044,6 @@ export default function IssueDeeds() {
           </div>
         </div>
       )}
-      </div>
     </div>
   )
 }

@@ -13,9 +13,10 @@ import './index.css'
 import Home from './pages/Home.jsx'
 import Login from './pages/Login.jsx'
 import Signup from './pages/Signup.jsx'
+import RoleSelection from './pages/RoleSelection.jsx'
 import BlockchainExplorer from './pages/BlockchainExplorer.jsx'
 import Opportunities from './pages/investor/Opportunities.jsx'
-import PropertyDetail from './pages/investor/PropertyDetail.jsx'
+import PropertyDetail from './pages/PropertyDetail.jsx'
 import VerifyDeed from './pages/VerifyDeed.jsx'
 import About from './pages/About.jsx'
 import HowItWorks from './pages/HowItWorks.jsx'
@@ -78,6 +79,7 @@ const router = createBrowserRouter([
       { path: 'verify-deed', element: <VerifyDeed /> },
       { path: 'login', element: <Login /> },
       { path: 'signup', element: <Signup /> },
+      { path: 'role-selection', element: <RoleSelection /> },
       { path: 'about', element: <About /> },
       { path: 'how-it-works', element: <HowItWorks /> },
       { path: 'faq', element: <FAQ /> },

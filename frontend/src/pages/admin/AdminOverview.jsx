@@ -9,6 +9,7 @@ import { useTranslation } from 'react-i18next'
 
 export default function AdminOverview() {
   const { t, i18n } = useTranslation('pages')
+  const isArabic = i18n.language === 'ar'
 
   const navigate = useNavigate()
   const [loading, setLoading] = useState(true)
@@ -50,78 +51,62 @@ export default function AdminOverview() {
         return
       }
 
-      // Fetch all properties
-      const propertiesData = await fetchJson('/api/properties', { 
-        headers: { ...authHeader() } 
+      const response = await fetchJson('/api/properties', {
+        headers: { ...authHeader() }
       })
-      
-      const propertiesList = Array.isArray(propertiesData) ? propertiesData : []
-      setProperties(propertiesList)
 
-      // Filter pending properties
-      const pending = propertiesList.filter(p => p.status === 'PENDING')
+      const allProperties = Array.isArray(response) ? response : []
+      setProperties(allProperties)
+
+      const pending = allProperties.filter(p => p.status === 'PENDING')
       setPendingProperties(pending)
 
       // Calculate stats
-      const approved = propertiesList.filter(p => p.status === 'APPROVED')
-      const rejected = propertiesList.filter(p => p.status === 'REJECTED')
+      const approved = allProperties.filter(p => p.status === 'APPROVED')
+      const rejected = allProperties.filter(p => p.status === 'REJECTED')
       
-      const totalVolume = approved.reduce((sum, p) => {
-        const raised = (p.totalTokens - (p.remainingTokens || p.tokensAvailable || 0)) * (p.tokenPrice || 0)
-        return sum + raised
+      const totalInvestmentVolume = approved.reduce((sum, p) => {
+        return sum + ((p.totalTokens || 0) * (p.tokenPrice || 0))
       }, 0)
 
       setStats({
-        totalProperties: propertiesList.length,
+        totalProperties: allProperties.length,
         approvedProperties: approved.length,
         pendingProperties: pending.length,
         rejectedProperties: rejected.length,
-        activeInvestors: 0, // This would come from a separate endpoint
-        totalInvestmentVolume: totalVolume,
-        monthlyGrowth: 23.5 // Mock data - would come from analytics endpoint
+        activeInvestors: new Set(approved.map(p => p.ownerId)).size,
+        totalInvestmentVolume,
+        monthlyGrowth: 12.5 // Mock data
       })
+
     } catch (err) {
-      console.error('Admin dashboard load error:', err)
+      console.error('Admin data load error:', err)
       setError(err.message || t('admin.overview.loadError'))
     } finally {
       setLoading(false)
     }
   }
 
-  async function handlePropertyAction(propertyId, action) {
+  const handlePropertyAction = async (propertyId, action) => {
+    setActionLoading(propertyId)
     try {
-      setActionLoading(propertyId)
-      setError('')
-      
-      const newStatus = action === 'approve' ? 'APPROVED' : 'REJECTED'
-      
-      await fetchJson(`/api/properties/${propertyId}`, {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json', ...authHeader() },
-        body: JSON.stringify({ status: newStatus })
+      const response = await fetchJson(`/api/properties/${propertyId}/${action}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json', ...authHeader() }
       })
 
-      // Show success notification
-      setNotification({
-        type: 'success',
-       message:
-  action === 'approve'
-    ? t('admin.overview.notificationApproved')
-    : t('admin.overview.notificationRejected')
-      })
-
-      // Reload data
-      await loadAdminData()
-
-      // Clear notification after 3 seconds
-      setTimeout(() => setNotification(null), 3000)
+      if (response.success) {
+        setNotification({
+          type: 'success',
+          message: t(`admin.overview.${action}Success`)
+        })
+        loadAdminData() // Refresh data
+      }
     } catch (err) {
-      setError(
-  err.message ||
-  (action === 'approve'
-    ? t('admin.overview.notificationApproved')
-    : t('admin.overview.notificationRejected'))
-)
+      setNotification({
+        type: 'error',
+        message: t(`admin.overview.${action}Error`)
+      })
     } finally {
       setActionLoading(null)
     }
@@ -129,54 +114,53 @@ export default function AdminOverview() {
 
   const statCards = [
     {
-      title: t('admin.overview.stat.totalProperties'),
-    value: stats.totalProperties,
+      title: t('admin.overview.stats.totalProperties'),
+      value: stats.totalProperties,
+      change: `+${stats.monthlyGrowth}%`,
       icon: Building2,
-      bgColor: 'bg-blue-50',
-      iconColor: 'text-blue-600',
-       change: t('admin.overview.stat.changeLabel', { value: '+12%' })
+      bgColor: 'bg-blue-100',
+      iconColor: 'text-blue-600'
     },
     {
-      title: t('admin.overview.stat.approvedProperties'),
+      title: t('admin.overview.stats.approvedProperties'),
       value: stats.approvedProperties,
+      change: '+8%',
       icon: CheckCircle,
-      bgColor: 'bg-green-50',
-      iconColor: 'text-green-600',
-      change: '+8%'
+      bgColor: 'bg-green-100',
+      iconColor: 'text-green-600'
     },
     {
-        title: t('admin.overview.stat.pendingReview'),
-
+      title: t('admin.overview.stats.pendingProperties'),
       value: stats.pendingProperties,
+      change: '+3',
       icon: Clock,
-      bgColor: 'bg-yellow-50',
-      iconColor: 'text-yellow-600',
-      change: '-2'
+      bgColor: 'bg-yellow-100',
+      iconColor: 'text-yellow-600'
     },
     {
-      title: t('admin.overview.stat.activeInvestors'),
+      title: t('admin.overview.stats.activeInvestors'),
       value: stats.activeInvestors,
+      change: '+12%',
       icon: Users,
-      bgColor: 'bg-purple-50',
-      iconColor: 'text-purple-600',
-      change: '+15%'
+      bgColor: 'bg-purple-100',
+      iconColor: 'text-purple-600'
     },
     {
-      title: t('admin.overview.stat.investmentVolume'),
-      value: `SAR ${(stats.totalInvestmentVolume / 1000000).toFixed(1)}M`,
+      title: t('admin.overview.stats.totalInvestment'),
+      value: `${(stats.totalInvestmentVolume / 1000000).toFixed(1)}M`,
+      change: '+18%',
       icon: DollarSign,
-      bgColor: 'bg-emerald-50',
-      iconColor: 'text-emerald-600',
-      change: '+23.5%'
+      bgColor: 'bg-emerald-100',
+      iconColor: 'text-emerald-600'
     },
     {
-      title: t('admin.overview.stat.monthlyGrowth'),
+      title: t('admin.overview.stats.monthlyGrowth'),
       value: `${stats.monthlyGrowth}%`,
+      change: '+2.1%',
       icon: TrendingUp,
-      bgColor: 'bg-indigo-50',
-      iconColor: 'text-indigo-600',
-      change: '+5.2%'
-    },
+      bgColor: 'bg-indigo-100',
+      iconColor: 'text-indigo-600'
+    }
   ]
 
   if (!getToken()) {
@@ -220,75 +204,129 @@ export default function AdminOverview() {
     <div className="space-y-6">
       {/* Header */}
       <div>
-        <h1 className="text-3xl font-bold text-gray-900">{t('admin.overview.headerTitle')}</h1>
-        <p className="text-gray-600">{t('admin.overview.headerSubtitle')}</p>
+        <h1 className="text-3xl font-bold text-[#1E1958]">
+          {t('admin.overview.headerTitle')}
+        </h1>
+        <p className="text-gray-600 mt-2">
+          {t('admin.overview.headerSubtitle')}
+        </p>
       </div>
 
       {/* Notification */}
       {notification && (
-        <div className={`rounded-lg p-4 flex items-center gap-2 ${
-          notification.type === 'success' ? 'bg-green-50 border border-green-200' : 'bg-red-50 border border-red-200'
-        }`}>
-          <CheckCircle className={notification.type === 'success' ? 'text-green-600' : 'text-red-600'} size={20} />
-          <span className={notification.type === 'success' ? 'text-green-700' : 'text-red-700'}>{notification.message}</span>
+        <div className="max-w-7xl mx-auto px-6">
+          <div className={`rounded-lg p-4 flex items-center gap-2 ${
+            notification.type === 'success' ? 'bg-green-50 border border-green-200' : 'bg-red-50 border border-red-200'
+          }`}>
+            <CheckCircle className={notification.type === 'success' ? 'text-green-600' : 'text-red-600'} size={20} />
+            <span className={notification.type === 'success' ? 'text-green-700' : 'text-red-700'}>{notification.message}</span>
+          </div>
         </div>
       )}
       {/* Stats Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-6 gap-6">
-        {statCards.map((stat, index) => {
-          const Icon = stat.icon
-          return (
-            <div
-              key={index}
-              className="bg-white/80 backdrop-blur-sm rounded-xl p-6 border border-white/20 shadow-lg hover:shadow-xl transition-all duration-300"
-            >
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm text-gray-600 font-medium">{stat.title}</p>
-                  <h3 className="text-2xl font-bold text-gray-900 mt-2">{stat.value}</h3>
-                  <p className="text-xs text-gray-500 mt-1">{stat.change}</p>
-                </div>
-                <div className={`${stat.bgColor} p-3 rounded-xl`}>
-                  <Icon className={stat.iconColor} size={24} />
-                </div>
-              </div>
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+        {/* Total Properties Card */}
+        <div className="bg-gradient-to-br from-[#1E1958] to-[#2a2458] rounded-xl p-6 text-white">
+          <div className="flex items-center justify-between mb-4">
+            <div className="w-12 h-12 bg-white/20 rounded-lg flex items-center justify-center">
+              <Building2 className="text-white" size={24} />
             </div>
-          )
-        })}
+            <div className="flex items-center gap-1 text-sm bg-white/20 px-2 py-1 rounded">
+              <TrendingUp size={14} />
+              <span>{isArabic ? 'إجمالي' : 'Total'}</span>
+            </div>
+          </div>
+          <div className="text-3xl font-bold mb-1">{stats.totalProperties}</div>
+          <div className="text-white/80 text-sm">
+            {t('admin.overview.stats.totalProperties')}
+          </div>
+        </div>
+
+        {/* Approved Properties Card */}
+        <div className="bg-[#41EAD4]/10 border border-[#41EAD4]/30 rounded-xl p-6">
+          <div className="flex items-center justify-between mb-4">
+            <div className="w-12 h-12 bg-[#41EAD4]/20 rounded-lg flex items-center justify-center">
+              <CheckCircle className="text-[#41EAD4]" size={24} />
+            </div>
+            <div className="flex items-center gap-1 text-sm text-[#41EAD4]">
+              <CheckCircle size={14} />
+              <span>{isArabic ? 'موافق عليه' : 'Approved'}</span>
+            </div>
+          </div>
+          <div className="text-3xl font-bold text-[#1E1958] mb-1">{stats.approvedProperties}</div>
+          <div className="text-sm text-gray-600">
+            {t('admin.overview.stats.approvedProperties')}
+          </div>
+        </div>
+
+        {/* Pending Properties Card */}
+        <div className="bg-[#ED9072]/10 border border-[#ED9072]/30 rounded-xl p-6">
+          <div className="flex items-center justify-between mb-4">
+            <div className="w-12 h-12 bg-[#ED9072]/20 rounded-lg flex items-center justify-center">
+              <Clock className="text-[#ED9072]" size={24} />
+            </div>
+            <div className="flex items-center gap-1 text-sm text-[#ED9072]">
+              <Clock size={14} />
+              <span>{isArabic ? 'معلق' : 'Pending'}</span>
+            </div>
+          </div>
+          <div className="text-3xl font-bold text-[#1E1958] mb-1">{stats.pendingProperties}</div>
+          <div className="text-sm text-gray-600">
+            {t('admin.overview.stats.pendingProperties')}
+          </div>
+        </div>
+
+        {/* Active Investors Card */}
+        <div className="bg-[#CDB9A1]/30 border border-[#CDB9A1]/50 rounded-xl p-6">
+          <div className="flex items-center justify-between mb-4">
+            <div className="w-12 h-12 bg-[#1E1958]/10 rounded-lg flex items-center justify-center">
+              <Users className="text-[#1E1958]" size={24} />
+            </div>
+            <div className="flex items-center gap-1 text-sm text-[#1E1958]">
+              <TrendingUp size={14} />
+              <span>{isArabic ? 'نشط' : 'Active'}</span>
+            </div>
+          </div>
+          <div className="text-3xl font-bold text-[#1E1958] mb-1">{stats.activeInvestors}</div>
+          <div className="text-sm text-gray-600">
+            {t('admin.overview.stats.activeInvestors')}
+          </div>
+        </div>
       </div>
 
-      {/* Pending Properties Table */}
-      <div className="bg-white/80 backdrop-blur-sm rounded-xl p-6 border border-white/20 shadow-lg">
-        <div className="flex items-center justify-between mb-6">
-          <div>
-            <h2 className="text-xl font-bold text-gray-900">{t('admin.overview.pending.title')}</h2>
-            <p className="text-sm text-gray-600 mt-1">{t('admin.overview.pending.subtitle', { count: pendingProperties.length })}</p>
+      {/* Pending Properties Section */}
+      <div className="bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden">
+        <div className="p-8">
+          <div className="flex items-center justify-between mb-6">
+            <div>
+              <h2 className="text-2xl font-bold text-[#1E1958] mb-2">{t('admin.overview.pending.title')}</h2>
+              <p className="text-gray-600">{t('admin.overview.pending.subtitle', { count: pendingProperties.length })}</p>
+            </div>
+            <button 
+              onClick={() => navigate('/admin/opportunities')}
+              className="px-6 py-3 bg-gradient-to-r from-[#1E1958] to-[#2a2458] text-white rounded-xl hover:shadow-lg transition-all duration-200 font-medium"
+            >
+                 {t('admin.overview.pending.viewAll')}
+            </button>
           </div>
-          <button 
-            onClick={() => navigate('/admin/opportunities')}
-            className="text-sm text-blue-600 hover:text-blue-700 font-medium"
-          >
-             {t('admin.overview.pending.viewAll')}
-
-          </button>
         </div>
         
         {pendingProperties.length === 0 ? (
-          <div className="text-center py-8 bg-gray-50 rounded-lg">
-            <CheckCircle className="mx-auto text-gray-400 mb-2" size={48} />
+          <div className="text-center py-12">
+            <CheckCircle className="mx-auto text-gray-400 mb-4" size={48} />
             <div className="text-gray-600">{t('admin.overview.pending.emptyTitle')}</div>
           </div>
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full">
-              <thead>
-                <tr className="border-b border-gray-200">
-                  <th className="text-left py-3 px-4 text-sm font-semibold text-gray-700">{t('admin.overview.pending.table.propertyTitle')}</th>
-                  <th className="text-left py-3 px-4 text-sm font-semibold text-gray-700">{t('admin.overview.pending.table.owner')}</th>
-                  <th className="text-left py-3 px-4 text-sm font-semibold text-gray-700">{t('admin.overview.pending.table.submitted')}</th>
-                  <th className="text-left py-3 px-4 text-sm font-semibold text-gray-700">{t('admin.overview.pending.table.value')}</th>
-                  <th className="text-left py-3 px-4 text-sm font-semibold text-gray-700">{t('admin.overview.pending.table.status')}</th>
-                  <th className="text-right py-3 px-4 text-sm font-semibold text-gray-700">{t('admin.overview.pending.table.actions')}</th>
+              <thead className="bg-[#1E1958]/5 border-b border-gray-200">
+                <tr>
+                  <th className="px-6 py-3 text-left text-xs font-semibold text-[#1E1958] uppercase">{t('admin.overview.pending.table.propertyTitle')}</th>
+                  <th className="px-6 py-3 text-left text-xs font-semibold text-[#1E1958] uppercase">{t('admin.overview.pending.table.owner')}</th>
+                  <th className="px-6 py-3 text-left text-xs font-semibold text-[#1E1958] uppercase">{t('admin.overview.pending.table.submitted')}</th>
+                  <th className="px-6 py-3 text-left text-xs font-semibold text-[#1E1958] uppercase">{t('admin.overview.pending.table.value')}</th>
+                  <th className="px-6 py-3 text-left text-xs font-semibold text-[#1E1958] uppercase">{t('admin.overview.pending.table.status')}</th>
+                  <th className="px-6 py-3 text-right text-xs font-semibold text-[#1E1958] uppercase">{t('admin.overview.pending.table.actions')}</th>
                 </tr>
               </thead>
               <tbody>
@@ -296,7 +334,7 @@ export default function AdminOverview() {
                   <tr key={property.id} className="border-b border-gray-100 hover:bg-gray-50">
                     <td className="py-4 px-4">
                       <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 bg-gradient-to-br from-sky-400 to-indigo-500 rounded-lg flex items-center justify-center">
+                        <div className="w-10 h-10 bg-gradient-to-br from-[#1E1958] to-[#2a2458] rounded-lg flex items-center justify-center">
                           <Building2 className="text-white" size={20} />
                         </div>
                         <div>
@@ -314,7 +352,6 @@ export default function AdminOverview() {
                     </td>
                     <td className="py-4 px-4 text-sm text-gray-600">
                       {property.ownerName || t('admin.overview.pending.defaultOwner')}
-
                     </td>
                     <td className="py-4 px-4 text-sm text-gray-600">
                       {formatDate(property.submittedDate || property.createdAt)}
@@ -362,53 +399,54 @@ export default function AdminOverview() {
       </div>
 
       {/* Recent Activity Feed */}
-      <div className="bg-white/80 backdrop-blur-sm rounded-xl p-6 border border-white/20 shadow-lg">
-        <div className="flex items-center justify-between mb-6">
-          <h2 className="text-xl font-bold text-gray-900">
-  {t('admin.overview.activity.title')}
-</h2>
-        </div>
-        <div className="space-y-3">
-          {properties.slice(0, 5).map((property) => {
-            const isApproved = property.status === 'APPROVED'
-            const isPending = property.status === 'PENDING'
-            const isRejected = property.status === 'REJECTED'
-            
-            return (
-              <div
-                key={property.id}
-                className="flex items-center gap-4 p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors"
-              >
-                <div className={`w-10 h-10 rounded-full flex items-center justify-center ${
-                  isApproved ? 'bg-green-100' : isPending ? 'bg-yellow-100' : 'bg-red-100'
-                }`}>
-                  {isApproved && <CheckCircle className="text-green-600" size={20} />}
-                  {isPending && <Clock className="text-yellow-600" size={20} />}
-                  {isRejected && <AlertCircle className="text-red-600" size={20} />}
+      <div className="max-w-7xl mx-auto px-6">
+        <div className="bg-white rounded-lg shadow-sm border border-gray-100 p-6">
+          <div className="flex items-center justify-between mb-6">
+            <h2 className="text-xl font-semibold text-gray-900">
+              {t('admin.overview.activity.title')}
+            </h2>
+          </div>
+          <div className="space-y-3">
+            {properties.slice(0, 5).map((property) => {
+              const isApproved = property.status === 'APPROVED'
+              const isPending = property.status === 'PENDING'
+              const isRejected = property.status === 'REJECTED'
+              
+              return (
+                <div
+                  key={property.id}
+                  className="flex items-center gap-4 p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors"
+                >
+                  <div className={`w-10 h-10 rounded-full flex items-center justify-center ${
+                    isApproved ? 'bg-green-100' : isPending ? 'bg-yellow-100' : 'bg-red-100'
+                  }`}>
+                    {isApproved && <CheckCircle className="text-green-600" size={20} />}
+                    {isPending && <Clock className="text-yellow-600" size={20} />}
+                    {isRejected && <AlertCircle className="text-red-600" size={20} />}
+                  </div>
+                  <div className="flex-1">
+                    <p className="text-sm font-medium text-gray-900">
+                      {isApproved && <span className="text-green-600">{t('admin.overview.approved')}: </span>}
+                      {isPending && <span className="text-yellow-600">{t('admin.overview.pending.statusPending')}: </span>}
+                      {isRejected && <span className="text-red-600">{t('admin.overview.rejected')}: </span>}
+                      {property.name || property.title}
+                      {property.propertyType && (
+                        <span className="text-xs text-gray-500 ml-1">
+                          ({t(`owner.newProperty.step2.propertyTypes.${property.propertyType}`, property.propertyType)})
+                        </span>
+                      )}
+                    </p>
+                    <p className="text-xs text-gray-500 mt-0.5">
+                      {formatDate(property.submittedDate || property.createdAt)} 
+                      • {((property.totalTokens || 0) * (property.tokenPrice || 0)).toLocaleString()} {t('admin.overview.currency')}
+                    </p>
+                  </div>
                 </div>
-                <div className="flex-1">
-                  <p className="text-sm font-medium text-gray-900">
-                    {isApproved && <span className="text-green-600">{t('admin.overview.approved')}: </span>}
-                    {isPending && <span className="text-yellow-600">{t('admin.overview.pending.statusPending')}: </span>}
-                    {isRejected && <span className="text-red-600">{t('admin.overview.rejected')}: </span>}
-                    {property.name || property.title}
-                    {property.propertyType && (
-                      <span className="text-xs text-gray-500 ml-1">
-                        ({t(`owner.newProperty.step2.propertyTypes.${property.propertyType}`, property.propertyType)})
-                      </span>
-                    )}
-                  </p>
-                  <p className="text-xs text-gray-500 mt-0.5">
-                    {formatDate(property.submittedDate || property.createdAt)} 
-                    • {((property.totalTokens || 0) * (property.tokenPrice || 0)).toLocaleString()} {t('admin.overview.currency')}
-                  </p>
-                </div>
-              </div>
-            )
-          })}
+              )
+            })}
+          </div>
         </div>
       </div>
-
     </div>
   )
 }

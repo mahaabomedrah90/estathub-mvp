@@ -1,5 +1,5 @@
-import React, { useState, useCallback } from 'react'
-import { useNavigate } from 'react-router-dom'
+import React, { useState, useCallback, useEffect } from 'react'
+import { useNavigate, useSearchParams } from 'react-router-dom'
 import { fetchJson, setToken } from '../lib/api'
 import { FormProvider, useFormContext } from '../contexts/FormContext'
 import {
@@ -14,7 +14,8 @@ import {
   EyeOff,
   Phone,
   CreditCard,
-  Shield
+  Shield,
+  TrendingUp
 } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 
@@ -25,12 +26,12 @@ const InputField = React.memo(({ icon: Icon, label, name, type = 'text', placeho
   
   return (
     <div>
-      <label className="block text-sm font-medium text-gray-700 mb-2">
+      <label className="block text-sm font-medium text-text-body mb-2">
         {label} <span className="text-red-500">*</span>
       </label>
       <div className="relative">
         <div className={`absolute inset-y-0 ${isRtl ? 'right-0 pr-3' : 'left-0 pl-3'} flex items-center pointer-events-none`}>
-          <Icon className="text-gray-400" size={20} />
+          <Icon className="text-text-muted" size={20} />
         </div>
         <input
           type={type}
@@ -38,13 +39,13 @@ const InputField = React.memo(({ icon: Icon, label, name, type = 'text', placeho
           value={formData[name] || ''}
           onChange={handleInputChange}
           maxLength={maxLength}
-          className={`border ${fieldErrors[name] ? 'border-red-500 focus:ring-red-500 focus:border-red-500' : 'border-gray-300 focus:ring-emerald-500 focus:border-emerald-500'} rounded-lg w-full ${isRtl ? 'pl-4 pr-10' : 'pl-10 pr-4'} py-3 focus:ring-2 transition-colors block text-sm font-medium text-gray-700`}
+          className={`border ${fieldErrors[name] ? 'border-red-500 focus:ring-red-500 focus:border-red-500' : 'border-border-soft focus:ring-brand-accent focus:border-brand-accent'} rounded-xl w-full ${isRtl ? 'pl-4 pr-10' : 'pl-10 pr-4'} py-3 focus:ring-2 transition-colors bg-surface-base text-sm font-medium text-text-body`}
           placeholder={placeholder}
           required
         />
       </div>
-      {fieldErrors[name] && <p className="mt-1 text-sm text-red-600">{fieldErrors[name]}</p>}
-      {hint && !fieldErrors[name] && <p className="mt-1 text-sm text-gray-500">{hint}</p>}
+      {fieldErrors[name] && <p className="mt-2 text-sm text-red-600">{fieldErrors[name]}</p>}
+      {hint && !fieldErrors[name] && <p className="mt-2 text-sm text-text-muted">{hint}</p>}
     </div>
   )
 })
@@ -56,9 +57,34 @@ const SignupForm = React.memo(() => {
   const [showPassword, setShowPassword] = useState(false)
   const [showConfirmPassword, setShowConfirmPassword] = useState(false)
   const navigate = useNavigate()
-  const { t, i18n } = useTranslation('pages')
+  const [searchParams] = useSearchParams()
+  const { i18n } = useTranslation('pages')
   const isRtl = i18n.dir() === 'rtl'
   const lang = i18n.language
+
+  // Read role from query params and validate it's safe for public signup
+  useEffect(() => {
+    const roleParam = searchParams.get('role')
+    const safeRole = roleParam === 'OWNER' ? 'OWNER' : 'INVESTOR' // Default to INVESTOR, only allow OWNER
+    
+    if (formData.role !== safeRole) {
+      handleInputChange({
+        target: { name: 'role', value: safeRole }
+      })
+    }
+  }, [searchParams, formData.role, handleInputChange])
+
+  const getRoleInfo = () => {
+    const role = formData.role || 'INVESTOR'
+    return {
+      title: lang === 'ar' ? (role === 'OWNER' ? 'مالك عقار' : 'مستثمر') : (role === 'OWNER' ? 'Property Owner' : 'Investor'),
+      description: lang === 'ar' 
+        ? (role === 'OWNER' ? 'أنت تسجل كمالك عقاري' : 'أنت تسجل كمستثمر')
+        : (role === 'OWNER' ? 'You are signing up as a Property Owner' : 'You are signing up as an Investor'),
+      icon: role === 'OWNER' ? Building2 : TrendingUp,
+      color: role === 'OWNER' ? 'text-vision-purple' : 'text-brand-accent'
+    }
+  }
 
   const validateForm = useCallback(() => {
     const errors = {}
@@ -124,6 +150,15 @@ const SignupForm = React.memo(() => {
     e.preventDefault()
     setError('')
     if (!validateForm()) return
+    
+    // SAFETY: Prevent admin role in public signup
+    if (formData.role === 'ADMIN') {
+      setError(lang === 'ar' 
+        ? 'غير مسموح بالتسجيل كمسؤول في التسجيل العام' 
+        : 'Admin registration is not allowed in public signup')
+      return
+    }
+    
     setLoading(true)
     try {
       let phoneDigits = formData.phoneNumber.replace(/\D/g, '')
@@ -221,36 +256,54 @@ const SignupForm = React.memo(() => {
   }
 
   return (
-    <div className="min-h-[calc(100vh-200px)] flex items-center justify-center py-12 px-2 sm:px-4">
-      <div className="w-full max-w-3xl">
-        <div className="text-center mb-8">
-          <div className="flex items-center justify-center gap-2 mb-4">
-            <Building2 className="text-emerald-600" size={40} />
-            <span className="text-3xl font-bold text-gray-900">ALWASM</span>
+    <div className="min-h-screen bg-surface-base">
+      {/* Full-width header — matches Login page pattern */}
+      <div className="bg-brand-primary text-white py-16">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="text-center">
+            <div className="w-16 h-16 bg-white/10 rounded-full flex items-center justify-center mx-auto mb-6">
+              <UserPlus className="text-brand-accent" size={28} />
+            </div>
+            <h1 className="text-3xl font-bold text-white mb-4 tracking-tight">
+              {lang === 'ar' ? 'إنشاء حساب جديد' : 'Create New Account'}
+            </h1>
+            <p className="text-white/80 text-lg leading-relaxed max-w-2xl mx-auto mb-6">
+              {lang === 'ar'
+                ? 'انضم إلى الوسم وابدأ استثمارك العقاري بثقة وأمان'
+                : 'Join ALWASM and start your real estate investment journey with confidence'}
+            </p>
+            {/* Role badge */}
+            <div className="inline-flex items-center gap-3 bg-white/10 backdrop-blur-sm rounded-full px-6 py-3 border border-white/20">
+              {React.createElement(getRoleInfo().icon, {
+                className: `${getRoleInfo().color} flex-shrink-0`,
+                size: 18
+              })}
+              <div className="text-start">
+                <span className="text-white font-semibold text-sm">{getRoleInfo().title}</span>
+                <span className="text-white/70 text-xs mx-2">—</span>
+                <span className="text-white/70 text-xs">{getRoleInfo().description}</span>
+              </div>
+            </div>
           </div>
-          <h1 className="text-2xl font-bold text-gray-900 mb-2">
-            {lang === 'ar' ? 'إنشاء حساب جديد' : 'Create New Account'}
-          </h1>
-          <p className="text-gray-600">
-            {lang === 'ar'
-              ? 'انضم إلى الوسم وابدأ استثمارك العقاري بثقة وأمان'
-              : 'Join ALWASM and start your real estate investment journey with confidence'}
-          </p>
         </div>
+      </div>
 
-        <div className="bg-white border border-gray-200 rounded-xl shadow-lg p-8">
-          <form onSubmit={onSubmit} className="space-y-5">
+      {/* Form Section */}
+      <div className="flex items-center justify-center py-12">
+        <div className="w-full max-w-lg mx-auto px-4">
+        <div className="bg-surface-card border border-border-soft rounded-2xl shadow-card p-10">
+          <form onSubmit={onSubmit} className="space-y-7">
             <InputField icon={User} label={lang === 'ar' ? 'الاسم الكامل' : 'Full Name'} name="fullName" placeholder={lang === 'ar' ? 'محمد أحمد' : 'John Smith'} />
             <InputField icon={Mail} label={lang === 'ar' ? 'البريد الإلكتروني' : 'Email Address'} name="email" type="email" placeholder="you@example.com" />
             <InputField icon={Phone} label={lang === 'ar' ? 'رقم الجوال' : 'Phone Number'} name="phoneNumber" placeholder="05XXXXXXXX" hint={lang === 'ar' ? 'رقم جوال سعودي (مثال: 05XXXXXXXX)' : 'Saudi mobile number (e.g., 05XXXXXXXX)'} maxLength={14} />
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
+              <label className="block text-sm font-medium text-text-body mb-2">
                 {lang === 'ar' ? 'رقم الهوية الوطنية / الإقامة' : 'National ID / Iqama'} <span className="text-red-500">*</span>
               </label>
               <div className="relative">
-                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                  <CreditCard className="text-gray-400" size={20} />
+                <div className={`absolute inset-y-0 ${isRtl ? 'right-0 pr-3' : 'left-0 pl-3'} flex items-center pointer-events-none`}>
+                  <CreditCard className="text-text-muted" size={20} />
                 </div>
                 <input
                   type="text"
@@ -259,15 +312,15 @@ const SignupForm = React.memo(() => {
                   onChange={handleInputChange}
                   maxLength={10}
                   key="nationalId"
-                  className={`border ${fieldErrors.nationalId ? 'border-red-500 focus:ring-red-500 focus:border-red-500' : 'border-gray-300 focus:ring-emerald-500 focus:border-emerald-500'} rounded-lg w-full pl-10 pr-4 py-3 focus:ring-2 transition-colors block text-sm font-medium text-gray-700`}
+                  className={`border ${fieldErrors.nationalId ? 'border-red-500 focus:ring-red-500 focus:border-red-500' : 'border-border-soft focus:ring-brand-accent focus:border-brand-accent'} rounded-xl w-full ${isRtl ? 'pl-4 pr-10' : 'pl-10 pr-4'} py-3 focus:ring-2 transition-colors bg-surface-base text-sm font-medium text-text-body`}
                   placeholder="1XXXXXXXXX"
                   required
                 />
               </div>
-              {fieldErrors.nationalId && <p className="mt-1 text-sm text-red-600">{fieldErrors.nationalId}</p>}
-              <div className="mt-2 p-3 bg-blue-50 border border-blue-200 rounded-lg flex gap-2">
-                <Shield className="text-blue-500 flex-shrink-0" size={18} />
-                <p className="text-xs text-blue-700">
+              {fieldErrors.nationalId && <p className="mt-2 text-sm text-red-600">{fieldErrors.nationalId}</p>}
+              <div className="mt-3 p-4 bg-brand-primary/5 border border-brand-primary/20 rounded-xl flex gap-3">
+                <Shield className="text-brand-primary flex-shrink-0 mt-0.5" size={18} />
+                <p className="text-xs text-brand-primary leading-relaxed">
                   {lang === 'ar'
                     ? 'رقم الهوية مطلوب للتحقق من هويتك وفقاً لأنظمة مكافحة غسل الأموال ومعايير PDPL السعودية. يتم تخزينه بشكل آمن ومشفر.'
                     : 'National ID is required for identity verification per Saudi AML regulations and PDPL standards. Stored securely and encrypted.'}
@@ -276,12 +329,12 @@ const SignupForm = React.memo(() => {
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
+              <label className="block text-sm font-medium text-text-body mb-2">
                 {lang === 'ar' ? 'كلمة المرور' : 'Password'} <span className="text-red-500">*</span>
               </label>
               <div className="relative">
                 <div className={`absolute inset-y-0 ${isRtl ? 'right-0 pr-3' : 'left-0 pl-3'} flex items-center pointer-events-none`}>
-                  <Lock className="text-gray-400" size={20} />
+                  <Lock className="text-text-muted" size={20} />
                 </div>
                 <input
                   type={showPassword ? 'text' : 'password'}
@@ -289,17 +342,17 @@ const SignupForm = React.memo(() => {
                   value={formData.password || ''}
                   onChange={handleInputChange}
                   key="password"
-                  className={`border ${fieldErrors.password ? 'border-red-500 focus:ring-red-500 focus:border-red-500' : 'border-gray-300 focus:ring-emerald-500 focus:border-emerald-500'} rounded-lg w-full ${isRtl ? 'pl-4 pr-12' : 'pl-10 pr-12'} py-3 focus:ring-2 transition-colors block text-sm font-medium text-gray-700`}
+                  className={`border ${fieldErrors.password ? 'border-red-500 focus:ring-red-500 focus:border-red-500' : 'border-border-soft focus:ring-brand-accent focus:border-brand-accent'} rounded-xl w-full ${isRtl ? 'pl-4 pr-12' : 'pl-10 pr-12'} py-3 focus:ring-2 transition-colors bg-surface-base text-sm font-medium text-text-body`}
                   placeholder={lang === 'ar' ? '10 أحرف على الأقل' : 'Min. 10 characters'}
                   required
                 />
                 <button type="button" onClick={() => setShowPassword(!showPassword)} className={`absolute inset-y-0 ${isRtl ? 'left-0 pl-3' : 'right-0 pr-3'} flex items-center`}>
-                  {showPassword ? <Eye className="text-gray-400" size={20} /> : <EyeOff className="text-gray-400" size={20} />}
+                  {showPassword ? <Eye className="text-text-muted" size={20} /> : <EyeOff className="text-text-muted" size={20} />}
                 </button>
               </div>
-              {fieldErrors.password && <p className="mt-1 text-sm text-red-600">{fieldErrors.password}</p>}
+              {fieldErrors.password && <p className="mt-2 text-sm text-red-600">{fieldErrors.password}</p>}
               {!fieldErrors.password && (
-                <p className="mt-1 text-xs text-gray-500">
+                <p className="mt-2 text-xs text-text-muted">
                   {lang === 'ar'
                     ? '10 أحرف على الأقل: حرف كبير، حرف صغير، رقم'
                     : 'Min. 10 characters: uppercase, lowercase, number'}
@@ -308,12 +361,12 @@ const SignupForm = React.memo(() => {
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
+              <label className="block text-sm font-medium text-text-body mb-2">
                 {lang === 'ar' ? 'تأكيد كلمة المرور' : 'Confirm Password'} <span className="text-red-500">*</span>
               </label>
               <div className="relative">
                 <div className={`absolute inset-y-0 ${isRtl ? 'right-0 pr-3' : 'left-0 pl-3'} flex items-center pointer-events-none`}>
-                  <Lock className="text-gray-400" size={20} />
+                  <Lock className="text-text-muted" size={20} />
                 </div>
                 <input
                   type={showConfirmPassword ? 'text' : 'password'}
@@ -321,35 +374,35 @@ const SignupForm = React.memo(() => {
                   value={formData.confirmPassword || ''}
                   onChange={handleInputChange}
                   key="confirmPassword"
-                  className={`border ${fieldErrors.confirmPassword ? 'border-red-500 focus:ring-red-500 focus:border-red-500' : 'border-gray-300 focus:ring-emerald-500 focus:border-emerald-500'} rounded-lg w-full ${isRtl ? 'pl-4 pr-12' : 'pl-10 pr-12'} py-3 focus:ring-2 transition-colors block text-sm font-medium text-gray-700`}
+                  className={`border ${fieldErrors.confirmPassword ? 'border-red-500 focus:ring-red-500 focus:border-red-500' : 'border-border-soft focus:ring-brand-accent focus:border-brand-accent'} rounded-xl w-full ${isRtl ? 'pl-4 pr-12' : 'pl-10 pr-12'} py-3 focus:ring-2 transition-colors bg-surface-base text-sm font-medium text-text-body`}
                   placeholder={lang === 'ar' ? 'أعد كتابة كلمة المرور' : 'Re-enter password'}
                   required
                 />
                 <button type="button" onClick={() => setShowConfirmPassword(!showConfirmPassword)} className={`absolute inset-y-0 ${isRtl ? 'left-0 pl-3' : 'right-0 pr-3'} flex items-center`}>
-                  {showConfirmPassword ? <Eye className="text-gray-400" size={20} /> : <EyeOff className="text-gray-400" size={20} />}
+                  {showConfirmPassword ? <Eye className="text-text-muted" size={20} /> : <EyeOff className="text-text-muted" size={20} />}
                 </button>
               </div>
-              {fieldErrors.confirmPassword && <p className="mt-1 text-sm text-red-600">{fieldErrors.confirmPassword}</p>}
+              {fieldErrors.confirmPassword && <p className="mt-2 text-sm text-red-600">{fieldErrors.confirmPassword}</p>}
             </div>
 
-            <div className={`p-4 border ${fieldErrors.termsAccepted ? 'border-red-500 bg-red-50' : 'border-gray-200'} rounded-lg`}>
+            <div className={`p-4 border ${fieldErrors.termsAccepted ? 'border-red-500 bg-red-50' : 'border-border-soft'} rounded-xl`}>
               <label className="flex items-start gap-3 cursor-pointer">
                 <input
                   type="checkbox"
                   name="termsAccepted"
                   checked={formData.termsAccepted || false}
                   onChange={handleInputChange}
-                  className="mt-1 h-4 w-4 text-emerald-600 focus:ring-emerald-500 border-gray-300 rounded"
+                  className="mt-1 h-4 w-4 text-brand-accent focus:ring-brand-accent border-border-soft rounded"
                 />
                 <div className="text-sm">
-                  <span className="text-gray-700">
+                  <span className="text-text-body">
                     {lang === 'ar' ? 'أقر بأنني قد قرأت ووافقت على ' : 'I have read and agree to the '}
                   </span>
-                  <button type="button" onClick={() => navigate('/terms')} className="text-emerald-600 hover:text-emerald-700 font-medium">
+                  <button type="button" onClick={() => navigate('/terms')} className="text-brand-accent hover:text-brand-accent/90 font-medium">
                     {lang === 'ar' ? 'الشروط والأحكام' : 'Terms and Conditions'}
                   </button>
-                  <span className="text-gray-700"> {lang === 'ar' ? 'و' : 'and '}</span>
-                  <button type="button" onClick={() => navigate('/privacy')} className="text-emerald-600 hover:text-emerald-700 font-medium">
+                  <span className="text-text-body"> {lang === 'ar' ? 'و' : 'and '}</span>
+                  <button type="button" onClick={() => navigate('/privacy')} className="text-brand-accent hover:text-brand-accent/90 font-medium">
                     {lang === 'ar' ? 'سياسة الخصوصية' : 'Privacy Policy'}
                   </button>
                   <span className="text-red-500"> *</span>
@@ -365,7 +418,7 @@ const SignupForm = React.memo(() => {
               </div>
             )}
 
-            <button type="submit" disabled={loading} className="w-full flex items-center justify-center gap-2 rounded-lg bg-emerald-600 hover:bg-emerald-700 disabled:bg-gray-300 disabled:cursor-not-allowed text-white px-4 py-3 font-semibold transition-colors">
+            <button type="submit" disabled={loading} className="w-full flex items-center justify-center gap-2 rounded-xl bg-brand-accent hover:bg-brand-accent/90 hover:scale-[1.02] active:scale-95 disabled:bg-surface-muted disabled:cursor-not-allowed text-white px-4 py-3 font-semibold transition-all duration-200 shadow-lg hover:shadow-xl">
               {loading ? (
                 <>
                   <Loader2 className="animate-spin" size={20} />
@@ -381,22 +434,23 @@ const SignupForm = React.memo(() => {
           </form>
         </div>
 
-        <div className="mt-6 text-center text-sm text-gray-600">
+        <div className="mt-8 text-center text-sm text-text-muted">
           <p>
             {lang === 'ar' ? 'لديك حساب مسبقاً؟ ' : 'Already have an account? '}
-            <button onClick={() => navigate('/login')} className="text-emerald-600 hover:text-emerald-700 font-medium">
+            <button onClick={() => navigate('/login')} className="text-brand-accent hover:text-brand-accent/90 font-medium">
               {lang === 'ar' ? 'تسجيل الدخول' : 'Sign in'}
             </button>
           </p>
         </div>
 
-        <div className="mt-6 text-center">
-          <div className="inline-flex items-center gap-2 px-4 py-2 bg-gray-50 rounded-full">
-            <Shield className="text-emerald-600" size={16} />
-            <span className="text-xs text-gray-600">
+        <div className="mt-10 text-center">
+          <div className="inline-flex items-center gap-2 px-4 py-2 bg-surface-muted rounded-full border border-border-soft shadow-sm">
+            <Shield className="text-brand-accent" size={16} />
+            <span className="text-xs text-text-muted">
               {lang === 'ar' ? 'نلتزم بمعايير حماية البيانات الشخصية PDPL' : 'PDPL compliant - Your data is protected'}
             </span>
           </div>
+        </div>
         </div>
       </div>
     </div>
@@ -404,6 +458,14 @@ const SignupForm = React.memo(() => {
 })
 
 export default function Signup() {
+  const [searchParams] = useSearchParams()
+  
+  // Determine initial role from query params, default to INVESTOR, only allow OWNER for public
+  const getInitialRole = () => {
+    const roleParam = searchParams.get('role')
+    return roleParam === 'OWNER' ? 'OWNER' : 'INVESTOR'
+  }
+  
   return (
     <FormProvider
       initialValues={{
@@ -413,7 +475,7 @@ export default function Signup() {
         nationalId: '',
         password: '',
         confirmPassword: '',
-        role: 'INVESTOR',
+        role: getInitialRole(),
         termsAccepted: false
       }}
     >

@@ -32,28 +32,28 @@ export default function Step4OwnerInfo({ formData, onChange, errors = {} }) {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex items-center gap-3 pb-4 border-b border-gray-200">
-        <div className="w-12 h-12 bg-indigo-100 rounded-lg flex items-center justify-center">
-          <User className="text-indigo-600" size={24} />
+      <div className="flex items-center gap-4 pb-6 border-b border-border-soft">
+        <div className="w-14 h-14 bg-brand-primary/10 rounded-2xl flex items-center justify-center">
+          <User className="text-brand-primary" size={28} />
         </div>
         <div>
-          <h2 className="text-2xl font-bold text-gray-900">{t('ownerInformationTitle')}</h2>
-          <p className="text-sm text-gray-600">{t('ownerInformationDescription')}</p>
+          <h2 className="text-2xl font-bold text-brand-primary">{t('ownerInformationTitle')}</h2>
+          <p className="text-text-muted mt-1">{t('ownerInformationDescription')}</p>
         </div>
       </div>
 
       {/* Info Alert */}
-      <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 flex items-start gap-3">
-        <AlertCircle className="text-blue-600 flex-shrink-0 mt-0.5" size={20} />
-        <div className="text-sm text-blue-800">
-          <p className="font-medium mb-1">{t('importantInformationTitle')}</p>
-          <p>{t('importantInformationDescription')}</p>
+      <div className="bg-brand-accent-soft border border-brand-accent/30 rounded-2xl p-6 flex items-start gap-4">
+        <AlertCircle className="text-brand-accent flex-shrink-0 mt-0.5" size={24} />
+        <div className="text-sm text-brand-primary">
+          <p className="font-semibold mb-2">{t('importantInformationTitle')}</p>
+          <p className="leading-relaxed">{t('importantInformationDescription')}</p>
         </div>
       </div>
 
       {/* Owner Type */}
       <div>
-        <label className="block text-sm font-medium text-gray-700 mb-2">
+        <label className="block text-sm font-semibold text-text-body mb-3">
           {t('ownerType')} <span className="text-red-500">*</span>
         </label>
         <div className="grid grid-cols-2 gap-4">
@@ -62,19 +62,19 @@ export default function Step4OwnerInfo({ formData, onChange, errors = {} }) {
               key={key}
               type="button"
               onClick={() => handleChange('ownerType', key)}
-              className={`p-4 border-2 rounded-lg text-left transition-all ${
+              className={`p-4 border-2 rounded-xl text-left transition-all ${
                 formData.ownerType === key
-                  ? 'border-emerald-500 bg-emerald-50'
-                  : 'border-gray-200 hover:border-gray-300'
+                  ? 'border-brand-accent bg-brand-accent-soft shadow-md'
+                  : 'border-border-soft hover:border-border-soft'
               }`}
             >
               <div className="flex items-center gap-3">
                 {key === OwnerType.INDIVIDUAL ? (
-                  <User className={formData.ownerType === key ? 'text-emerald-600' : 'text-gray-400'} size={24} />
+                  <User className={formData.ownerType === key ? 'text-brand-accent' : 'text-text-muted'} size={24} />
                 ) : (
-                  <Building className={formData.ownerType === key ? 'text-emerald-600' : 'text-gray-400'} size={24} />
+                  <Building className={formData.ownerType === key ? 'text-brand-accent' : 'text-text-muted'} size={24} />
                 )}
-                <span className={`font-medium ${formData.ownerType === key ? 'text-emerald-900' : 'text-gray-700'}`}>
+                <span className={`font-semibold ${formData.ownerType === key ? 'text-brand-primary' : 'text-text-body'}`}>
                   {label}
                 </span>
               </div>
@@ -88,12 +88,12 @@ export default function Step4OwnerInfo({ formData, onChange, errors = {} }) {
 
       {/* Basic Information */}
       <div className="space-y-4 pt-4">
-        <h3 className="text-lg font-semibold text-gray-900">
+        <h3 className="text-xl font-semibold text-brand-primary mb-6">
           {isCompany ? t('companyInformation') : t('personalInformation')}
         </h3>
 
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-2">
+          <label className="block text-sm font-semibold text-text-body mb-3">
             {isCompany ? t('companyName') : t('fullName')} <span className="text-red-500">*</span>
           </label>
           <input
@@ -101,7 +101,7 @@ export default function Step4OwnerInfo({ formData, onChange, errors = {} }) {
             value={formData.ownerName}
             onChange={(e) => handleChange('ownerName', e.target.value)}
             placeholder={isCompany ? 'e.g., ABC Real Estate Company' : 'e.g., Ahmed Mohammed Al-Saud'}
-            className="w-full border border-gray-300 rounded-lg px-4 py-2.5 focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
+            className="w-full border border-border-soft rounded-xl px-4 py-3 focus:ring-2 focus:ring-brand-accent focus:border-brand-accent bg-surface-card transition-colors"
           />
           {errors.ownerName && (
             <p className="mt-1 text-sm text-red-600">{errors.ownerName}</p>
@@ -109,7 +109,7 @@ export default function Step4OwnerInfo({ formData, onChange, errors = {} }) {
         </div>
 
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-2">
+          <label className="block text-sm font-semibold text-text-body mb-3">
             {isCompany ? t('commercialRegistration') : t('nationalId')} <span className="text-red-500">*</span>
           </label>
           <div className="relative">
@@ -119,7 +119,7 @@ export default function Step4OwnerInfo({ formData, onChange, errors = {} }) {
               onChange={(e) => handleChange('nationalIdOrCR', e.target.value)}
               placeholder={isCompany ? 'e.g., 1234567890' : 'e.g., 1234567890 (10 digits)'}
               maxLength={10}
-              className="w-full border border-gray-300 rounded-lg px-4 py-2.5 pr-10 focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
+              className="w-full border border-border-soft rounded-xl px-4 py-3 pr-12 focus:ring-2 focus:ring-brand-accent focus:border-brand-accent bg-surface-card transition-colors"
             />
             {formData.nationalIdOrCR && validations.nationalId !== null && (
               <div className="absolute right-3 top-1/2 -translate-y-1/2">
@@ -145,7 +145,7 @@ export default function Step4OwnerInfo({ formData, onChange, errors = {} }) {
         {isCompany && (
           <>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
+              <label className="block text-sm font-semibold text-text-body mb-3">
                 {t('commercialRegistrationNumber')} <span className="text-red-500">*</span>
               </label>
               <input
@@ -153,7 +153,7 @@ export default function Step4OwnerInfo({ formData, onChange, errors = {} }) {
                 value={formData.commercialRegistration}
                 onChange={(e) => handleChange('commercialRegistration', e.target.value)}
                 placeholder="e.g., 1010123456"
-                className="w-full border border-gray-300 rounded-lg px-4 py-2.5 focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
+                className="w-full border border-border-soft rounded-xl px-4 py-3 focus:ring-2 focus:ring-brand-accent focus:border-brand-accent bg-surface-card transition-colors"
               />
               {errors.commercialRegistration && (
                 <p className="mt-1 text-sm text-red-600">{errors.commercialRegistration}</p>
@@ -162,7 +162,7 @@ export default function Step4OwnerInfo({ formData, onChange, errors = {} }) {
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
+                <label className="block text-sm font-semibold text-text-body mb-3">
                     {t('authorizedPersonName')} <span className="text-red-500">*</span>
                 </label>
                 <input
@@ -170,7 +170,7 @@ export default function Step4OwnerInfo({ formData, onChange, errors = {} }) {
                   value={formData.authorizedPersonName}
                   onChange={(e) => handleChange('authorizedPersonName', e.target.value)}
                   placeholder="e.g., Mohammed Ahmed"
-                  className="w-full border border-gray-300 rounded-lg px-4 py-2.5 focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
+                  className="w-full border border-border-soft rounded-xl px-4 py-3 focus:ring-2 focus:ring-brand-accent focus:border-brand-accent bg-surface-card transition-colors"
                 />
                 {errors.authorizedPersonName && (
                   <p className="mt-1 text-sm text-red-600">{errors.authorizedPersonName}</p>
@@ -178,7 +178,7 @@ export default function Step4OwnerInfo({ formData, onChange, errors = {} }) {
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
+                <label className="block text-sm font-semibold text-text-body mb-3">
                   {t('authorizedPersonId')} <span className="text-red-500">*</span>
                 </label>
                 <input
@@ -187,7 +187,7 @@ export default function Step4OwnerInfo({ formData, onChange, errors = {} }) {
                   onChange={(e) => handleChange('authorizedPersonId', e.target.value)}
                   placeholder="e.g., 1234567890"
                   maxLength={10}
-                  className="w-full border border-gray-300 rounded-lg px-4 py-2.5 focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
+                  className="w-full border border-border-soft rounded-xl px-4 py-3 focus:ring-2 focus:ring-brand-accent focus:border-brand-accent bg-surface-card transition-colors"
                 />
                 {errors.authorizedPersonId && (
                   <p className="mt-1 text-sm text-red-600">{errors.authorizedPersonId}</p>
@@ -200,11 +200,11 @@ export default function Step4OwnerInfo({ formData, onChange, errors = {} }) {
 
       {/* Contact Information */}
       <div className="space-y-4 pt-4">
-        <h3 className="text-lg font-semibold text-gray-900">{t('contactInformation')}</h3>
+        <h3 className="text-xl font-semibold text-brand-primary">{t('contactInformation')}</h3>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
+            <label className="block text-sm font-semibold text-text-body mb-3">
               {t('phoneNumber')} <span className="text-red-500">*</span>
             </label>
             <div className="relative">
@@ -213,7 +213,7 @@ export default function Step4OwnerInfo({ formData, onChange, errors = {} }) {
                 value={formData.ownerPhone}
                 onChange={(e) => handleChange('ownerPhone', e.target.value)}
                 placeholder="e.g., 0501234567 or +966501234567"
-                className="w-full border border-gray-300 rounded-lg px-4 py-2.5 pr-10 focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
+                className="w-full border border-border-soft rounded-xl px-4 py-3 pr-12 focus:ring-2 focus:ring-brand-accent focus:border-brand-accent bg-surface-card transition-colors"
               />
               {formData.ownerPhone && validations.phone !== null && (
                 <div className="absolute right-3 top-1/2 -translate-y-1/2">
@@ -236,7 +236,7 @@ export default function Step4OwnerInfo({ formData, onChange, errors = {} }) {
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
+            <label className="block text-sm font-semibold text-text-body mb-3">
               {t('emailAddress')} <span className="text-red-500">*</span>
             </label>
             <input
@@ -244,7 +244,7 @@ export default function Step4OwnerInfo({ formData, onChange, errors = {} }) {
               value={formData.ownerEmail}
               onChange={(e) => handleChange('ownerEmail', e.target.value)}
               placeholder="e.g., owner@example.com"
-              className="w-full border border-gray-300 rounded-lg px-4 py-2.5 focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
+              className="w-full border border-border-soft rounded-xl px-4 py-3 focus:ring-2 focus:ring-brand-accent focus:border-brand-accent bg-surface-card transition-colors"
             />
             {errors.ownerEmail && (
               <p className="mt-1 text-sm text-red-600">{errors.ownerEmail}</p>
@@ -255,18 +255,18 @@ export default function Step4OwnerInfo({ formData, onChange, errors = {} }) {
 
       {/* Banking Information */}
       <div className="space-y-4 pt-4">
-        <h3 className="text-lg font-semibold text-gray-900">{t('bankingInformation')}</h3>
+        <h3 className="text-xl font-semibold text-brand-primary">{t('bankingInformation')}</h3>
 
-        <div className="bg-amber-50 border border-amber-200 rounded-lg p-4 flex items-start gap-3">
-          <AlertCircle className="text-amber-600 flex-shrink-0 mt-0.5" size={20} />
-          <div className="text-sm text-amber-800">
-            <p className="font-medium mb-1">{t('payoutAccount')}</p>
-            <p>{t('payoutAccountDescription')}</p>
+        <div className="bg-brand-coral-soft border border-brand-coral/30 rounded-2xl p-6 flex items-start gap-4">
+          <AlertCircle className="text-brand-coral flex-shrink-0 mt-0.5" size={24} />
+          <div className="text-sm text-brand-primary">
+            <p className="font-semibold mb-2">{t('payoutAccount')}</p>
+            <p className="leading-relaxed">{t('payoutAccountDescription')}</p>
           </div>
         </div>
 
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-2">
+          <label className="block text-sm font-semibold text-text-body mb-3">
             {t('iban')} <span className="text-red-500">*</span>
           </label>
           <div className="relative">
@@ -276,7 +276,7 @@ export default function Step4OwnerInfo({ formData, onChange, errors = {} }) {
               onChange={(e) => handleChange('ownerIban', e.target.value.toUpperCase())}
               placeholder="e.g., SA0380000000608010167519"
               maxLength={24}
-              className="w-full border border-gray-300 rounded-lg px-4 py-2.5 pr-10 focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 font-mono"
+              className="w-full border border-border-soft rounded-xl px-4 py-3 pr-12 focus:ring-2 focus:ring-brand-accent focus:border-brand-accent bg-surface-card transition-colors font-mono"
             />
             {formData.ownerIban && validations.iban !== null && (
               <div className="absolute right-3 top-1/2 -translate-y-1/2">

@@ -47,7 +47,7 @@ const { t } = useTranslation('pages');
       formData.append('file', file)
       formData.append('documentType', documentType || 'document')
 
-      const response = await fetch(`${import.meta.env.VITE_API_BASE}/api/properties/upload-document`, {
+      const response = await fetch('/api/properties/upload-document', {
         method: 'POST',
         headers: authHeader(),
         body: formData
@@ -94,7 +94,7 @@ const { t } = useTranslation('pages');
         <div
           onClick={() => !disabled && !uploading && fileInputRef.current?.click()}
           className={`border-2 border-dashed rounded-lg p-6 text-center transition-colors ${
-            disabled ? 'bg-gray-50 cursor-not-allowed' : 'cursor-pointer hover:border-emerald-500 hover:bg-emerald-50'
+            disabled ? 'bg-gray-50 cursor-not-allowed' : 'cursor-pointer hover:border-brand-accent hover:bg-brand-accent-soft'
           } ${error ? 'border-red-300 bg-red-50' : 'border-gray-300'}`}
         >
           <input
@@ -108,7 +108,7 @@ const { t } = useTranslation('pages');
           
         {uploading ? (
   <div className="flex flex-col items-center gap-2">
-    <Loader className="animate-spin text-emerald-600" size={32} />
+    <Loader className="animate-spin text-brand-accent" size={32} />
     <p className="text-sm text-gray-600">
       {t('fileUpload.uploading')}
     </p>
@@ -152,8 +152,8 @@ const { t } = useTranslation('pages');
     : t('fileUpload.imageUploaded')}
 </p>
                   <div className="flex items-center gap-2 mt-1">
-                    <CheckCircle2 className="text-green-600 flex-shrink-0" size={16} />
-                   <span className="text-xs text-green-600">
+                    <CheckCircle2 className="text-brand-accent flex-shrink-0" size={16} />
+                   <span className="text-xs text-brand-accent">
   {t('fileUpload.uploadSuccessful')}
 </span>
                   </div>

@@ -28,28 +28,28 @@ const PropertiesTab = ({ properties, regulatorMode }) => {
   
   if (!properties.length) {
     return (
-      <div className="p-8 text-center text-gray-500 text-sm">
+      <div className="p-12 text-center text-gray-500 text-base">
         {t('blockchainExplorer.noProperties')}
       </div>
     )
   }
 
   return (
-    <div className="space-y-4">
+    <div className="p-8 space-y-6">
       {properties.map((property) => (
-        <div key={property.id} className="bg-white rounded-lg shadow p-4">
+        <div key={property.id} className="bg-white border border-gray-200 rounded-2xl shadow-sm p-6 hover:shadow-md transition-shadow">
           <div className="flex justify-between items-start">
-            <div>
-              <h3 className="font-medium">{property.name || 'Unnamed Property'}</h3>
-              <p className="text-sm text-gray-500">ID: {maskPropertyId(property.id)}</p>
+            <div className="flex-1">
+              <h3 className="text-lg font-semibold text-[#1E1958] mb-2">{property.name || 'Unnamed Property'}</h3>
+              <p className="text-sm text-gray-600 mb-1">ID: {maskPropertyId(property.id)}</p>
               {property.ownerName && (
-                <p className="text-sm">
+                <p className="text-sm text-gray-700">
                   {t('blockchainExplorer.owner')}: {property.ownerName}
                 </p>
               )}
             </div>
             {regulatorMode && property.ownerId && (
-              <span className="text-xs bg-blue-100 text-blue-800 px-2 py-1 rounded">
+              <span className="text-sm bg-[#41EAD4]/10 text-[#41EAD4] px-4 py-2 rounded-xl border border-[#41EAD4]/20">
                 {t('blockchainExplanner.ownerId')}: {maskNationalId(property.ownerId)}
               </span>
             )}
@@ -65,33 +65,33 @@ const CertificatesTab = ({ certificates, regulatorMode }) => {
   
   if (!certificates.length) {
     return (
-      <div className="p-8 text-center text-gray-500 text-sm">
+      <div className="p-12 text-center text-gray-500 text-base">
         {t('blockchainExplorer.noCertificates')}
       </div>
     )
   }
 
   return (
-    <div className="space-y-4">
+    <div className="p-8 space-y-6">
       {certificates.map((cert) => (
-        <div key={cert.id} className="bg-white rounded-lg shadow p-4">
+        <div key={cert.id} className="bg-white border border-gray-200 rounded-2xl shadow-sm p-6 hover:shadow-md transition-shadow">
           <div className="flex justify-between items-start">
-            <div>
-              <h3 className="font-medium">{cert.type || 'Certificate'}</h3>
-              <p className="text-sm text-gray-500">ID: {maskPropertyId(cert.id)}</p>
+            <div className="flex-1">
+              <h3 className="text-lg font-semibold text-[#1E1958] mb-2">{cert.type || 'Certificate'}</h3>
+              <p className="text-sm text-gray-600 mb-1">ID: {maskPropertyId(cert.id)}</p>
               {cert.propertyId && (
-                <p className="text-sm">
+                <p className="text-sm text-gray-700 mb-1">
                   {t('blockchainExplorer.property')}: {maskPropertyId(cert.propertyId)}
                 </p>
               )}
               {cert.issuer && (
-                <p className="text-sm">
+                <p className="text-sm text-gray-700">
                   {t('blockchainExplorer.issuer')}: {cert.issuer}
                 </p>
               )}
             </div>
             {regulatorMode && cert.ownerId && (
-              <span className="text-xs bg-blue-100 text-blue-800 px-2 py-1 rounded">
+              <span className="text-sm bg-[#986F9A]/10 text-[#986F9A] px-4 py-2 rounded-xl border border-[#986F9A]/20">
                 {t('blockchainExplorer.ownerId')}: {maskNationalId(cert.ownerId)}
               </span>
             )}
@@ -107,29 +107,31 @@ const TransactionsTab = ({ transactions, regulatorMode }) => {
   
   if (!transactions.length) {
     return (
-      <div className="p-8 text-center text-gray-500 text-sm">
+      <div className="p-12 text-center text-gray-500 text-base">
         {t('blockchainExplorer.noTransactions')}
       </div>
     )
   }
 
   return (
-    <div className="space-y-4">
+    <div className="p-8 space-y-6">
       {transactions.map((tx) => (
-        <div key={tx.txId} className="bg-white rounded-lg shadow p-4">
+        <div key={tx.txId} className="bg-white border border-gray-200 rounded-2xl shadow-sm p-6 hover:shadow-md transition-shadow">
           <div className="flex justify-between items-start">
-            <div>
-              <h3 className="font-medium">
+            <div className="flex-1">
+              <h3 className="text-lg font-semibold text-[#1E1958] mb-2">
                 {humanizeEventType(tx.type) || 'Transaction'}
               </h3>
-              <p className="text-sm text-gray-500">
+              <p className="text-sm text-gray-600 mb-1">
                 {t('blockchainExplorer.txId')}: {maskPropertyId(tx.txId)}
               </p>
-              <p className="text-sm">
+              <p className="text-sm text-gray-700">
                 {formatRelativeTime(tx.timestamp, t)}
               </p>
             </div>
-            {eventIconForType(tx.type)}
+            <div className="ml-4">
+              {eventIconForType(tx.type)}
+            </div>
           </div>
         </div>
       ))}
@@ -448,8 +450,8 @@ export default function BlockchainExplorer() {
 
   if (!getToken()) {
     return (
-      <div className="p-8 text-center text-gray-500">
-        <Database className="w-12 h-12 mx-auto text-gray-300" />
+      <div className="p-8 text-center text-text-muted">
+        <Database className="w-12 h-12 mx-auto text-border-soft" />
         <p className="mt-2 text-sm">
           {error || (isArabic
             ? 'لا توجد أحداث مسجلة على سلسلة الكتل حتى الآن'
@@ -462,8 +464,8 @@ export default function BlockchainExplorer() {
   if (loading) {
     return (
       <div className="flex flex-col items-center justify-center py-16">
-        <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600" />
-        <p className="mt-4 text-gray-600 text-sm">
+        <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-brand-accent" />
+        <p className="mt-4 text-text-muted text-sm">
           {isArabic
             ? 'جاري تحميل أحداث البلوكشين...'
             : 'Loading blockchain events...'}
@@ -513,15 +515,15 @@ export default function BlockchainExplorer() {
     switch (activeTab) {
       case 'timeline':
         return (
-          <div className="p-4 lg:p-6 space-y-4">
+          <div className="p-8 lg:p-8 space-y-6">
             {sortedEvents.length === 0 ? (
-              <div className="text-center text-gray-500 text-sm py-8">
+              <div className="text-center text-gray-500 text-base py-12">
                 {isArabic
                   ? 'لا توجد أحداث مسجلة على سلسلة الكتل حتى الآن'
                   : 'No blockchain events have been recorded yet.'}
               </div>
             ) : (
-              <div className="space-y-4">
+              <div className="space-y-6">
                 {sortedEvents.map((event) => {
                   const parsed = parseEventDetails(event)
                   const humanType = humanizeEventType(event.type)
@@ -534,25 +536,25 @@ export default function BlockchainExplorer() {
                     event.type === 'PROPERTY_REGISTERED'
                   ) {
                     descriptionLines.push(
-                      `Property “${parsed.propertyName || maskPropertyId(event.propertyId) || 'Unknown Property'}” was submitted and added to the blockchain.`
+                      `Property "${parsed.propertyName || maskPropertyId(event.propertyId) || 'Unknown Property'}" was submitted and added to blockchain.`
                     )
                   } else if (
                     event.type === 'TOKEN_MINT' ||
                     event.type === 'TOKENS_MINTED'
                   ) {
                     descriptionLines.push(
-                      `Tokens were minted on property “${parsed.propertyName || maskPropertyId(event.propertyId) || 'Unknown Property'}”.`
+                      `Tokens were minted on property "${parsed.propertyName || maskPropertyId(event.propertyId) || 'Unknown Property'}".`
                     )
                   } else if (
                     event.type === 'CERTIFICATE_ISSUED' ||
                     event.type === 'DEED_ISSUED'
                   ) {
                     descriptionLines.push(
-                      `A digital ownership certificate was issued for “${parsed.propertyName || 'Unknown Property'}”.`
+                      `A digital ownership certificate was issued for "${parsed.propertyName || 'Unknown Property'}".`
                     )
                   } else {
                     descriptionLines.push(
-                      `Blockchain event recorded for “${parsed.propertyName || 'Unknown Property'}”.`
+                      `Blockchain event recorded for "${parsed.propertyName || 'Unknown Property'}".`
                     )
                   }
 
@@ -635,60 +637,62 @@ export default function BlockchainExplorer() {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 space-y-12">
       {/* Header */}
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h1 className="text-3xl font-semibold text-gray-900">
+          <h1 className="text-4xl font-bold text-[#1E1958] mb-3">
             ⛓️ {isArabic ? 'مستكشف البلوكشين' : 'Blockchain Explorer'}
           </h1>
-          <p className="mt-1 text-sm text-gray-600 max-w-2xl">
+          <p className="text-lg text-gray-600 max-w-2xl">
             {isArabic
               ? 'عرض تفاعلي لجميع الأحداث والعمليات المسجلة على سلسلة الكتل.'
               : 'Interactive view of all blockchain events and transactions.'}
           </p>
         </div>
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-4">
           <button
             onClick={loadBlockchainData}
-            className="inline-flex items-center gap-2 px-3 py-2 text-sm font-medium rounded-lg bg-blue-600 text-white hover:bg-blue-700 shadow-sm"
+            className="inline-flex items-center gap-3 px-8 py-4 border-2 border-[#41EAD4] bg-gradient-to-r from-[#41EAD4] to-[#2DD4BF] text-white font-semibold rounded-xl hover:shadow-lg focus:outline-none focus:ring-2 focus:ring-[#41EAD4] focus:ring-offset-2 transition-all"
           >
-            <Clock className="w-4 h-4" />
+            <Clock className="w-5 h-5" />
             {isArabic ? 'تحديث البيانات' : 'Refresh data'}
           </button>
         </div>
       </div>
 
       {/* Regulator View (Beta) */}
-      <div className="bg-gradient-to-r from-slate-900 via-slate-800 to-slate-900 text-slate-50 rounded-2xl p-4 sm:p-5 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 shadow-sm border border-slate-700/40">
-        <div className="flex items-start gap-3">
-          <div className="mt-0.5">
-            <Shield className="w-6 h-6 text-emerald-400" />
+      <div className="bg-gradient-to-r from-[#1E1958] to-[#2D2563] text-white rounded-2xl p-8 sm:p-8 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-6 shadow-lg border border-white/10">
+        <div className="flex items-start gap-4">
+          <div className="mt-1">
+            <div className="p-3 bg-[#41EAD4]/10 rounded-xl">
+              <Shield className="w-6 h-6 text-[#41EAD4]" />
+            </div>
           </div>
           <div>
-            <div className="flex items-center gap-2">
-              <h2 className="text-base sm:text-lg font-semibold">
+            <div className="flex items-center gap-3">
+              <h2 className="text-xl sm:text-2xl font-bold">
                 🛡️ {isArabic ? 'واجهة المنظّم (تجريبية)' : 'Regulator view (beta)'}
               </h2>
-              <span className="inline-flex items-center rounded-full bg-emerald-500/10 px-2 py-0.5 text-[10px] font-medium text-emerald-300 border border-emerald-500/30">
+              <span className="inline-flex items-center rounded-full bg-[#41EAD4]/20 px-3 py-1 text-sm font-medium text-[#41EAD4] border border-[#41EAD4]/30">
                 {isArabic
                   ? 'عرض مفصّل للأحداث والمعاملات مع بيانات إضافية للجهات التنظيمية.'
                   : 'Detailed blockchain view with extra insights for regulators.'}
               </span>
             </div>
-            <p className="mt-1 text-xs sm:text-sm text-slate-200/80 max-w-xl">
+            <p className="mt-2 text-gray-300 max-w-xl">
               {isArabic
                 ? 'يمكنك تفعيل وضع المنظّم لرؤية تفاصيل أعمق مع الحفاظ على إخفاء هوية الأطراف.'
                 : 'Enable regulator mode to see deeper details while preserving user privacy.'}
             </p>
             {regulatorMode && (
-              <div className="mt-2 flex flex-wrap items-center gap-2 text-[11px] sm:text-xs">
-                <span className="inline-flex items-center gap-1 rounded-full bg-emerald-600/20 px-2 py-0.5 text-emerald-100 border border-emerald-500/40">
-                  <FileCheck className="w-3 h-3" />
+              <div className="mt-4 flex flex-wrap items-center gap-3 text-sm">
+                <span className="inline-flex items-center gap-2 rounded-full bg-[#41EAD4]/20 px-3 py-1.5 text-white/90 border border-[#41EAD4]/40">
+                  <FileCheck className="w-4 h-4" />
                   {isArabic ? 'موثّق على البلوكشين' : 'Verified on blockchain'}
                 </span>
-                <span className="inline-flex items-center gap-1 rounded-full bg-sky-500/15 px-2 py-0.5 text-sky-100 border border-sky-500/30">
-                  <History className="w-3 h-3" />
+                <span className="inline-flex items-center gap-2 rounded-full bg-white/10 px-3 py-1.5 text-white/80 border border-white/20">
+                  <History className="w-4 h-4" />
                   {isArabic ? 'سجل تدقيق العقار' : 'Property audit trail'}
                 </span>
               </div>
@@ -703,12 +707,12 @@ export default function BlockchainExplorer() {
       </div>
 
       {/* KPI Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-8">
         <KpiCard
           title={isArabic ? 'إجمالي الأحداث' : 'Total events'}
           value={onChainEvents.length}
           icon={ListTree}
-          tone="blue"
+          tone="deep-twilight"
           tooltip={isArabic
             ? 'عدد جميع الأحداث المسجلة على البلوكشين.'
             : 'Total number of recorded blockchain events.'}
@@ -717,7 +721,7 @@ export default function BlockchainExplorer() {
           title={isArabic ? 'العقارات على البلوكشين' : 'Properties on-chain'}
           value={blockchainProperties.length}
           icon={Building2}
-          tone="emerald"
+          tone="teal"
           tooltip={isArabic
             ? 'عدد العقارات المرتبطة بمعاملات على البلوكشين.'
             : 'Number of properties linked to blockchain transactions.'}
@@ -735,7 +739,7 @@ export default function BlockchainExplorer() {
           title={isArabic ? 'إجمالي المعاملات' : 'Total transactions'}
           value={blockchainTransactions.length}
           icon={Activity}
-          tone="slate"
+          tone="coral"
           tooltip={isArabic
             ? 'إجمالي المعاملات المرتبطة بالبلوكشين.'
             : 'Total blockchain-linked transactions.'}
@@ -744,7 +748,7 @@ export default function BlockchainExplorer() {
           title={isArabic ? 'عدد المالكين' : 'Unique owners'}
           value={uniqueOwners}
           icon={Users}
-          tone="indigo"
+          tone="sand"
           tooltip={isArabic
             ? 'عدد المالكين الفريدين الذين لديهم عقارات على البلوكشين.'
             : 'Distinct owners with properties on-chain.'}
@@ -753,7 +757,7 @@ export default function BlockchainExplorer() {
           title={isArabic ? 'عدد المستثمرين' : 'Unique investors'}
           value={uniqueInvestors}
           icon={Users}
-          tone="cyan"
+          tone="teal"
           tooltip={isArabic
             ? 'عدد المستثمرين الفريدين الذين ظهرت لهم معاملات.'
             : 'Distinct investors seen in blockchain events.'}
@@ -769,17 +773,17 @@ export default function BlockchainExplorer() {
             blockchainTransactions.length
           }
           icon={Database}
-          tone="rose"
+          tone="deep-twilight"
           tooltip={isArabic
             ? 'مجموع جميع السجلات المرتبطة بسلسلة الكتل (أحداث + عقارات + صكوك + معاملات).'
-            : 'Sum of all records linked to the blockchain (events, properties, certificates, transactions).'}
+            : 'Sum of all records linked to blockchain (events, properties, certificates, transactions).'}
         />
       </div>
 
       {/* Tabs */}
       <div>
         <div className="border-b border-gray-200">
-          <nav className="-mb-px flex space-x-4 overflow-x-auto text-sm">
+          <nav className="-mb-px flex space-x-8 overflow-x-auto">
             {tabs.map((tab) => {
               const Icon = tab.icon
               const isActive = activeTab === tab.id
@@ -787,13 +791,13 @@ export default function BlockchainExplorer() {
                 <button
                   key={tab.id}
                   onClick={() => setActiveTab(tab.id)}
-                  className={`whitespace-nowrap py-3 px-3 border-b-2 font-medium flex items-center gap-2 transition ${
+                  className={`whitespace-nowrap py-4 px-6 border-b-2 font-semibold text-base flex items-center gap-3 transition-all ${
                     isActive
-                      ? 'border-blue-600 text-blue-700'
-                      : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-200'
+                      ? 'border-[#41EAD4] text-[#41EAD4]'
+                      : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
                   }`}
                 >
-                  <Icon className="w-4 h-4" />
+                  <Icon className="w-5 h-5" />
                   {tab.label}
                 </button>
               )
@@ -801,7 +805,7 @@ export default function BlockchainExplorer() {
           </nav>
         </div>
 
-        <div className="mt-4 bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
+        <div className="mt-8 bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden">
           {renderTabContent()}
         </div>
       </div>

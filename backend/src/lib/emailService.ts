@@ -1,9 +1,23 @@
 import AWS from 'aws-sdk'
+import { PrismaClient } from '@prisma/client'
 
 // إعداد AWS SES
 const ses = new AWS.SES({
   region: process.env.AWS_REGION || 'eu-central-1'
 })
+
+export async function getAdminEmail(prisma?: PrismaClient): Promise<string> {
+  if (process.env.ADMIN_EMAIL) return process.env.ADMIN_EMAIL
+  if (prisma) {
+    try {
+      const setting = await prisma.settings.findUnique({ where: { key: 'adminEmail' } })
+      if (setting?.value) return setting.value
+    } catch {
+      // fall through to default
+    }
+  }
+  return 'admin@alwsm.sa'
+}
 
 interface EmailOptions {
   to: string
@@ -119,6 +133,120 @@ export function buildPasswordResetEmail(resetLink: string, isRTL: boolean = fals
   const text = isRTL
     ? `إعادة تعيين كلمة المرور - الوسم\n\nلقد طلبت إعادة تعيين كلمة المرور. اضغط على الرابط التالي:\n${resetLink}\n\nهذا الرابط صالح لمدة 30 دقيقة فقط.`
     : `Password Reset - ALWSM\n\nYou requested a password reset. Click the link below:\n${resetLink}\n\nThis link is valid for 30 minutes only.`
+
+  return { subject, html, text }
+}
+
+export function buildDepositRequestAdminEmail(data: {
+  userName: string
+  userEmail: string
+  amount: number
+  bankReference?: string
+  requestId: string
+  createdAt: Date
+}): { subject: string; html: string; text: string } {
+  const subject = 'طلب إيداع جديد في منصة الوسم'
+  const formattedDate = data.createdAt.toLocaleString('ar-SA', { timeZone: 'Asia/Riyadh' })
+  const amountFormatted = data.amount.toLocaleString('ar-SA')
+
+  const html = `
+    <!DOCTYPE html>
+    <html dir="rtl">
+    <head>
+      <meta charset="UTF-8">
+      <style>
+        body { font-family: Arial, sans-serif; line-height: 1.8; color: #333; direction: rtl; }
+        .container { max-width: 600px; margin: 0 auto; padding: 20px; }
+        .header { background: #1E1958; color: white; padding: 20px; text-align: center; border-radius: 8px 8px 0 0; }
+        .content { background: #f9fafb; padding: 30px; border-radius: 0 0 8px 8px; }
+        .field { margin: 12px 0; }
+        .label { font-weight: bold; color: #555; }
+        .value { color: #1E1958; font-size: 16px; }
+        .amount { color: #41EAD4; font-size: 20px; font-weight: bold; }
+        .footer { text-align: center; color: #666; font-size: 12px; margin-top: 20px; }
+        .alert { background: #fef3c7; border: 1px solid #f59e0b; padding: 15px; border-radius: 6px; margin: 20px 0; }
+      </style>
+    </head>
+    <body>
+      <div class="container">
+        <div class="header">
+          <h1>منصة الوسم</h1>
+          <p>إشعار طلب إيداع جديد</p>
+        </div>
+        <div class="content">
+          <h2>طلب إيداع جديد بانتظار المراجعة</h2>
+          <div class="field"><span class="label">اسم المستخدم: </span><span class="value">${data.userName}</span></div>
+          <div class="field"><span class="label">البريد الإلكتروني: </span><span class="value">${data.userEmail}</span></div>
+          <div class="field"><span class="label">المبلغ المطلوب إيداعه: </span><span class="amount">${amountFormatted} ريال سعودي</span></div>
+          ${data.bankReference ? `<div class="field"><span class="label">رقم المرجع البنكي: </span><span class="value">${data.bankReference}</span></div>` : ''}
+          <div class="field"><span class="label">رقم الطلب: </span><span class="value">${data.requestId}</span></div>
+          <div class="field"><span class="label">وقت الطلب: </span><span class="value">${formattedDate}</span></div>
+          <div class="alert">
+            <strong>تذكير:</strong> يرجى التحقق من التحويل البنكي قبل الموافقة على الطلب.
+            لا تقم بالموافقة حتى تتأكد من استلام المبلغ فعلياً.
+          </div>
+        </div>
+        <div class="footer">
+          <p>© 2025 الوسم. هذا إيميل تلقائي، لا ترد عليه.</p>
+        </div>
+      </div>
+    </body>
+    </html>
+  `
+
+  const text = `طلب إيداع جديد في منصة الوسم\n\nالمستخدم: ${data.userName}\nالبريد: ${data.userEmail}\nالمبلغ: ${amountFormatted} ريال\n${data.bankReference ? `المرجع البنكي: ${data.bankReference}\n` : ''}رقم الطلب: ${data.requestId}\nالوقت: ${formattedDate}\n\nيرجى التحقق من التحويل قبل الموافقة.`
+
+  return { subject, html, text }
+}
+
+export function buildNewUserAdminEmail(data: {
+  userName: string
+  userEmail: string
+  role: string
+  createdAt: Date
+}): { subject: string; html: string; text: string } {
+  const subject = 'مستخدم جديد سجّل في منصة الوسم'
+  const formattedDate = data.createdAt.toLocaleString('ar-SA', { timeZone: 'Asia/Riyadh' })
+  const roleLabel = data.role === 'INVESTOR' ? 'مستثمر' : data.role === 'OWNER' ? 'مالك عقار' : data.role
+
+  const html = `
+    <!DOCTYPE html>
+    <html dir="rtl">
+    <head>
+      <meta charset="UTF-8">
+      <style>
+        body { font-family: Arial, sans-serif; line-height: 1.8; color: #333; direction: rtl; }
+        .container { max-width: 600px; margin: 0 auto; padding: 20px; }
+        .header { background: #1E1958; color: white; padding: 20px; text-align: center; border-radius: 8px 8px 0 0; }
+        .content { background: #f9fafb; padding: 30px; border-radius: 0 0 8px 8px; }
+        .field { margin: 12px 0; }
+        .label { font-weight: bold; color: #555; }
+        .value { color: #1E1958; }
+        .footer { text-align: center; color: #666; font-size: 12px; margin-top: 20px; }
+      </style>
+    </head>
+    <body>
+      <div class="container">
+        <div class="header">
+          <h1>منصة الوسم</h1>
+          <p>إشعار تسجيل مستخدم جديد</p>
+        </div>
+        <div class="content">
+          <h2>مستخدم جديد انضم للمنصة</h2>
+          <div class="field"><span class="label">الاسم: </span><span class="value">${data.userName}</span></div>
+          <div class="field"><span class="label">البريد الإلكتروني: </span><span class="value">${data.userEmail}</span></div>
+          <div class="field"><span class="label">نوع الحساب: </span><span class="value">${roleLabel}</span></div>
+          <div class="field"><span class="label">وقت التسجيل: </span><span class="value">${formattedDate}</span></div>
+        </div>
+        <div class="footer">
+          <p>© 2025 الوسم. هذا إيميل تلقائي، لا ترد عليه.</p>
+        </div>
+      </div>
+    </body>
+    </html>
+  `
+
+  const text = `مستخدم جديد في منصة الوسم\n\nالاسم: ${data.userName}\nالبريد: ${data.userEmail}\nنوع الحساب: ${roleLabel}\nوقت التسجيل: ${formattedDate}`
 
   return { subject, html, text }
 }

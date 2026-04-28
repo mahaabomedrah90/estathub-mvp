@@ -237,10 +237,12 @@ export async function fetchJson(url, options = {}) {
 
     if (!response.ok) {
       let bodyText = ''
+      let parsedData = null
       try {
         bodyText = await response.text()
+        parsedData = JSON.parse(bodyText)
       } catch {
-        bodyText = ''
+        parsedData = null
       }
       const error = new Error(
         bodyText
@@ -248,6 +250,7 @@ export async function fetchJson(url, options = {}) {
           : `HTTP error! status: ${response.status}`
       )
       error.status = response.status
+      if (parsedData) error.data = parsedData
       throw error
     }
 

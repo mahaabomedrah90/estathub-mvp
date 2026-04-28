@@ -9,6 +9,7 @@ import { useTranslation } from 'react-i18next'
 const OwnerNewProperty = () => {
     const { t } = useTranslation('pages')
   const { t: tCommon } = useTranslation('common')
+  const { i18n } = useTranslation('pages')
   const navigate = useNavigate();
   const [step, setStep] = useState(1);
   const [loading, setLoading] = useState(false);
@@ -359,20 +360,46 @@ const OwnerNewProperty = () => {
   };
 
   return (
-    <div className="max-w-4xl mx-auto mt-12 bg-white shadow-md rounded-xl p-8">
-     <h1 className="text-2xl font-semibold text-center mb-2">
-    {t('owner.newProperty.pageTitle')}
-  </h1>
+    <div className="max-w-4xl mx-auto mt-12 bg-white border border-border-soft rounded-2xl shadow-card p-8">
+     <div className="text-center mb-8">
+       <h1 className="text-3xl font-bold text-brand-primary mb-4">
+         {t('owner.newProperty.pageTitle')}
+       </h1>
+       <p className="text-text-muted text-lg">
+         {t('owner.newProperty.pageSubtitle')}
+       </p>
+     </div>
 
       {/* Step Indicator */}
-      <div className="flex justify-center mb-10">
+      <div className="flex justify-center mb-12">
         {[1, 2, 3].map((n) => (
           <div
             key={n}
-            className={`w-32 h-2 mx-1 rounded-full ${
-              step >= n ? "bg-emerald-600" : "bg-gray-300"
+            className={`flex items-center ${
+              n < 3 ? 'flex-1' : ''
             }`}
-          ></div>
+          >
+            <div
+              className={`w-10 h-10 rounded-full flex items-center justify-center font-semibold transition-all duration-300 ${
+                step >= n
+                  ? 'bg-brand-accent text-white shadow-lg'
+                  : 'bg-surface-muted text-text-muted'
+              }`}
+            >
+              {step > n ? (
+                <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+                  <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                </svg>
+              ) : (
+                n
+              )}
+            </div>
+            {n < 3 && (
+              <div className={`flex-1 h-1 mx-2 transition-all duration-300 ${
+                step > n ? 'bg-brand-accent' : 'bg-surface-muted'
+              }`} />
+            )}
+          </div>
         ))}
       </div>
 
@@ -394,11 +421,11 @@ const OwnerNewProperty = () => {
               onChange={handleChange}
               required
               maxLength={80}
-             className={`w-full border rounded-lg p-3 focus:outline-none focus:ring-2 focus:ring-emerald-500 ${
- validationErrors.propertyName
- ? 'border-red-500 bg-red-50'
- : 'border-gray-300'
- }`}
+              className={`w-full border border-border-soft rounded-xl p-4 focus:outline-none focus:ring-2 focus:ring-brand-accent focus:border-brand-accent transition-colors ${
+                validationErrors.propertyName
+                  ? 'border-red-500 bg-red-50'
+                  : 'bg-surface-card'
+              }`}
  />
  {validationErrors.propertyName && (
  <p className="text-red-600 text-sm mt-1 font-medium">{validationErrors.propertyName}</p>
@@ -412,7 +439,7 @@ const OwnerNewProperty = () => {
                 value={form.propertyType}
                 onChange={handleChange}
                 required
-                className="w-full border border-gray-300 rounded-lg p-3"
+                className="w-full border border-border-soft rounded-xl p-4 focus:outline-none focus:ring-2 focus:ring-brand-accent focus:border-brand-accent bg-surface-card transition-colors"
               >
                 <option value="">{t('owner.newProperty.step1.propertyTypePlaceholder')}</option>
 
@@ -438,27 +465,31 @@ const OwnerNewProperty = () => {
                 value={form.location}
                 onChange={handleChange}
                 required
-                className="w-full border border-gray-300 rounded-lg p-3"
+                className="w-full border border-border-soft rounded-xl p-4 focus:outline-none focus:ring-2 focus:ring-brand-accent focus:border-brand-accent bg-surface-card transition-colors"
               />
               <button
                 type="button"
                 onClick={() => setShowMap(!showMap)}
-                className="flex items-center gap-2 text-emerald-600 hover:text-emerald-700 font-medium"
+                className="flex items-center gap-2 text-brand-accent hover:text-brand-accent/90 font-medium transition-colors"
               >
                 <MapPin size={18} />
                 {showMap ? 'Hide Map' : 'Select on Map'}
               </button>
               
               {showMap && (
-                <div className="border border-gray-300 rounded-lg overflow-hidden">
+                <div className="border border-border-soft rounded-xl overflow-hidden shadow-sm">
                   <div id="property-map" style={{ height: '400px', width: '100%' }}></div>
-                  <div className="bg-gray-50 p-3 text-sm text-gray-600">
-                    <p><strong>Tip:</strong> Click on the map or drag the marker to select the property location</p>
-                    {form.latitude && form.longitude && (
-                      <p className="mt-1">
-                        <strong>Coordinates:</strong> {form.latitude.toFixed(6)}, {form.longitude.toFixed(6)}
-                      </p>
-                    )}
+                  <div className="bg-surface-muted p-4 text-sm text-text-muted border-t border-border-soft">
+                   <p>
+  <strong>{t('owner.newProperty.map.tipLabel')}:</strong>{' '}
+  {t('owner.newProperty.map.tipText')}
+</p>
+{form.latitude && form.longitude && (
+  <p className="mt-2">
+    <strong>{t('owner.newProperty.map.coordinatesLabel')}:</strong>{' '}
+    {form.latitude.toFixed(6)}, {form.longitude.toFixed(6)}
+  </p>
+)}
                   </div>
                 </div>
               )}
@@ -504,16 +535,16 @@ const OwnerNewProperty = () => {
               value={form.description}
               onChange={handleChange}
               rows={4}
-              className="w-full border border-gray-300 rounded-lg p-3"
+              className="w-full border border-border-soft rounded-xl p-4 focus:outline-none focus:ring-2 focus:ring-brand-accent focus:border-brand-accent bg-surface-card transition-colors"
             />
 
             <div className="flex justify-end mt-6">
               <button
                 type="button"
                 onClick={nextStep}
-                className="bg-emerald-600 text-white px-6 py-2 rounded-lg"
+                className="px-8 py-3 bg-brand-accent text-white rounded-xl font-semibold hover:bg-brand-accent/90 transition-all hover:scale-[1.02] active:scale-95 shadow-lg hover:shadow-xl"
               >
-                {t('owner.newProperty.step1.nextButtonLabel')} →
+                {t('owner.newProperty.step1.nextButtonLabel')} {i18n.dir() === 'rtl' ? '←' : '→'}
               </button>
             </div>
           </div>
@@ -541,10 +572,10 @@ const OwnerNewProperty = () => {
               min={minInvestment}
               max={maxInvestment}
               step={1000}
-              className={`w-full border rounded-lg p-3 ${
+              className={`w-full border border-border-soft rounded-xl p-4 focus:outline-none focus:ring-2 focus:ring-brand-accent focus:border-brand-accent bg-surface-card transition-colors ${
                 validationErrors.propertyValue
                   ? 'border-red-500 bg-red-50'
-                  : 'border-gray-300'
+                  : ''
               }`}
             />
             {validationErrors.propertyValue && (
@@ -564,10 +595,10 @@ const OwnerNewProperty = () => {
               min={0}
               max={100}
               step={0.1}
-             className={`w-full border rounded-lg p-3 ${
+             className={`w-full border border-border-soft rounded-xl p-4 focus:outline-none focus:ring-2 focus:ring-brand-accent focus:border-brand-accent bg-surface-card transition-colors ${
             validationErrors.monthlyYield
             ? 'border-red-500 bg-red-50'
-            : 'border-gray-300'
+            : ''
             }`}
             />
             {validationErrors.monthlyYield && (
@@ -587,10 +618,10 @@ const OwnerNewProperty = () => {
                   required
                   min={1}
                   step={1}
-                  className={`w-full border rounded-lg p-3 ${
+                  className={`w-full border border-border-soft rounded-xl p-4 focus:outline-none focus:ring-2 focus:ring-brand-accent focus:border-brand-accent bg-surface-card transition-colors ${
  validationErrors.totalTokens
  ? 'border-red-500 bg-red-50'
- : 'border-gray-300'
+ : ''
  }`}
  />
  {validationErrors.totalTokens && (
@@ -614,10 +645,10 @@ const OwnerNewProperty = () => {
                   min={minInvestment}
                   max={maxInvestment}
                   step={0.01}
-                 className={`w-full border rounded-lg p-3 ${
+                 className={`w-full border border-border-soft rounded-xl p-4 focus:outline-none focus:ring-2 focus:ring-brand-accent focus:border-brand-accent bg-surface-card transition-colors ${
             validationErrors.tokenPrice
             ? 'border-red-500 bg-red-50'
-            : 'border-gray-300'
+            : ''
             }`}
             />
             {validationErrors.tokenPrice && (
@@ -626,13 +657,13 @@ const OwnerNewProperty = () => {
             </div>
             </div>
             {/* Investment Limits Info */}
-            <div className="mt-4 p-3 bg-blue-50 border border-blue-200 rounded-lg">
-            <p className="text-sm text-blue-800">
-            <strong>Investment Limits:</strong> Investors can invest between {minInvestment.toLocaleString()} SAR and {maxInvestment.toLocaleString()} SAR per transaction.
-            <br />
-            <strong>Token Price Guidance:</strong> Set token price between {minInvestment.toLocaleString()} SAR and {maxInvestment.toLocaleString()} SAR to allow single-token purchases.
-            </p>
-                        </div>
+            <div className="mt-4 p-4 bg-brand-accent-soft border border-brand-accent/30 rounded-xl">
+              <p className="text-sm text-brand-primary">
+                <strong>Investment Limits:</strong> Investors can invest between {minInvestment.toLocaleString()} SAR and {maxInvestment.toLocaleString()} SAR per transaction.
+                <br />
+                <strong>Token Price Guidance:</strong> Set token price between {minInvestment.toLocaleString()} SAR and {maxInvestment.toLocaleString()} SAR to allow single-token purchases.
+              </p>
+            </div>
 
             <label className="block mt-4 mb-2 font-medium">
                 {t('owner.newProperty.step2.monthlyYieldLabel')}
@@ -646,10 +677,10 @@ const OwnerNewProperty = () => {
               min={0}
               max={100}
               step={0.01}
-              className={`w-full border rounded-lg p-3 ${
+              className={`w-full border border-border-soft rounded-xl p-4 focus:outline-none focus:ring-2 focus:ring-brand-accent focus:border-brand-accent bg-surface-card transition-colors ${
               validationErrors.expectedROI
               ? 'border-red-500 bg-red-50'
-              : 'border-gray-300'
+              : ''
               }`}
               />
               {validationErrors.expectedROI && (
@@ -662,7 +693,7 @@ const OwnerNewProperty = () => {
             </label>
             <div className="space-y-3">
               {!imagePreview ? (
-                <div className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center hover:border-emerald-500 transition-colors">
+                <div className="border-2 border-dashed border-brand-accent/40 rounded-xl p-8 text-center hover:border-brand-accent hover:bg-brand-accent-soft/30 transition-all duration-300 cursor-pointer">
                   <input
                     ref={fileInputRef}
                     type="file"
@@ -673,15 +704,19 @@ const OwnerNewProperty = () => {
                   />
                   <label
                     htmlFor="image-upload"
-                    className="cursor-pointer flex flex-col items-center gap-2"
+                    className="cursor-pointer flex flex-col items-center gap-3"
                   >
-                    <Upload className="text-gray-400" size={40} />
-                    <span className="text-gray-600 font-medium">Click to upload property image</span>
-                    <span className="text-sm text-gray-500">PNG, JPG, WEBP up to 5MB</span>
+                    <Upload className="text-brand-accent" size={48} />
+                    <span className="text-brand-primary font-medium text-lg">
+                      {t('owner.newProperty.step2.uploadSingleImageLabel')}
+                    </span>
+                    <span className="text-text-muted text-sm">
+                      {t('owner.newProperty.step2.singleImageFormatsHint')}
+                    </span>
                   </label>
                 </div>
               ) : (
-                <div className="relative border border-gray-300 rounded-lg overflow-hidden">
+                <div className="relative border border-border-soft rounded-xl overflow-hidden shadow-sm">
                   <img
                     src={imagePreview}
                     alt="Property preview"
@@ -690,13 +725,18 @@ const OwnerNewProperty = () => {
                   <button
                     type="button"
                     onClick={removeImage}
-                    className="absolute top-2 right-2 bg-red-500 text-white p-2 rounded-full hover:bg-red-600 transition-colors"
+                    className="absolute top-3 right-3 bg-brand-coral text-white p-2 rounded-full hover:bg-brand-coral/90 transition-colors shadow-lg"
                   >
                     <X size={20} />
                   </button>
-                  <div className="bg-gray-50 p-3 text-sm text-gray-600">
-                    <p><strong>File:</strong> {imageFile?.name}</p>
-                    <p><strong>Size:</strong> {(imageFile?.size / 1024).toFixed(2)} KB</p>
+                  <div className="bg-surface-muted p-4 text-sm text-text-muted">
+                    <p>
+                      <strong>{t('owner.newProperty.step2.fileLabel')}:</strong> {imageFile?.name}
+                    </p>
+                    <p>
+                      <strong>{t('owner.newProperty.step2.sizeLabel')}:</strong>{' '}
+                      {(imageFile?.size / 1024).toFixed(2)} KB
+                    </p>
                   </div>
                 </div>
               )}
@@ -707,14 +747,14 @@ const OwnerNewProperty = () => {
                 type="button"
                 onClick={prevStep}
                 disabled={loading}
-                className="text-gray-600 px-6 py-2 rounded-lg border disabled:opacity-50"
+                className="px-6 py-3 text-text-muted border border-border-soft rounded-xl font-medium hover:bg-surface-muted disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
               >
-                {t('owner.newProperty.step3.backButtonLabel')} ←
+                {i18n.dir() === 'rtl' ? '→' : '←'} {t('owner.newProperty.step3.backButtonLabel')}
               </button>
               <button
                 type="submit"
                 disabled={loading}
-                className="bg-emerald-600 hover:bg-emerald-700 text-white px-6 py-2 rounded-lg disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+                className="px-8 py-3 bg-brand-accent hover:bg-brand-accent/90 text-white rounded-xl font-semibold disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2 transition-all hover:scale-[1.02] active:scale-95 shadow-lg hover:shadow-xl"
               >
                 {loading ? (
                   <>
@@ -761,10 +801,10 @@ const OwnerNewProperty = () => {
               placeholder="Your full name"
               required
               minLength={3}
-            className={`w-full border rounded-lg p-3 ${
+            className={`w-full border border-border-soft rounded-xl p-4 focus:outline-none focus:ring-2 focus:ring-brand-accent focus:border-brand-accent bg-surface-card transition-colors ${
  validationErrors.contactName
  ? 'border-red-500 bg-red-50'
- : 'border-gray-300'
+ : ''
  }`}
  />
  {validationErrors.contactName && (
@@ -781,10 +821,10 @@ const OwnerNewProperty = () => {
               onChange={handleChange}
               placeholder="you@example.com"
               required
-              className={`w-full border rounded-lg p-3 ${
+              className={`w-full border border-border-soft rounded-xl p-4 focus:outline-none focus:ring-2 focus:ring-brand-accent focus:border-brand-accent bg-surface-card transition-colors ${
  validationErrors.contactEmail
  ? 'border-red-500 bg-red-50'
- : 'border-gray-300'
+ : ''
  }`}
  />
  {validationErrors.contactEmail && (
@@ -803,10 +843,10 @@ const OwnerNewProperty = () => {
               pattern="[+]?[0-9\s-]{9,15}"
               title="Please enter a valid phone number (9-15 digits, may include +, spaces, or dashes)"
               required
-             className={`w-full border rounded-lg p-3 ${
+             className={`w-full border border-border-soft rounded-xl p-4 focus:outline-none focus:ring-2 focus:ring-brand-accent focus:border-brand-accent bg-surface-card transition-colors ${
  validationErrors.contactPhone
  ? 'border-red-500 bg-red-50'
- : 'border-gray-300'
+ : ''
  }`}
  />
  {validationErrors.contactPhone && (
@@ -850,14 +890,14 @@ const OwnerNewProperty = () => {
                 type="button"
                 onClick={prevStep}
                 disabled={loading}
-                className="text-gray-600 px-6 py-2 rounded-lg border disabled:opacity-50"
+                className="px-6 py-3 text-text-muted border border-border-soft rounded-xl font-medium hover:bg-surface-muted disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
               >
-                {t('owner.newProperty.step3.backButtonLabel')} ←
+                {i18n.dir() === 'rtl' ? '→' : '←'} {t('owner.newProperty.step3.backButtonLabel')}
               </button>
             <button
   type="submit"
   disabled={loading}
-  className="bg-emerald-600 hover:bg-emerald-700 text-white px-6 py-2 rounded-lg disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+  className="px-8 py-3 bg-brand-accent hover:bg-brand-accent/90 text-white rounded-xl font-semibold disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2 transition-all hover:scale-[1.02] active:scale-95 shadow-lg hover:shadow-xl"
 >
   {loading ? (
     <>

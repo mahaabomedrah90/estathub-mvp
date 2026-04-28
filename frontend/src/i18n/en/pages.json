@@ -1,4 +1,25 @@
 {
+  "roleSelection": {
+    "heroTitle": "How would you like to start with ALWASM?",
+    "heroSubtitle": "Choose the role that fits you to begin your digital real estate investment journey",
+    "investor": "Investor",
+    "owner": "Property Owner",
+    "investorDescription": "Invest in premium real estate opportunities and build a diversified portfolio with monthly returns",
+    "ownerDescription": "Unlock your property value through digital crowdfunding and access investors",
+    "investorFeatures": {
+      "minInvestment": "Investments starting from SAR 500",
+      "monthlyReturns": "Regular monthly returns",
+      "digitalPortfolio": "Digital investment portfolio"
+    },
+    "ownerFeatures": {
+      "fastFunding": "Fast and secure funding",
+      "digitalManagement": "Integrated digital management",
+      "investorAccess": "Access to investor base"
+    },
+    "startInvesting": "Start Investing",
+    "launchProperty": "Launch Your Property",
+    "goBack": "Go Back"
+  },
   "financialTokenization": "Financial Tokenization",
   "valuationTokenStructure": "Valuation & Token Structure",
   "tokenizationStructure": "Tokenization Structure",
@@ -92,7 +113,9 @@
       "adminUser": "Admin",
       "investorUser": "Investor",
       "ownerUser": "Owner",
-      "errorInvalid": "Login failed. Please check your credentials and try again."
+      "errorInvalid": "Login failed. Please check your credentials and try again.",
+      "forgotPassword": "Forgot your password?",
+      "footerLogin": "Sign up"
     },
     "signup": {
       "title": "Create your ALWASM account",
@@ -126,12 +149,32 @@
     "statsBlockchainSecured": "Blockchain Secured",
     "statsMarketAccess": "Market Access",
     "statsLocalCurrency": "Local Currency",
+    "stats": {
+      "100": {
+        "title": "100%",
+        "desc": "Transaction Transparency"
+      },
+      "14": {
+        "title": "14.2%",
+        "desc": "Average Annual Return"
+      },
+      "12k": {
+        "title": "12k",
+        "desc": "Active Investors"
+      },
+      "500m": {
+        "title": "500M+",
+        "desc": "Total Asset Value"
+      }
+    },
     "badge": "Blockchain-Powered Real Estate Investment",
     "heroTitle1": "Invest in Real Estate,",
     "heroTitle2": "One Token at a Time",
+    "heroTitle": "Invest in real estate with confidence and transparency",
     "heroSubtitle": "ALWASM democratizes real estate investment through blockchain tokenization.",
     "heroCTA": " Start building your property portfolio with as little as one token.",
     "exploreOpportunities": "Explore Opportunities",
+    "tokenizeProperty": "Tokenize Your Property",
     "viewBlockchain": "View Blockchain",
     "feature1Title": "Fractional Ownership",
     "feature1Description": "Own a piece of premium real estate without the hefty price tag. Start with just one token.",
@@ -141,9 +184,44 @@
     "feature3Description": "All transactions are secured on Hyperledger Fabric, ensuring transparency and immutability.",
     "feature4Title": "Easy Payments",
     "feature4Description": "Invest using local payment methods in SAR. Simple, fast, and secure transactions.",
-    "ctaTitle": "Ready to Start Investing?",
-    "ctaSubtitle": "Join ALWASM today and start building your real estate portfolio with blockchain-powered fractional ownership.",
-    "browseProperties": "Browse Properties"
+    "ctaTitle": "Ready to get started?",
+    "ctaSubtitle": "Join ALWSM today and start building your real estate portfolio through tokenized assets.",
+    "ctaButton": "Browse Properties",
+    "howItWorks": {
+      "title": "How do you start investing?",
+      "step1": {
+        "title": "Create your account",
+        "desc": "Register your details and verify your identity in minutes."
+      },
+      "step2": {
+        "title": "Choose your opportunity",
+        "desc": "Browse available real estate opportunities and review full details."
+      },
+      "step3": {
+        "title": "Receive your returns",
+        "desc": "Track your portfolio and receive periodic returns directly."
+      }
+    },
+    "features": {
+      "items": {
+        "partialOwnership": {
+          "title": "Fractional Ownership",
+          "description": "Own a share of premium real estate without a large upfront investment."
+        },
+        "monthlyIncome": {
+          "title": "Monthly Returns",
+          "description": "Receive rental income directly into your wallet every month."
+        },
+        "blockchainSecurity": {
+          "title": "Blockchain Security",
+          "description": "All transactions are secured and recorded on Hyperledger Fabric, ensuring transparency and immutability."
+        },
+        "easyPayments": {
+          "title": "Easy Payments",
+          "description": "Invest in Saudi Riyal using simple and secure local payment methods."
+        }
+      }
+    }
   },
   "admin": {
     "overview": {
@@ -310,6 +388,10 @@
       },
       "selectProperty": {
         "title": "Select Property",
+        "selected": "Selected:",
+        "noSelection": "No property selected",
+        "noSelectionTitle": "Select a property to get started",
+        "noSelectionDescription": "Choose an approved property from the list below to view its investors and issue digital deeds.",
         "onlyApprovedTooltip": "Only approved properties can issue deeds",
         "tokensSold": "{{sold}} / {{total}} tokens sold",
         "tokensIssued": "{{issued}} / {{sold}} tokens issued"
@@ -318,6 +400,7 @@
         "title": "Investors ({{count}})",
         "issueAll": "Issue All Deeds",
         "empty": "No investors found for this property",
+        "noInvestors": "No investors have purchased tokens in this property yet.",
         "badgeFullyIssued": "Fully Issued",
         "badgeNewTokens": "⚠ {{count}} new tokens",
         "buttonFullyIssued": "Fully Issued",
@@ -766,7 +849,7 @@
       "withdraw": "Withdraw",
       "depositFailed": "Deposit failed. Please try again.",
       "withdrawFailed": "Withdraw failed. Please try again.",
-      "mockNote": "Note: Payments are demo-only for MVP purposes.",
+      "mockNote": "Deposits via bank transfer only — balance updated after admin review.",
       "myHoldingsTitle": "My Holdings",
       "noHoldingsTitle": "No holdings yet. Start investing in properties!",
       "holdingTokensOwned": "Tokens owned:",

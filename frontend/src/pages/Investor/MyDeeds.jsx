@@ -27,7 +27,7 @@ export default function MyDeeds() {
         <!-- Branded Header with logo -->
         <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 24px; border-bottom: 1px solid #e5e7eb; padding-bottom: 12px;">
           <div style="text-align: right;">
-            <h1 style="margin: 0; font-size: 22px; color: #15803d; font-weight: 800;">
+            <h1 style="margin: 0; font-size: 22px; color: #1F1F4B; font-weight: 800;">
               ${t('investor.deeds.modalHeaderMain')}
             </h1>
             <p style="margin: 4px 0 0; font-size: 13px; color: #4b5563;">
@@ -35,7 +35,7 @@ export default function MyDeeds() {
             </p>
           </div>
           <div style="display: flex; align-items: center; gap: 8px;">
-            <div style="width: 36px; height: 36px; border-radius: 9999px; background: linear-gradient(135deg,#16a34a,#22c55e); display: flex; align-items: center; justify-content: center; color: #ffffff; font-weight: 700; font-size: 16px; box-shadow: 0 2px 6px rgba(22,163,74,0.35);">
+            <div style="width: 36px; height: 36px; border-radius: 9999px; background: linear-gradient(135deg,#48D1C5,#1F1F4B); display: flex; align-items: center; justify-content: center; color: #ffffff; font-weight: 700; font-size: 16px; box-shadow: 0 2px 6px rgba(72,209,197,0.35);">
               E
             </div>
             <div style="text-align: left;">
@@ -47,13 +47,13 @@ export default function MyDeeds() {
 
         <!-- Digital Seal -->
         <div style="text-align: center; margin-bottom: 20px;">
-          <span style="display: inline-block; padding: 6px 18px; border-radius: 9999px; border: 2px solid #16a34a; background-color: #ecfdf3; font-size: 11px; font-weight: 600; color: #15803d; letter-spacing: 0.03em;">
+          <span style="display: inline-block; padding: 6px 18px; border-radius: 9999px; border: 2px solid #48D1C5; background-color: #ecfdf3; font-size: 11px; font-weight: 600; color: #1F1F4B; letter-spacing: 0.03em;">
             ${t('investor.deeds.digitalSeal')}
           </span>
         </div>
 
         <!-- Main card -->
-        <div style="border-radius: 12px; border: 1px solid #e5e7eb; background-color: #ffffff; padding: 20px;">
+        <div style="border-radius: 12px; border: 1px solid #e5e7eb; background-color: #FFFFFF; padding: 20px;">
           <!-- Property Details -->
           <div style="border: 1px solid #e5e7eb; border-radius: 8px; padding: 12px 14px; margin-bottom: 12px; background-color: #f9fafb;">
             <h2 style="margin: 0 0 8px; font-size: 13px; font-weight: 600; color: #111827;">
@@ -147,7 +147,7 @@ export default function MyDeeds() {
           </div>
 
           <!-- Issue Details -->
-          <div style="border: 1px solid #e5e7eb; border-radius: 8px; padding: 12px 14px; margin-bottom: 16px; background-color: #f9fafb;">
+          <div style="border: 1px solid #e5e7eb; border-radius: 8px; padding: 12px 14px; margin-bottom: 16px; background-color: #F8FAFC;">
             <h2 style="margin: 0 0 8px; font-size: 13px; font-weight: 600; color: #111827;">
               ${t('investor.deeds.sectionIssue')}
             </h2>
@@ -251,9 +251,9 @@ export default function MyDeeds() {
   function getStatusIcon(status) {
     switch (status) {
       case 'ISSUED':
-        return <CheckCircle className="w-5 h-5 text-green-500" />
+        return <CheckCircle className="w-5 h-5 text-[#41EAD4]" />
       case 'PENDING_APPROVAL':
-        return <Clock className="w-5 h-5 text-yellow-500" />
+        return <Clock className="w-5 h-5 text-[#ED9072]" />
       case 'REVOKED':
         return <XCircle className="w-5 h-5 text-red-500" />
       default:
@@ -280,7 +280,7 @@ export default function MyDeeds() {
     return (
       <div className="flex items-center justify-center min-h-screen">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#41EAD4] mx-auto"></div>
 <p className="mt-4 text-gray-600">{t('investor.deeds.loading')}</p>
         </div>
       </div>
@@ -290,18 +290,18 @@ export default function MyDeeds() {
   if (error) {
     return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
-        <p className="text-yellow-800">{error}</p>
+        <div className="bg-[#ED9072]/10 border border-[#ED9072]/30 rounded-lg p-4">
+        <p className="text-[#ED9072]">{error}</p>
         <div className="mt-4 flex gap-2">
         <button
         onClick={loadDeeds}
-        className="px-4 py-2 bg-yellow-600 text-white rounded hover:bg-yellow-700 font-medium"
+        className="px-4 py-2 bg-[#41EAD4] text-white rounded hover:bg-[#41EAD4]/90 font-medium"
         >
         {t('investor.deeds.errorTryAgain')}
         </button>
         <button
         onClick={() => window.location.href = '/login'}
-        className="px-4 py-2 border border-yellow-300 text-yellow-700 rounded hover:bg-yellow-100 font-medium"
+        className="px-4 py-2 border border-[#ED9072]/30 text-[#ED9072] rounded hover:bg-[#ED9072]/10 font-medium"
         >
         {t('investor.deeds.errorLoginAgain')}
         </button>
@@ -323,7 +323,7 @@ export default function MyDeeds() {
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
       {/* Header */}
       <div className="mb-8">
-        <h1 className="text-3xl font-bold text-gray-900">{t('investor.deeds.title')}</h1>
+        <h1 className="text-3xl font-bold text-[#1E1958]">{t('investor.deeds.title')}</h1>
         <p className="mt-2 text-gray-600">
           {t('investor.deeds.subtitle')}
         </p>
@@ -331,50 +331,50 @@ export default function MyDeeds() {
 
       {/* Stats */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-        <div className="bg-white rounded-lg shadow p-6">
+        <div className="bg-[#CDB9A1]/20 border border-[#CDB9A1]/40 rounded-lg shadow p-6">
           <div className="flex items-center justify-between">
             <div>
               <p className="text-sm text-gray-600">
   {t('investor.deeds.statsIssuedDeeds')}
 </p>
-              <p className="text-2xl font-bold text-gray-900">{deeds.length}</p>
+              <p className="text-2xl font-bold text-[#1E1958]">{deeds.length}</p>
             </div>
-            <FileText className="w-10 h-10 text-blue-500" />
+            <FileText className="w-10 h-10 text-[#41EAD4]" />
           </div>
         </div>
 
-        <div className="bg-white rounded-lg shadow p-6">
+        <div className="bg-[#41EAD4]/10 border border-[#41EAD4]/30 rounded-lg shadow p-6">
           <div className="flex items-center justify-between">
             <div>
               <p className="text-sm text-gray-600">{t('investor.deeds.statsIssuedDeeds')}</p>
-              <p className="text-2xl font-bold text-green-600">
+              <p className="text-2xl font-bold text-[#41EAD4]">
                 {deeds.filter(d => d.status === 'ISSUED').length}
               </p>
             </div>
-            <CheckCircle className="w-10 h-10 text-green-500" />
+            <CheckCircle className="w-10 h-10 text-[#41EAD4]" />
           </div>
         </div>
 
-        <div className="bg-white rounded-lg shadow p-6">
+        <div className="bg-[#986F9A]/10 border border-[#986F9A]/30 rounded-lg shadow p-6">
           <div className="flex items-center justify-between">
             <div>
              <p className="text-sm text-gray-600">
   {t('investor.deeds.statsTotalOwnership')}
 </p>
-              <p className="text-2xl font-bold text-blue-600">
+              <p className="text-2xl font-bold text-[#986F9A]">
                 {deeds.reduce((sum, d) => sum + d.ownershipPct, 0).toFixed(2)}%
               </p>
             </div>
-            <FileText className="w-10 h-10 text-blue-500" />
+            <FileText className="w-10 h-10 text-[#986F9A]" />
           </div>
         </div>
       </div>
 
       {/* Deeds List */}
       {deeds.length === 0 ? (
-        <div className="bg-white rounded-lg shadow p-12 text-center">
-          <FileText className="w-16 h-16 text-gray-300 mx-auto mb-4" />
-          <h3 className="text-lg font-medium text-gray-900 mb-2">{t('investor.deeds.emptyTitle')}</h3>
+        <div className="bg-[#CDB9A1]/20 rounded-lg shadow p-12 text-center">
+          <FileText className="w-16 h-16 text-[#986F9A] mx-auto mb-4" />
+          <h3 className="text-lg font-medium text-[#1E1958] mb-2">{t('investor.deeds.emptyTitle')}</h3>
           <p className="text-gray-600">
             {t('investor.deeds.emptyBody')}
           </p>
@@ -384,7 +384,7 @@ export default function MyDeeds() {
           {deeds.map((deed) => (
             <div
               key={deed.id}
-              className="bg-white rounded-lg shadow hover:shadow-lg transition-shadow cursor-pointer"
+              className="bg-[#CDB9A1]/10 border border-[#CDB9A1]/30 rounded-lg shadow hover:shadow-lg transition-shadow cursor-pointer"
               onClick={() => setSelectedDeed(deed)}
             >
               <div className="p-6">

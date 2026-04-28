@@ -113,7 +113,9 @@ ordersRouter.post('/confirm', auth(true), async (req: Request & { user?: any }, 
         create: { userId: order.userId, tenantId: user.tenantId },
       })
       if ((wallet.cashBalance || 0) < amount) {
-        throw new Error('insufficient_balance')
+        const insufficientErr = new Error('insufficient_balance') as any
+        insufficientErr.requiredAmount = amount - (wallet.cashBalance || 0)
+        throw insufficientErr
       }
 
       // Mark order paid and debit wallet with a transaction record
@@ -235,7 +237,18 @@ ordersRouter.post('/confirm', auth(true), async (req: Request & { user?: any }, 
     return res.json({ ok: true })
   } catch (e) {
     if (String((e as Error).message || '').includes('insufficient_balance')) {
-      return res.status(400).json({ error: 'insufficient_balance' })
+      const requiredAmount = (e as any).requiredAmount ?? 0
+      return res.status(400).json({
+        error: 'insufficient_balance',
+        action: 'DEPOSIT_REQUIRED',
+        requiredAmount,
+        bankTransfer: {
+          bankName: process.env.BANK_NAME || 'Alinma Bank',
+          iban: process.env.BANK_IBAN || 'SA0000000000000000000000',
+          accountName: process.env.BANK_ACCOUNT_NAME || 'شركة الوسم للعقارات',
+          instructions: 'قم بالتحويل البنكي ثم أدخل رقم المرجع لطلب الإيداع',
+        },
+      })
     }
     return res.status(500).json({ error: 'payment_confirm_failed' })
   }

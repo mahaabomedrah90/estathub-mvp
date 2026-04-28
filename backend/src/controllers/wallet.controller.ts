@@ -2,6 +2,7 @@ import { Router, Request, Response } from 'express'
 import { prisma } from '../lib/prisma'
 import { isFabricEnabled, evaluateGetHoldings } from '../lib/fabric'
 import { auth } from '../middleware/auth'
+import { sendEmail, getAdminEmail, buildDepositRequestAdminEmail } from '../lib/emailService'
 
 export const walletRouter = Router()
 
@@ -40,15 +41,20 @@ walletRouter.get('/', auth(true), async (req: Request & { user?: any }, res: Res
       orderBy: { createdAt: 'desc' },
       take: 10,
     })
-    
+
+    const pendingDeposits = await prisma.depositRequest.findMany({
+      where: { userId: req.user!.userId, status: 'PENDING' },
+      orderBy: { createdAt: 'desc' },
+    })
+
     console.log(`💼 Wallet for user ${req.user!.userId}:`, {
       cashBalance,
       investedValue,
       holdingsCount: mapped.length,
       holdings: mapped
     })
-    
-    return res.json({ walletId: wallet.walletId, cashBalance, investedValue, totalValue, holdings: mapped, transactions })
+
+    return res.json({ walletId: wallet.walletId, cashBalance, investedValue, totalValue, holdings: mapped, transactions, pendingDeposits })
 } catch (e: any) {
     console.error('Wallet load error:', e)
 return res.status(500).json({
@@ -57,24 +63,76 @@ return res.status(500).json({
  })  }
 })
 
-// POST /api/wallet/deposit
-walletRouter.post('/deposit', auth(true), async (req: Request & { user?: any }, res: Response) => {
+// POST /api/wallet/deposit — DISABLED: direct deposit not allowed in production
+walletRouter.post('/deposit', auth(true), async (_req: Request & { user?: any }, res: Response) => {
+  return res.status(410).json({
+    error: 'direct_deposit_disabled',
+    message: 'Direct deposits are not permitted. Please use /api/wallet/deposit-request to submit a bank transfer request for admin review.',
+    messageAr: 'الإيداع المباشر غير مسموح به. يرجى استخدام طلب الإيداع عبر التحويل البنكي.',
+  })
+})
+
+// POST /api/wallet/deposit-request — submit a manual bank transfer deposit request
+walletRouter.post('/deposit-request', auth(true), async (req: Request & { user?: any }, res: Response) => {
   try {
     const amount = Number(req.body?.amount)
-    if (!Number.isFinite(amount) || amount <= 0) return res.status(400).json({ error: 'invalid_amount' })
-       const result = await prisma.$transaction(async (tx: any) => {
-      const wallet = await tx.wallet.upsert({ where: { userId: req.user!.userId }, update: {}, create: { userId: req.user!.userId, tenantId: req.user!.tenantId } })
-      const updated = await tx.wallet.update({ where: { id: wallet.id }, data: { cashBalance: { increment: amount } } })
-      await tx.transaction.create({ data: { userId: req.user!.userId, tenantId: req.user!.tenantId, type: 'DEPOSIT', amount } })
-      return updated
+    const bankReference: string | undefined = req.body?.bankReference || undefined
+    const bankName: string | undefined = req.body?.bankName || undefined
+    const receiptUrl: string | undefined = req.body?.receiptUrl || undefined
+
+    if (!Number.isFinite(amount) || amount <= 0) {
+      return res.status(400).json({ error: 'invalid_amount', message: 'Amount must be a positive number.' })
+    }
+    if (amount < 100) {
+      return res.status(400).json({ error: 'amount_too_small', message: 'Minimum deposit amount is 100 SAR.' })
+    }
+    if (amount > 100000) {
+      return res.status(400).json({ error: 'amount_too_large', message: 'Maximum deposit amount is 100,000 SAR.' })
+    }
+
+    const depositRequest = await prisma.depositRequest.create({
+      data: {
+        userId: req.user!.userId,
+        amount,
+        bankReference,
+        bankName,
+        receiptUrl,
+        status: 'PENDING',
+      },
     })
-    return res.json({ cashBalance: result.cashBalance })
- } catch (e: any) {
- console.error('Deposit error:', e)
- return res.status(500).json({
- error: 'deposit_failed',
- detail: e?.message || 'Deposit transaction failed'
- })
+
+    // Fire-and-forget admin email — failure must NOT block the response
+    ;(async () => {
+      try {
+        const adminEmail = await getAdminEmail(prisma as any)
+        const user = await prisma.user.findUnique({
+          where: { id: req.user!.userId },
+          select: { fullName: true, email: true },
+        })
+        const content = buildDepositRequestAdminEmail({
+          userName: user?.fullName || req.user!.email || 'Unknown',
+          userEmail: user?.email || req.user!.email,
+          amount,
+          bankReference,
+          requestId: depositRequest.id,
+          createdAt: depositRequest.createdAt,
+        })
+        await sendEmail({ to: adminEmail, ...content })
+      } catch (emailErr: any) {
+        console.error('❌ Failed to send deposit request admin email:', emailErr.message)
+      }
+    })()
+
+    return res.status(201).json({
+      id: depositRequest.id,
+      status: depositRequest.status,
+      amount: depositRequest.amount,
+      message: 'Your deposit request has been received and is pending review. Your balance will be updated after verification.',
+      messageAr: 'تم استلام طلب الإيداع وهو قيد المراجعة. سيتم تحديث رصيدك بعد التحقق من التحويل.',
+    })
+  } catch (e: any) {
+    console.error('Deposit request error:', e)
+    return res.status(500).json({ error: 'deposit_request_failed', detail: e?.message || 'Failed to create deposit request' })
   }
 })
 

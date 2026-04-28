@@ -14,6 +14,7 @@ import { settingsRouter } from './controllers/settings.controller'
 import { isFabricEnabled, testFabricConnection } from './lib/fabric'
 import { errorHandler } from './middleware/roles'
 import { ownerRouter } from './controllers/owner.controller'
+import { depositRequestAdminRouter } from './controllers/depositRequest.controller'
 import { regulatorRouter } from './controllers/regulator.controller'
 import { requestIdMiddleware } from './middleware/requestId'
 import { checkGatewayHealth } from './lib/gatewayHealth'
@@ -327,6 +328,7 @@ app.use('/api/deeds', deedRouter)
 app.use('/api/owners', ownerRouter)
 app.use('/api/settings', settingsRouter)
 app.use('/api/regulator', regulatorRouter)
+app.use('/api/admin/deposit-requests', depositRequestAdminRouter)
 
 /**
  * ================================

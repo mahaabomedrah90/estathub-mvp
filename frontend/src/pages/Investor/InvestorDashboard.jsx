@@ -69,7 +69,7 @@ export default function InvestorDashboard() {
           </div>
           <button
             onClick={() => navigate('/login')}
-            className="px-6 py-2.5 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white font-semibold transition-colors"
+            className="px-6 py-2.5 rounded-lg bg-brand-primary hover:bg-brand-primary/90 text-white font-semibold transition-colors"
           >
             {isArabic ? 'تسجيل الدخول الآن' : 'Login Now'}
           </button>
@@ -82,7 +82,7 @@ export default function InvestorDashboard() {
     return (
       <div className="flex items-center justify-center py-12">
         <div className="text-center space-y-3">
-          <Loader2 className="animate-spin text-emerald-600 mx-auto" size={40} />
+          <Loader2 className="animate-spin text-brand-accent mx-auto" size={40} />
           <div className="text-gray-600">
             {isArabic
               ? 'جاري تحميل محفظتك الاستثمارية...'
@@ -129,7 +129,7 @@ const totalReturns = holdings.reduce((sum, h) => {
       {/* Header */}
       <div>
       <div>
-  <h1 className="text-3xl font-bold text-gray-900">
+  <h1 className="text-3xl font-bold text-[#1E1958]">
     {isArabic ? 'محفظتي الاستثمارية' : 'My Investment Portfolio'}
   </h1>
   <p className="text-gray-600">
@@ -143,7 +143,7 @@ const totalReturns = holdings.reduce((sum, h) => {
       {/* Portfolio Overview Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         {/* Total Portfolio Value */}
-        <div className="bg-gradient-to-br from-emerald-500 to-emerald-600 rounded-xl p-6 text-white">
+        <div className="bg-gradient-to-br from-[#1E1958] to-[#2a2458] rounded-xl p-6 text-white">
           <div className="flex items-center justify-between mb-4">
             <div className="w-12 h-12 bg-white/20 rounded-lg flex items-center justify-center">
               <Wallet size={24} />
@@ -154,23 +154,23 @@ const totalReturns = holdings.reduce((sum, h) => {
             </div>
           </div>
           <div className="text-3xl font-bold mb-1">{totalBalance.toLocaleString()} {tCommon('currency.sar')}</div>
-          <div className="text-emerald-100 text-sm">
+          <div className="text-brand-accent/20 text-sm">
             {isArabic ? 'قيمة المحفظة' : 'Portfolio Value'}
           </div>
         </div>
 
         {/* Invested Amount */}
-        <div className="bg-white border border-gray-200 rounded-xl p-6">
+        <div className="bg-[#CDB9A1]/30 border border-[#CDB9A1]/50 rounded-xl p-6">
           <div className="flex items-center justify-between mb-4">
-            <div className="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center">
-              <DollarSign className="text-blue-600" size={24} />
+            <div className="w-12 h-12 bg-[#1E1958]/10 rounded-lg flex items-center justify-center">
+              <DollarSign className="text-[#1E1958]" size={24} />
             </div>
-            <div className="flex items-center gap-1 text-sm text-blue-600">
+            <div className="flex items-center gap-1 text-sm text-[#1E1958]">
               <Target size={14} />
               <span>{isArabic ? 'المستثمر' : 'Invested'}</span>
             </div>
           </div>
-          <div className="text-3xl font-bold text-gray-900 mb-1">
+          <div className="text-3xl font-bold text-[#1E1958] mb-1">
             {totalInvested.toLocaleString()} {tCommon('currency.sar')}
           </div>
           <div className="text-sm text-gray-600">
@@ -179,17 +179,17 @@ const totalReturns = holdings.reduce((sum, h) => {
         </div>
 
         {/* Monthly Returns */}
-        <div className="bg-white border border-gray-200 rounded-xl p-6">
+        <div className="bg-[#41EAD4]/10 border border-[#41EAD4]/30 rounded-xl p-6">
           <div className="flex items-center justify-between mb-4">
-            <div className="w-12 h-12 bg-purple-100 rounded-lg flex items-center justify-center">
-              <TrendingUp className="text-purple-600" size={24} />
+            <div className="w-12 h-12 bg-[#41EAD4]/20 rounded-lg flex items-center justify-center">
+              <TrendingUp className="text-[#41EAD4]" size={24} />
             </div>
-            <div className="flex items-center gap-1 text-sm text-purple-600">
+            <div className="flex items-center gap-1 text-sm text-[#41EAD4]">
               <Calendar size={14} />
               <span>{isArabic ? 'شهرياً' : 'Monthly'}</span>
             </div>
           </div>
-          <div className="text-3xl font-bold text-gray-900 mb-1">
+          <div className="text-3xl font-bold text-[#41EAD4] mb-1">
             {totalReturns.toFixed(2)} {tCommon('currency.sar')}
           </div>
           <div className="text-sm text-gray-600">
@@ -200,15 +200,15 @@ const totalReturns = holdings.reduce((sum, h) => {
         {/* Number of Properties */}
         <div className="bg-white border border-gray-200 rounded-xl p-6">
           <div className="flex items-center justify-between mb-4">
-            <div className="w-12 h-12 bg-orange-100 rounded-lg flex items-center justify-center">
-              <Building2 className="text-orange-600" size={24} />
+            <div className="w-12 h-12 bg-[#986F9A]/10 rounded-lg flex items-center justify-center">
+              <Building2 className="text-[#986F9A]" size={24} />
             </div>
-            <div className="flex items-center gap-1 text-sm text-orange-600">
+            <div className="flex items-center gap-1 text-sm text-[#986F9A]">
               <Award size={14} />
               <span>{isArabic ? 'نشط' : 'Active'}</span>
             </div>
           </div>
-          <div className="text-3xl font-bold text-gray-900 mb-1">{numberOfProperties}</div>
+          <div className="text-3xl font-bold text-[#986F9A] mb-1">{numberOfProperties}</div>
           <div className="text-sm text-gray-600">
             {isArabic ? 'العقارات المستثمر فيها' : 'Properties Invested'}
           </div>
@@ -224,9 +224,9 @@ const totalReturns = holdings.reduce((sum, h) => {
           </h2>
           
           <div className="space-y-4">
-            <div className="flex items-center justify-between p-4 bg-emerald-50 rounded-lg">
+            <div className="flex items-center justify-between p-4 bg-brand-accent/10 rounded-lg">
               <div className="flex items-center gap-3">
-                <div className="w-10 h-10 bg-emerald-600 rounded-lg flex items-center justify-center">
+                <div className="w-10 h-10 bg-brand-accent rounded-lg flex items-center justify-center">
                   <Building2 className="text-white" size={20} />
                 </div>
                 <div>
@@ -239,7 +239,7 @@ const totalReturns = holdings.reduce((sum, h) => {
                 </div>
               </div>
               <div className="text-right">
-                <div className="text-xl font-bold text-emerald-600">
+                <div className="text-xl font-bold text-brand-accent">
                  {totalInvested.toLocaleString()} {tCommon('currency.sar')}
                 </div>
                 <div className="text-xs text-gray-500">
@@ -248,9 +248,9 @@ const totalReturns = holdings.reduce((sum, h) => {
               </div>
             </div>
 
-            <div className="flex items-center justify-between p-4 bg-blue-50 rounded-lg">
+            <div className="flex items-center justify-between p-4 bg-brand-primary/10 rounded-lg">
               <div className="flex items-center gap-3">
-                <div className="w-10 h-10 bg-blue-600 rounded-lg flex items-center justify-center">
+                <div className="w-10 h-10 bg-brand-primary rounded-lg flex items-center justify-center">
                   <Wallet className="text-white" size={20} />
                 </div>
                 <div>
@@ -263,7 +263,7 @@ const totalReturns = holdings.reduce((sum, h) => {
                 </div>
               </div>
               <div className="text-right">
-                <div className="text-xl font-bold text-blue-600">
+                <div className="text-xl font-bold text-brand-primary">
                   {(wallet?.cashBalance ?? 0).toLocaleString()} {tCommon('currency.sar')}
                 </div>
                 <div className="text-xs text-gray-500">
@@ -285,7 +285,7 @@ const totalReturns = holdings.reduce((sum, h) => {
               </div>
               <div className="w-full bg-gray-200 rounded-full h-3">
                 <div 
-                  className="bg-emerald-600 h-3 rounded-full transition-all" 
+                  className="bg-brand-accent h-3 rounded-full transition-all" 
                   style={{ width: `${totalBalance > 0 ? ((totalInvested / totalBalance) * 100) : 0}%` }}
                 />
               </div>
@@ -300,12 +300,12 @@ const totalReturns = holdings.reduce((sum, h) => {
           </h2>
           
           <div className="space-y-4">
-            <div className="border-l-4 border-emerald-500 pl-4 py-2">
+            <div className="border-l-4 border-brand-accent pl-4 py-2">
               <div className="text-sm text-gray-600 mb-1">
                 {isArabic ? 'معدل العائد الشهري' : 'Monthly return rate'}
               </div>
               <div className="text-2xl font-bold text-gray-900">{portfolioGrowth}%</div>
-              <div className="text-xs text-emerald-600 flex items-center gap-1 mt-1">
+              <div className="text-xs text-brand-accent flex items-center gap-1 mt-1">
                 <ArrowUpRight size={14} />
                 <span>
                   {isArabic ? 'نمو شهري متوقّع' : 'Expected monthly growth'}
@@ -313,14 +313,14 @@ const totalReturns = holdings.reduce((sum, h) => {
               </div>
             </div>
 
-            <div className="border-l-4 border-blue-500 pl-4 py-2">
+            <div className="border-l-4 border-brand-primary pl-4 py-2">
               <div className="text-sm text-gray-600 mb-1">
                 {isArabic ? 'تقدير سنوي' : 'Annual projection'}
               </div>
               <div className="text-2xl font-bold text-gray-900">
                 {(totalReturns * 12).toFixed(2)} {tCommon('currency.sar')}
               </div>
-              <div className="text-xs text-blue-600 flex items-center gap-1 mt-1">
+              <div className="text-xs text-brand-primary flex items-center gap-1 mt-1">
                 <Calendar size={14} />
                 <span>
                   {isArabic ? 'عوائد سنوية متوقعة' : 'Projected yearly returns'}
@@ -328,14 +328,14 @@ const totalReturns = holdings.reduce((sum, h) => {
               </div>
             </div>
 
-            <div className="border-l-4 border-purple-500 pl-4 py-2">
+            <div className="border-l-4 border-brand-primary pl-4 py-2">
               <div className="text-sm text-gray-600 mb-1">
                 {isArabic ? 'إمكانات العائد على الاستثمار' : 'ROI potential'}
               </div>
               <div className="text-2xl font-bold text-gray-900">
                 {totalInvested > 0 ? ((totalReturns * 12 / totalInvested) * 100).toFixed(2) : 0}%
               </div>
-              <div className="text-xs text-purple-600 flex items-center gap-1 mt-1">
+              <div className="text-xs text-brand-primary flex items-center gap-1 mt-1">
                 <Target size={14} />
                 <span>
                   {isArabic ? 'عائد سنوي على الاستثمار' : 'Annual return on investment'}
@@ -371,7 +371,7 @@ const totalReturns = holdings.reduce((sum, h) => {
             </div>
             <button
               onClick={() => navigate('/opportunities')}
-              className="px-6 py-2.5 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white font-semibold transition-colors"
+              className="px-6 py-2.5 rounded-lg bg-brand-accent hover:bg-brand-accent/90 text-white font-semibold transition-colors"
             >
               {isArabic ? 'تصفح الفرص' : 'Browse opportunities'}
             </button>
@@ -390,10 +390,10 @@ const totalReturns = holdings.reduce((sum, h) => {
             const totalTokens = property.totalTokens ?? property.tokensAvailable ?? 0
             const ownershipPercent = totalTokens > 0 ? ((tokens / totalTokens) * 100).toFixed(2) : 0
               return (
-                <div key={holding.propertyId} className="border border-gray-200 rounded-lg p-5 hover:border-emerald-300 transition-colors">
+                <div key={holding.propertyId} className="border border-gray-200 rounded-lg p-5 hover:border-brand-accent/50 transition-colors">
                   <div className="flex items-start justify-between mb-4">
                     <div className="flex items-start gap-3 flex-1">
-                      <div className="w-16 h-16 bg-gradient-to-br from-emerald-400 to-emerald-600 rounded-lg flex items-center justify-center flex-shrink-0">
+                      <div className="w-16 h-16 bg-gradient-to-br from-brand-accent to-brand-primary rounded-lg flex items-center justify-center flex-shrink-0">
                         <Building2 className="text-white" size={28} />
                       </div>
                       <div className="flex-1">
@@ -402,7 +402,7 @@ const totalReturns = holdings.reduce((sum, h) => {
                         </h3>
                         <div className="text-sm text-gray-600 mb-2">{property.location || 'Riyadh, Saudi Arabia'}</div>
                         <div className="flex items-center gap-4 text-sm">
-                          <div className="flex items-center gap-1 text-emerald-600">
+                          <div className="flex items-center gap-1 text-brand-accent">
                             <TrendingUp size={14} />
                             <span className="font-semibold">
                               {monthlyYield}% {isArabic ? 'عائد شهري' : 'monthly yield'}
@@ -430,27 +430,27 @@ const totalReturns = holdings.reduce((sum, h) => {
                       </div>
                       <div className="text-lg font-semibold text-gray-900"> {tokens}</div>
                     </div>
-                    <div className="bg-blue-50 rounded-lg p-3">
-                      <div className="text-xs text-blue-600 mb-1">
+                    <div className="bg-brand-primary/10 rounded-lg p-3">
+                      <div className="text-xs text-brand-primary mb-1">
                         {isArabic ? 'الاستثمار' : 'Investment'}
                       </div>
-                      <div className="text-lg font-semibold text-blue-700">
+                      <div className="text-lg font-semibold text-brand-primary">
                        {investmentValue.toLocaleString()} {tCommon('currency.sar')}
                       </div>
                     </div>
-                    <div className="bg-emerald-50 rounded-lg p-3">
-                      <div className="text-xs text-emerald-600 mb-1">
+                    <div className="bg-brand-accent/10 rounded-lg p-3">
+                      <div className="text-xs text-brand-accent mb-1">
                         {isArabic ? 'العائد الشهري' : 'Monthly return'}
                       </div>
-                      <div className="text-lg font-semibold text-emerald-700">
+                      <div className="text-lg font-semibold text-brand-accent">
                         {monthlyReturn.toFixed(2)} {tCommon('currency.sar')}
                       </div>
                     </div>
-                    <div className="bg-purple-50 rounded-lg p-3">
-                      <div className="text-xs text-purple-600 mb-1">
+                    <div className="bg-brand-primary/10 rounded-lg p-3">
+                      <div className="text-xs text-brand-primary mb-1">
                         {isArabic ? 'العائد السنوي' : 'Annual return'}
                       </div>
-                      <div className="text-lg font-semibold text-purple-700">
+                      <div className="text-lg font-semibold text-brand-primary">
                         {(monthlyReturn * 12).toFixed(2)} {tCommon('currency.sar')}
                       </div>
                     </div>

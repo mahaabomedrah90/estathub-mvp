@@ -7,34 +7,16 @@ import { useTranslation } from 'react-i18next'
 export default function Navbar() {
   const navigate = useNavigate()
   const token = getToken()
-  const role = (localStorage.getItem('role') || 'investor').toLowerCase()
-  const userName = localStorage.getItem('userName') || ''
-  const tenantName = localStorage.getItem('tenantName') || ''
   const { t, i18n } = useTranslation('navbar')
 
-  const getNavItems = () => {
-    const baseItems = role === 'admin' ? [
-      { path: '/admin/overview', label: t('dashboard') },
-      { path: '/admin/opportunities', label: t('reviewProperties') },
-      { path: '/blockchain', label: t('blockchain'), configurable: true },
-    ] : role === 'owner' ? [
-      { path: '/owner/dashboard', label: t('dashboard') },
-      { path: '/owner/properties', label: t('properties') },
-      { path: '/blockchain', label: t('blockchain'), configurable: true },
-    ] : [
-      { path: '/investor/dashboard', label: t('dashboard') },
-  { path: '/opportunities', label: t('opportunities') },   
-      { path: '/blockchain', label: t('blockchain'), configurable: true },
-    ]
+  const navItems = [
+    { path: '/', label: t('home'), end: true },
+    { path: '/opportunities', label: t('opportunities') },
+    { path: '/how-it-works', label: t('howItWorks') },
+    { path: '/about', label: t('about') },
+    { path: '/faq', label: t('faq') },
+  ]
 
-    return baseItems.filter(item => {
-      if (!item.configurable) return true
-      const disabled = JSON.parse(localStorage.getItem(`disabled_nav_${role}`) || '[]')
-      return !disabled.includes(item.path)
-    })
-  }
-
-  const navItems = getNavItems()
   const linkClass = ({ isActive }) =>
     `px-4 py-2 text-sm font-medium transition-colors ${
       isActive
@@ -78,13 +60,9 @@ export default function Navbar() {
                 return (
                   <NavLink
                     key={item.path}
-                    to={token ? item.path : item.path === '/blockchain' ? '/login' : item.path}
+                    to={item.path}
                     className={linkClass}
-                    end={
-                      item.path === '/investor/dashboard' ||
-                      item.path === '/owner/dashboard' ||
-                      item.path === '/admin/overview'
-                    }
+                    end={!!item.end}
                   >
                     <span>{item.label}</span>
                   </NavLink>

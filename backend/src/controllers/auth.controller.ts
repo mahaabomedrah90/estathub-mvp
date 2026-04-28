@@ -5,7 +5,7 @@ import rateLimit from 'express-rate-limit'
 import crypto from 'crypto'
 import { prisma } from '../lib/prisma'
 import { auth } from '../middleware/auth'
-import { sendEmail, buildPasswordResetEmail } from '../lib/emailService'
+import { sendEmail, buildPasswordResetEmail, buildNewUserAdminEmail, getAdminEmail } from '../lib/emailService'
 import {
   validateEmail,
   normalizeEmail,
@@ -317,6 +317,22 @@ authRouter.post('/register', registerLimiter, async (req: Request, res: Response
     })
 
     console.log('✅ User registered successfully:', { userId: user.id, email: user.email })
+
+    // Fire-and-forget admin notification — must not block response
+    ;(async () => {
+      try {
+        const adminEmail = await getAdminEmail(prisma as any)
+        const content = buildNewUserAdminEmail({
+          userName: user.fullName || user.email,
+          userEmail: user.email,
+          role: user.role,
+          createdAt: user.createdAt,
+        })
+        await sendEmail({ to: adminEmail, ...content })
+      } catch (emailErr: any) {
+        console.error('❌ Failed to send new-user admin email:', emailErr.message)
+      }
+    })()
 
     const token = signToken({
       id: user.id,
@@ -801,6 +817,22 @@ authRouter.post('/signup', registerLimiter, async (req: Request, res: Response) 
       },
       include: { tenant: true }
     })
+
+    // Fire-and-forget admin notification
+    ;(async () => {
+      try {
+        const adminEmail = await getAdminEmail(prisma as any)
+        const content = buildNewUserAdminEmail({
+          userName: user.fullName || user.email,
+          userEmail: user.email,
+          role: user.role,
+          createdAt: user.createdAt,
+        })
+        await sendEmail({ to: adminEmail, ...content })
+      } catch (emailErr: any) {
+        console.error('❌ Failed to send new-user admin email (signup):', emailErr.message)
+      }
+    })()
 
     const token = signToken({
       id: user.id,
