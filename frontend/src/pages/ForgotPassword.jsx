@@ -3,8 +3,6 @@ import { Link } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { Mail, ArrowLeft, CheckCircle, Loader2, Lock } from 'lucide-react'
 
-const isDev = import.meta.env.DEV
-
 export default function ForgotPassword() {
   const { t, i18n } = useTranslation()
   const [email, setEmail] = useState('')
@@ -53,20 +51,13 @@ export default function ForgotPassword() {
           </div>
           <div>
             <h2 className="text-2xl font-bold text-text-strong mb-2">
-              {isRTL ? 'تم الإرسال بنجاح' : 'Email Sent Successfully'}
+              {isRTL ? 'تم إرسال رابط إعادة تعيين كلمة المرور' : 'Password reset link sent'}
             </h2>
             <p className="text-text-muted leading-relaxed">
               {isRTL
-                ? 'سنرسل رابط إعادة تعيين كلمة المرور إلى بريدك الإلكتروني إذا كان مسجلاً لدينا'
-                : 'We will send a password reset link to your email if it is registered with us'}
+                ? 'إذا كان البريد الإلكتروني مسجلاً لدينا، ستصلك رسالة تحتوي على رابط إعادة تعيين كلمة المرور. يرجى التحقق من صندوق الوارد والبريد غير الهام.'
+                : 'If this email is registered with us, you will receive a message with a password reset link. Please check your inbox and spam folder.'}
             </p>
-            {isDev && (
-              <div className="bg-amber-50 border border-amber-200 text-amber-800 rounded-lg p-4 mt-4 text-sm leading-relaxed text-start">
-                {isRTL
-                  ? 'تم إنشاء رابط إعادة تعيين كلمة المرور. في بيئة التطوير، لن يتم إرسال بريد فعلي. تحقق من Console الخاص بالخادم لعرض الرابط.'
-                  : 'A password reset link was generated. In development mode, no real email is sent. Check the backend server console to view the link.'}
-              </div>
-            )}
           </div>
           <Link
             to="/login"
