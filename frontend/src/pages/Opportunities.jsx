@@ -9,6 +9,7 @@ import StatCard from '../components/ui/StatCard';
 import PageWrapper from '../components/ui/PageWrapper';
 import HeroSection from '../components/ui/HeroSection';
 import { PageTitle, SectionSubtitle, CardTitle, CardSubtitle, BodyText, MutedText, Caption } from '../components/ui/Typography';
+import WaitlistSection from '../components/WaitlistSection';
 
 export default function Opportunities() {
   const { t, i18n } = useTranslation('property');
@@ -95,14 +96,28 @@ export default function Opportunities() {
             {error}
           </div>
         ) : properties.length === 0 ? (
-          <SectionCard className="py-12 text-center">
-            <img
-              src="/Full Logo 1.png"
-              alt="الوسم"
-              className="mx-auto mb-3 h-16 w-auto opacity-50"
-            />
-            <MutedText>{t('list.empty')}</MutedText>
-          </SectionCard>
+          <div className="space-y-0">
+            {/* Teaser block */}
+            <SectionCard className="py-14 text-center">
+              <img
+                src="/Full Logo 1.png"
+                alt="الوسم"
+                className="mx-auto mb-6 h-16 w-auto opacity-40"
+              />
+              <h3 className="text-xl font-bold text-text-strong mb-2">
+                {isRtl
+                  ? 'قريبًا — أول فرصة استثمار عقاري جزئي في السعودية'
+                  : 'Coming soon — the first fractional real estate opportunity in Saudi Arabia'}
+              </h3>
+              <p className="text-text-muted text-sm mb-6">
+                {isRtl
+                  ? 'احجز مكانك قبل الإطلاق وكن من أوائل المستثمرين'
+                  : 'Reserve your spot before launch and be among the first investors'}
+              </p>
+            </SectionCard>
+            {/* Waitlist */}
+            <WaitlistSection />
+          </div>
         ) : (
           <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
             {properties.map((p) => {

@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom'
 import { Building2, TrendingUp, Shield, Wallet, ArrowRight, CheckCircle2, ChevronDown } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import KpiCard from '../components/KpiCard'
+import WaitlistSection from '../components/WaitlistSection'
 
 
 export default function Home() {
@@ -42,21 +43,36 @@ export default function Home() {
             {t('home.heroSubtitle')}
           </p>
 
-          {/* CTA Buttons - Investment Actions */}
+          {/* CTA Buttons */}
           <div className="flex flex-col sm:flex-row gap-4 justify-center items-center">
+            <a
+              href="#waitlist"
+              className="px-8 py-4 text-base bg-brand-accent text-white font-semibold rounded-full hover:bg-brand-accent/90 hover:scale-[1.02] active:scale-95 transition-all duration-200 shadow-xl hover:shadow-2xl"
+            >
+              {t('home.waitlistCTA')}
+            </a>
             <Link
               to="/opportunities"
-              className="px-8 py-4 text-base bg-brand-accent text-white font-semibold rounded-full hover:bg-brand-accent/90 hover:scale-[1.02] active:scale-95 transition-all duration-200 shadow-xl hover:shadow-2xl"
+              className="px-8 py-4 text-base bg-white/10 border border-white/30 text-white font-semibold rounded-full hover:bg-white/20 active:scale-95 transition-all duration-200"
             >
               {t('home.exploreOpportunities')}
             </Link>
           </div>
+          {/* Trust microcopy */}
+          <p className="mt-5 text-white/50 text-sm">
+            {t('home.trustMicrocopy')}
+          </p>
         </div>
 
         {/* Scroll Indicator - Subtle Animation */}
         <div className="absolute bottom-8 left-1/2 transform -translate-x-1/2 animate-bounce">
           <ChevronDown className="w-6 h-6 text-white opacity-75" />
         </div>
+      </div>
+
+      {/* Waitlist — directly below hero */}
+      <div id="waitlist">
+        <WaitlistSection />
       </div>
 
       {/* How It Works Section */}
@@ -206,6 +222,9 @@ export default function Home() {
       </div>
       </div>
       */}
+
+      {/* Waitlist — bottom of page */}
+      <WaitlistSection />
     </>
   )
 }

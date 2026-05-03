@@ -170,8 +170,10 @@
     "badge": "Blockchain-Powered Real Estate Investment",
     "heroTitle1": "Invest in Real Estate,",
     "heroTitle2": "One Token at a Time",
-    "heroTitle": "Invest in real estate with confidence and transparency",
-    "heroSubtitle": "ALWASM democratizes real estate investment through blockchain tokenization.",
+    "heroTitle": "Start owning real estate from as little as SAR 500",
+    "heroSubtitle": "Without buying a full property — simple and clear",
+    "waitlistCTA": "Join the Waitlist",
+    "trustMicrocopy": "Transparent and structured platform for Saudi investors",
     "heroCTA": " Start building your property portfolio with as little as one token.",
     "exploreOpportunities": "Explore Opportunities",
     "tokenizeProperty": "Tokenize Your Property",
@@ -213,8 +215,8 @@
           "description": "Receive rental income directly into your wallet every month."
         },
         "blockchainSecurity": {
-          "title": "Blockchain Security",
-          "description": "All transactions are secured and recorded on Hyperledger Fabric, ensuring transparency and immutability."
+          "title": "Digital Fractional Ownership",
+          "description": "A transparent and structured system that ensures your investment is secure and verifiable."
         },
         "easyPayments": {
           "title": "Easy Payments",
