@@ -259,7 +259,7 @@ export default function PropertyDetail() {
               <div className="w-px bg-white/20 self-stretch" />
               <div className="text-white">
                 <div className="text-2xl font-bold">{tokenPrice ? `${tokenPrice.toLocaleString()} ريال` : '—'}</div>
-                <div className="text-xs text-white/70">{isRtl ? 'سعر التوكن' : 'Token Price'}</div>
+                <div className="text-xs text-white/70">{isRtl ? 'سعر الجزء' : 'Token Price'}</div>
               </div>
               <div className="w-px bg-white/20 self-stretch" />
               <div className="text-white">
@@ -294,7 +294,7 @@ export default function PropertyDetail() {
               </div>
               <div className="flex justify-between text-xs text-text-muted">
                 <span>
-                  {soldTokens.toLocaleString()} {isRtl ? 'توكن مُباع' : 'tokens sold'}
+                  {soldTokens.toLocaleString()} {isRtl ? 'جزء مُباع' : 'tokens sold'}
                 </span>
                 <span className="text-brand-accent font-medium">
                   {isRtl ? `متبقي ${percentRemaining}% فقط` : `${percentRemaining}% remaining`}
@@ -485,7 +485,7 @@ export default function PropertyDetail() {
                 {/* Summary rows */}
                 <div className="space-y-3">
                   <div className="flex justify-between text-sm">
-                    <span className="text-text-muted">{isRtl ? 'سعر التوكن' : 'Token Price'}</span>
+                    <span className="text-text-muted">{isRtl ? 'سعر الجزء' : 'Token Price'}</span>
                     <span className="font-bold text-text-strong">{tokenPrice.toLocaleString()} {isRtl ? 'ريال' : 'SAR'}</span>
                   </div>
                   <div className="flex justify-between text-sm">
@@ -493,7 +493,7 @@ export default function PropertyDetail() {
                     <span className="font-bold text-text-strong">{minInvestment.toLocaleString()} {isRtl ? 'ريال' : 'SAR'}</span>
                   </div>
                   <div className="flex justify-between text-sm">
-                    <span className="text-text-muted">{isRtl ? 'التوكنات المتبقية' : 'Tokens Left'}</span>
+                    <span className="text-text-muted">{isRtl ? 'الأجزاء المتبقية' : 'Tokens Left'}</span>
                     <span className="font-bold text-brand-accent">{remainingTokens.toLocaleString()}</span>
                   </div>
                 </div>
@@ -532,7 +532,7 @@ export default function PropertyDetail() {
                   )}
                   {amountTooHigh && (
                     <p className="text-red-500 text-xs mt-1">
-                      {isRtl ? 'المبلغ يتجاوز التوكنات المتاحة' : 'Amount exceeds available tokens'}
+                      {isRtl ? 'المبلغ يتجاوز الأجزاء المتاحة' : 'Amount exceeds available tokens'}
                     </p>
                   )}
                 </div>
@@ -541,7 +541,7 @@ export default function PropertyDetail() {
                 {tokensToGet > 0 && (
                   <div className="bg-brand-accent/5 border border-brand-accent/20 rounded-xl p-4 space-y-2 transition-all">
                     <div className="flex justify-between text-sm">
-                      <span className="text-text-muted">{isRtl ? 'عدد التوكنات' : 'Tokens'}</span>
+                      <span className="text-text-muted">{isRtl ? 'عدد الأجزاء' : 'Tokens'}</span>
                       <span className="font-bold text-text-strong">{tokensToGet.toLocaleString()}</span>
                     </div>
                     <div className="flex justify-between text-sm">
@@ -574,7 +574,7 @@ export default function PropertyDetail() {
                 ) : !isInvestor ? (
                   <div className="text-center text-xs text-text-muted bg-surface-muted rounded-xl p-4">
                     {isRtl
-                      ? 'يمكن للمستثمرين فقط شراء التوكنات من هذه الصفحة.'
+                      ? 'يمكن للمستثمرين فقط الاستثمار في هذا العقار.'
                       : 'Only investors can purchase tokens from this page.'}
                   </div>
                 ) : (

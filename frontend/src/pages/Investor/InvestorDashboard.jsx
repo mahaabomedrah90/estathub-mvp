@@ -427,7 +427,7 @@ const totalReturns = holdings.reduce((sum, h) => {
                   <div className="grid grid-cols-4 gap-3">
                     <div className="bg-gray-50 rounded-lg p-3">
                       <div className="text-xs text-gray-500 mb-1">
-                        {isArabic ? 'عدد التوكنات' : 'Tokens owned'}
+                        {isArabic ? 'عدد الأجزاء' : 'Tokens owned'}
                       </div>
                       <div className="text-lg font-semibold text-gray-900"> {tokens}</div>
                     </div>
