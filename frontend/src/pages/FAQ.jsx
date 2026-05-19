@@ -88,7 +88,7 @@ export default function FAQ() {
       </SectionCard>
 
       {/* Contact CTA */}
-      <div className="bg-brand-primary rounded-2xl p-8 text-white text-center">
+      <div className="mt-10 bg-brand-primary rounded-2xl p-8 text-white text-center">
         <h2 className="text-2xl font-bold tracking-tight mb-6">{t('faq.stillHaveQuestions.title')}</h2>
         <p className="text-white/70 mb-8 max-w-lg mx-auto">{t('faq.stillHaveQuestions.description')}</p>
         <div className="flex flex-col sm:flex-row gap-4 justify-center">

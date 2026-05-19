@@ -27,7 +27,7 @@ export default function About() {
           </IconBox>
           <h2 className="text-xl font-bold text-text-strong">{t('about.ourStory.title')}</h2>
         </div>
-        <div className="space-y-4 text-text-body leading-relaxed">
+        <div className="space-y-5 text-text-body leading-7">
           <p>{t('about.ourStory.content1')}</p>
           <p>{t('about.ourStory.content2')}</p>
         </div>
@@ -44,11 +44,11 @@ export default function About() {
         <div className="grid md:grid-cols-2 gap-6">
           <div className="bg-brand-primary/5 border border-brand-primary/10 rounded-xl p-6">
             <h3 className="font-semibold text-text-strong mb-3">{t('about.visionMission.vision.title')}</h3>
-            <p className="text-text-body leading-relaxed">{t('about.visionMission.vision.content')}</p>
+            <p className="text-text-body leading-7">{t('about.visionMission.vision.content')}</p>
           </div>
           <div className="bg-brand-accent-soft border border-brand-accent/20 rounded-xl p-6">
             <h3 className="font-semibold text-text-strong mb-3">{t('about.visionMission.mission.title')}</h3>
-            <p className="text-text-body leading-relaxed">{t('about.visionMission.mission.content')}</p>
+            <p className="text-text-body leading-7">{t('about.visionMission.mission.content')}</p>
           </div>
         </div>
       </SectionCard>
@@ -66,28 +66,28 @@ export default function About() {
             <IconBox size="lg" variant="primary" className="mx-auto mb-4">
               <Shield size={24} />
             </IconBox>
-            <h3 className="font-semibold text-text-strong mb-2">{t('about.coreValues.trust.title')}</h3>
+            <h3 className="font-semibold text-text-strong mb-3">{t('about.coreValues.trust.title')}</h3>
             <p className="text-sm text-text-muted leading-relaxed">{t('about.coreValues.trust.description')}</p>
           </div>
           <div className="text-center bg-surface-muted rounded-xl p-6">
             <IconBox size="lg" variant="default" className="mx-auto mb-4">
               <Globe size={24} />
             </IconBox>
-            <h3 className="font-semibold text-text-strong mb-2">{t('about.coreValues.transparency.title')}</h3>
+            <h3 className="font-semibold text-text-strong mb-3">{t('about.coreValues.transparency.title')}</h3>
             <p className="text-sm text-text-muted leading-relaxed">{t('about.coreValues.transparency.description')}</p>
           </div>
           <div className="text-center bg-surface-muted rounded-xl p-6">
             <IconBox size="lg" variant="primary" className="mx-auto mb-4">
               <Users size={24} />
             </IconBox>
-            <h3 className="font-semibold text-text-strong mb-2">{t('about.coreValues.empowerment.title')}</h3>
+            <h3 className="font-semibold text-text-strong mb-3">{t('about.coreValues.empowerment.title')}</h3>
             <p className="text-sm text-text-muted leading-relaxed">{t('about.coreValues.empowerment.description')}</p>
           </div>
           <div className="text-center bg-surface-muted rounded-xl p-6">
             <IconBox size="lg" variant="default" className="mx-auto mb-4">
               <Award size={24} />
             </IconBox>
-            <h3 className="font-semibold text-text-strong mb-2">{t('about.coreValues.quality.title')}</h3>
+            <h3 className="font-semibold text-text-strong mb-3">{t('about.coreValues.quality.title')}</h3>
             <p className="text-sm text-text-muted leading-relaxed">{t('about.coreValues.quality.description')}</p>
           </div>
         </div>

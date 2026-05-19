@@ -16,6 +16,7 @@ import { errorHandler } from './middleware/roles'
 import { ownerRouter } from './controllers/owner.controller'
 import { depositRequestAdminRouter } from './controllers/depositRequest.controller'
 import { regulatorRouter } from './controllers/regulator.controller'
+import { waitlistRouter } from './controllers/waitlist.controller'
 import { requestIdMiddleware } from './middleware/requestId'
 import { checkGatewayHealth } from './lib/gatewayHealth'
 
@@ -329,6 +330,7 @@ app.use('/api/owners', ownerRouter)
 app.use('/api/settings', settingsRouter)
 app.use('/api/regulator', regulatorRouter)
 app.use('/api/admin/deposit-requests', depositRequestAdminRouter)
+app.use('/api/waitlist', waitlistRouter)
 
 /**
  * ================================

@@ -479,7 +479,16 @@ model Settings {
   description           String?             // Human-readable description
   updatedAt             DateTime @updatedAt
   createdAt             DateTime @default(now())
-  
+
   @@index([category])
   @@index([key])
+}
+
+model WaitlistLead {
+  id        String   @id @default(uuid())
+  contact   String
+  amount    String   @default("")
+  language  String   @default("en")
+  source    String   @default("home")
+  createdAt DateTime @default(now())
 }

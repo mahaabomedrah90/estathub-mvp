@@ -1357,22 +1357,22 @@
     ]
   },
   "about": {
-    "title": "About ALWASM",
-    "subtitle": "A platform that makes real estate investing more accessible through technology and transparency.",
+    "title": "About Us",
+    "subtitle": "ALWSM is a modern real estate investment platform designed to make access to property simple, transparent, and accessible.",
     "ourStory": {
       "title": "Our Story",
-      "content1": "ALWASM was founded with a clear vision: democratizing real estate investment in Saudi Arabia through innovative blockchain technology.",
+      "content1": "We started with one question: how can real estate investment be as simple as any digital investment?",
       "content2": "Our team combines expertise in real estate, finance, and technology to create a platform that provides transparency, security, and accessibility for all investors."
     },
     "visionMission": {
       "title": "Vision & Mission",
       "vision": {
         "title": "Our Vision",
-        "content": "To be the leading real estate investment platform in the Middle East, transforming how people invest in and own property."
+        "content": "To become the leading platform redefining real estate investment accessibility in the region."
       },
       "mission": {
         "title": "Our Mission",
-        "content": "To enable fractional ownership of premium real estate assets, making property investment accessible to everyone through digital tokens."
+        "content": "To empower individuals to build financial growth through simple and trusted real estate investments."
       }
     },
     "coreValues": {
@@ -1416,26 +1416,26 @@
     ]
   },
   "howItWorks": {
-    "title": "How it works",
-    "subtitle": "From discovery to investment — a simple flow.",
+    "title": "How to Start Your Investment Journey",
+    "subtitle": "Start investing in real estate in simple, clear steps — no complexity.",
     "forInvestors": {
       "title": "For Investors",
       "steps": {
         "createAccount": {
           "title": "Create Account",
-          "description": "Sign up and complete verification in minutes"
+          "description": "Create your account in minutes."
         },
         "exploreOpportunities": {
           "title": "Explore Opportunities",
-          "description": "Browse vetted real estate investment opportunities"
+          "description": "Explore curated real estate opportunities."
         },
         "invest": {
           "title": "Invest",
-          "description": "اشترِ التوكنات بدءً من توكن واحد فقط"
+          "description": "Start with a small amount and secure your share."
         },
         "trackPerformance": {
           "title": "Track Performance",
-          "description": "Monitor your investment and receive regular updates"
+          "description": "Track performance and receive returns."
         }
       }
     },
@@ -1511,24 +1511,24 @@
     },
     "questions": [
       {
-        "question": "What is ALWASM?",
-        "answer": "ALWASM is a Saudi proptech platform that enables fractional investment in real estate through blockchain tokens."
+        "question": "What is ALWSM?",
+        "answer": "ALWSM is a platform that enables simple access to real estate investment opportunities."
       },
       {
-        "question": "How do I get started?",
-        "answer": "Simply create an account, complete verification, browse available properties, and start investing with as little as one token."
+        "question": "Can I invest with a small amount?",
+        "answer": "Yes, you can start with a small amount, making real estate investment more accessible."
       },
       {
-        "question": "What are property tokens?",
-        "answer": "Property tokens are digital representations of property ownership on the blockchain, enabling fractional ownership."
+        "question": "Is it safe?",
+        "answer": "We focus on carefully selected opportunities with transparent data."
       },
       {
-        "question": "Is my investment safe?",
-        "answer": "Yes, all investments are secured by legal property titles and protected by blockchain technology."
+        "question": "When will opportunities be available?",
+        "answer": "The platform is currently in pre-launch. Join the waitlist to be among the first."
       },
       {
         "question": "How do I receive returns?",
-        "answer": "Returns are distributed monthly to your wallet based on your token ownership percentage."
+        "answer": "Returns are distributed periodically based on property performance."
       },
       {
         "question": "Can I sell my tokens?",

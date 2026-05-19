@@ -4,8 +4,8 @@
     "titleOwner": "إدارة عقاراتك",
     "subtitleInvestor": "اكتشف العقارات المرمّزة المتاحة للاستثمار.",
     "subtitleOwner": "أضف، عدّل، وأدر عقاراتك بسهولة.",
-    "heroTitleInvestor": "الفرص الاستثمارية",
-    "heroSubtitleInvestor": "استكشف فرصًا عقارية مدروسة بعوائد واضحة وتجربة استثمار بسيطة وشفافة.",
+    "heroTitleInvestor": "اختر فرصتك",
+    "heroSubtitleInvestor": "عقارات مختارة بعناية لتحقيق توازن بين العائد والاستقرار",
     "heroTitleOwner": "إدارة عقاراتك",
     "heroSubtitleOwner": "أضف، عدّل، وأدر عقاراتك بسهولة ويسر.",
     "filters": {
@@ -39,7 +39,7 @@
     "percentSold": "{{value}}٪ مباعة",
     "view": "عرض",
     "edit": "تعديل",
-    "viewDetails": "عرض التفاصيل"
+    "viewDetails": "اعرف أكثر"
   },
   "detail": {
     "loadingProperty": "جاري تحميل بيانات العقار",

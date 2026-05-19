@@ -85,7 +85,7 @@ export default function Login() {
   return (
     <div className="min-h-screen bg-surface-base">
       {/* Full-width Header Section */}
-      <div className="bg-brand-primary text-white py-20">
+      <div className="bg-brand-primary text-white py-12">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center">
             <div className="mx-auto mb-8">
@@ -106,7 +106,7 @@ export default function Login() {
       </div>
 
       {/* Login Form Section */}
-      <div className="flex items-center justify-center py-12">
+      <div className="flex items-center justify-center py-6">
         <div className="w-full max-w-md mx-auto px-4">
           <SectionCard padding="xl">
             <form onSubmit={onSubmit} className="space-y-8">
@@ -171,21 +171,23 @@ export default function Login() {
                 </div>
               )}
 
-              <PrimaryButton 
-                type="submit"
-                loading={loading}
-                className="w-full"
-                size="lg"
-              >
-                {loading ? (
-                  <>
-                    <Loader2 className="animate-spin" size={20} />
-                    <span>{t('auth.login.signingIn')}</span>
-                  </>
-                ) : (
-                  <span>{t('auth.login.signIn')}</span>
-                )}
-              </PrimaryButton>
+              <div className="mt-2">
+                <PrimaryButton
+                  type="submit"
+                  loading={loading}
+                  className="w-full"
+                  size="lg"
+                >
+                  {loading ? (
+                    <>
+                      <Loader2 className="animate-spin" size={20} />
+                      <span>{t('auth.login.signingIn')}</span>
+                    </>
+                  ) : (
+                    <span>{t('auth.login.signIn')}</span>
+                  )}
+                </PrimaryButton>
+              </div>
             </form>
 
             {/* Password Reset Link */}

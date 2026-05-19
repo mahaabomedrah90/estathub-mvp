@@ -123,6 +123,40 @@ body {
   background-color: rgb(var(--primary-soft)) !important;
 }
 
+/* Section spacing utilities — reusable vertical rhythm for page sections.
+   Responsive via CSS nesting (Tailwind v4 compatible). */
+@layer utilities {
+  .section-spacing {
+    padding-top: 3rem;      /* py-12 mobile */
+    padding-bottom: 3rem;
+
+    @media (width >= 768px) {
+      padding-top: 4rem;    /* py-16 tablet */
+      padding-bottom: 4rem;
+    }
+
+    @media (width >= 1024px) {
+      padding-top: 5rem;    /* py-20 desktop */
+      padding-bottom: 5rem;
+    }
+  }
+
+  .section-tight {
+    padding-top: 2rem;      /* py-8 mobile */
+    padding-bottom: 2rem;
+
+    @media (width >= 768px) {
+      padding-top: 2.5rem;  /* py-10 tablet */
+      padding-bottom: 2.5rem;
+    }
+
+    @media (width >= 1024px) {
+      padding-top: 3rem;    /* py-12 desktop */
+      padding-bottom: 3rem;
+    }
+  }
+}
+
 /* Animations */
 @keyframes fadeIn {
   from {

@@ -35,7 +35,7 @@
       "privacy": "Privacy Policy"
     },
     "location": "Riyadh, Saudi Arabia",
-    "copyright": "All rights reserved. Built with Hyperledger Fabric."
+    "copyright": "All rights reserved."
   },
   "date": {
     "joinedOn": "Joined on {{date}}"

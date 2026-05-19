@@ -14,7 +14,7 @@ export default function Home() {
   return (
     <>
       {/* Hero Section - Premium Real Estate Investment - Outside wrapper for full width */}
-      <div className="relative w-full h-screen flex items-center justify-center overflow-hidden">
+      <div className="relative w-full min-h-[calc(100vh-5rem)] flex items-center justify-center overflow-hidden">
         {/* Background Image with Improved Overlay */}
         <div className="absolute inset-0 w-full h-full">
           <img 
@@ -39,7 +39,7 @@ export default function Home() {
           </h1>
 
           {/* Subtitle - Investment Message */}
-          <p className="text-xl md:text-2xl text-white/80 max-w-3xl mx-auto leading-relaxed mb-12">
+          <p className="text-xl md:text-2xl text-white/80 max-w-3xl mx-auto leading-relaxed mb-8">
             {t('home.heroSubtitle')}
           </p>
 
@@ -76,49 +76,49 @@ export default function Home() {
       </div>
 
       {/* How It Works Section */}
-      <div className="bg-brand-primary py-20">
+      <div className="bg-brand-primary pt-2 pb-10 md:pb-12">
         <div className="max-w-7xl mx-auto px-6 lg:px-8">
-          <div className="bg-brand-primary-soft rounded-3xl p-12 md:p-16 border border-white/10">
-            <h2 className="text-3xl md:text-4xl font-bold text-white text-center mb-12 tracking-tight">
+          <div className="bg-brand-primary-soft rounded-3xl p-6 md:p-8 border border-white/10">
+            <h2 className="text-3xl md:text-4xl font-bold text-white text-center mb-6 tracking-tight">
               {t('home.howItWorks.title')}
             </h2>
             
-            <div className="grid md:grid-cols-3 gap-8 md:gap-12">
+            <div className="grid md:grid-cols-3 gap-6 md:gap-10">
               {/* Step 1 */}
-              <div className="text-center space-y-4">
-                <div className="w-14 h-14 bg-brand-accent rounded-full flex items-center justify-center mx-auto mb-6 shadow-lg">
+              <div className="text-center">
+                <div className="w-14 h-14 bg-brand-accent rounded-full flex items-center justify-center mx-auto mb-4 shadow-lg">
                   <span className="text-white text-2xl font-bold">1</span>
                 </div>
                 <h3 className="text-xl font-semibold text-white mb-3">
                   {t('home.howItWorks.step1.title')}
                 </h3>
-                <p className="text-white/70 text-base leading-relaxed">
+                <p className="text-white/70 text-base leading-7">
                   {t('home.howItWorks.step1.desc')}
                 </p>
               </div>
 
               {/* Step 2 */}
-              <div className="text-center space-y-4">
-                <div className="w-14 h-14 bg-brand-accent rounded-full flex items-center justify-center mx-auto mb-6 shadow-lg">
+              <div className="text-center">
+                <div className="w-14 h-14 bg-brand-accent rounded-full flex items-center justify-center mx-auto mb-4 shadow-lg">
                   <span className="text-white text-2xl font-bold">2</span>
                 </div>
                 <h3 className="text-xl font-semibold text-white mb-3">
                   {t('home.howItWorks.step2.title')}
                 </h3>
-                <p className="text-white/70 text-base leading-relaxed">
+                <p className="text-white/70 text-base leading-7">
                   {t('home.howItWorks.step2.desc')}
                 </p>
               </div>
 
               {/* Step 3 */}
-              <div className="text-center space-y-4">
-                <div className="w-14 h-14 bg-brand-accent rounded-full flex items-center justify-center mx-auto mb-6 shadow-lg">
+              <div className="text-center">
+                <div className="w-14 h-14 bg-brand-accent rounded-full flex items-center justify-center mx-auto mb-4 shadow-lg">
                   <span className="text-white text-2xl font-bold">3</span>
                 </div>
                 <h3 className="text-xl font-semibold text-white mb-3">
                   {t('home.howItWorks.step3.title')}
                 </h3>
-                <p className="text-white/70 text-base leading-relaxed">
+                <p className="text-white/70 text-base leading-7">
                   {t('home.howItWorks.step3.desc')}
                 </p>
               </div>
@@ -128,12 +128,12 @@ export default function Home() {
       </div>
 
       {/* Features Section */}
-      <div className="bg-surface-muted py-20">
+      <div className="bg-surface-muted section-tight">
         <div className="max-w-7xl mx-auto px-6 lg:px-8">
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
           {/* Item 1: Partial Ownership */}
           <div className="bg-white border border-border-soft hover:border-brand-accent/25 rounded-2xl shadow-lg hover:shadow-xl transition-all duration-250 hover:-translate-y-2 p-10">
-            <div className="w-14 h-14 bg-brand-accent-soft rounded-xl flex items-center justify-center mb-8">
+            <div className="w-14 h-14 bg-brand-accent-soft rounded-xl flex items-center justify-center mb-5">
               <Building2 className="w-7 h-7 text-brand-accent" />
             </div>
             <h3 className="text-xl font-bold text-text-strong mb-3">
@@ -146,7 +146,7 @@ export default function Home() {
 
           {/* Item 2: Monthly Income */}
           <div className="bg-white border border-border-soft hover:border-brand-accent/25 rounded-2xl shadow-lg hover:shadow-xl transition-all duration-250 hover:-translate-y-2 p-10">
-            <div className="w-14 h-14 bg-brand-accent-soft rounded-xl flex items-center justify-center mb-8">
+            <div className="w-14 h-14 bg-brand-accent-soft rounded-xl flex items-center justify-center mb-5">
               <TrendingUp className="w-7 h-7 text-brand-accent" />
             </div>
             <h3 className="text-xl font-bold text-text-strong mb-3">
@@ -159,7 +159,7 @@ export default function Home() {
 
           {/* Item 3: Blockchain Security */}
           <div className="bg-white border border-border-soft hover:border-brand-accent/25 rounded-2xl shadow-lg hover:shadow-xl transition-all duration-250 hover:-translate-y-2 p-10">
-            <div className="w-14 h-14 bg-brand-accent-soft rounded-xl flex items-center justify-center mb-8">
+            <div className="w-14 h-14 bg-brand-accent-soft rounded-xl flex items-center justify-center mb-5">
               <Shield className="w-7 h-7 text-brand-accent" />
             </div>
             <h3 className="text-xl font-bold text-text-strong mb-3">
@@ -223,8 +223,6 @@ export default function Home() {
       </div>
       */}
 
-      {/* Waitlist — bottom of page */}
-      <WaitlistSection />
     </>
   )
 }

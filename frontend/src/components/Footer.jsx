@@ -1,6 +1,6 @@
 import React from 'react'
 import { Link } from 'react-router-dom'
-import { Building2, Mail, Phone, MapPin, Twitter, Linkedin, Github } from 'lucide-react'
+import { Building2, Mail, Phone, MapPin, Twitter, Linkedin, Github, Instagram, Music } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 
 export default function Footer() {
@@ -29,15 +29,33 @@ export default function Footer() {
               {t('footer.tagline')}
             </p>
             <div className="flex gap-3">
-              {/* same social icons */}
-              <a href="#" className="text-white/50 hover:text-brand-accent transition-colors">
+              {/* Social media icons */}
+              <a 
+                href="https://x.com/Tryalwsmsa" 
+                className="text-white/50 hover:text-brand-accent transition-colors"
+                target="_blank"
+                rel="noopener noreferrer"
+                aria-label="Follow ALWSM on X (Twitter)"
+              >
                 <Twitter size={20} />
               </a>
-              <a href="#" className="text-white/50 hover:text-brand-accent transition-colors">
-                <Linkedin size={20} />
+              <a 
+                href="https://www.instagram.com/Tryalwsmsa" 
+                className="text-white/50 hover:text-brand-accent transition-colors"
+                target="_blank"
+                rel="noopener noreferrer"
+                aria-label="Follow ALWSM on Instagram"
+              >
+                <Instagram size={20} />
               </a>
-              <a href="#" className="text-white/50 hover:text-brand-accent transition-colors">
-                <Github size={20} />
+              <a 
+                href="https://www.tiktok.com/@Tryalwsmsa" 
+                className="text-white/50 hover:text-brand-accent transition-colors"
+                target="_blank"
+                rel="noopener noreferrer"
+                aria-label="Follow ALWSM on TikTok"
+              >
+                <Music size={20} />
               </a>
             </div>
           </div>
@@ -87,7 +105,7 @@ export default function Footer() {
           <div>
             <h3 className="text-white font-semibold mb-4">{t('footer.contactUs')}</h3>
             <ul className="space-y-3 text-sm">
-              <li className="flex items-start gap-2">
+              <li className="flex items-center gap-2">
                 <MapPin size={16} className="mt-1 flex-shrink-0" />
                 <span>{t('footer.location')}</span>
               </li>
@@ -97,7 +115,7 @@ export default function Footer() {
                   support@alwsm.sa
                 </a>
               </li>
-              <li className="flex items-center gap-2">
+                            <li className="flex items-center gap-2">
                 <Phone size={16} className="flex-shrink-0" />
                 <a href="tel:+966530103099" className="hover:text-brand-accent transition-colors">
                   +966 53 010 3099

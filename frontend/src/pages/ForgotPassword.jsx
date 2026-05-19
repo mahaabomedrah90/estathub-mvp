@@ -76,7 +76,7 @@ export default function ForgotPassword() {
       <div className="w-full max-w-md">
 
         {/* Brand Header */}
-        <div className="text-center py-10 bg-brand-primary rounded-2xl mb-0">
+        <div className="text-center py-10 bg-brand-primary rounded-2xl mb-6">
           <div className="w-14 h-14 bg-white/10 rounded-full flex items-center justify-center mx-auto mb-4">
             <Lock className="w-7 h-7 text-brand-accent" />
           </div>
@@ -120,23 +120,25 @@ export default function ForgotPassword() {
               </div>
             )}
 
-            <button
-              type="submit"
-              disabled={isLoading || !email}
-              className="w-full flex items-center justify-center gap-2 rounded-xl bg-brand-accent hover:bg-brand-accent/90 disabled:opacity-50 disabled:cursor-not-allowed text-white px-4 py-3 font-semibold transition-colors shadow-lg"
-            >
-              {isLoading ? (
-                <>
-                  <Loader2 className="animate-spin" size={18} />
-                  <span>{isRTL ? 'جاري الإرسال...' : 'Sending...'}</span>
-                </>
-              ) : (
-                <span>{isRTL ? 'إرسال رابط إعادة التعيين' : 'Send Reset Link'}</span>
-              )}
-            </button>
+            <div className="mt-3">
+              <button
+                type="submit"
+                disabled={isLoading || !email}
+                className="w-full flex items-center justify-center gap-2 rounded-xl bg-brand-accent hover:bg-brand-accent/90 disabled:opacity-50 disabled:cursor-not-allowed text-white px-4 py-3 font-semibold transition-colors shadow-lg"
+              >
+                {isLoading ? (
+                  <>
+                    <Loader2 className="animate-spin" size={18} />
+                    <span>{isRTL ? 'جاري الإرسال...' : 'Sending...'}</span>
+                  </>
+                ) : (
+                  <span>{isRTL ? 'إرسال رابط إعادة التعيين' : 'Send Reset Link'}</span>
+                )}
+              </button>
+            </div>
           </form>
 
-          <div className="mt-5 text-center">
+          <div className="mt-6 text-center">
             <Link
               to="/login"
               className="inline-flex items-center gap-1 text-sm text-brand-accent hover:text-brand-accent/80 font-medium transition-colors"

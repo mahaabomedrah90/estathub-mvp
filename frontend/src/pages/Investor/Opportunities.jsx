@@ -3,6 +3,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { MapPin, ArrowRight, Loader2, Edit2, Eye, Building2 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { fetchJson } from '../../lib/api';
+import WaitlistSection from '../../components/WaitlistSection';
 
 export default function Opportunities() {
   const { t, i18n } = useTranslation('property');
@@ -68,7 +69,6 @@ export default function Opportunities() {
                 ? t('list.heroTitleOwner')
                 : t('list.heroTitleInvestor')}
             </h1>
-
             <p className="mx-auto max-w-3xl text-xl text-gray-600">
               {userRole === 'owner'
                 ? t('list.heroSubtitleOwner')
@@ -78,7 +78,28 @@ export default function Opportunities() {
         </div>
       </div>
 
-      <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
+      {/* Temporary pre-launch mode: hide demo listings and collect waitlist leads. */}
+      <div className="mx-auto max-w-2xl px-4 py-12 text-center">
+        <img
+          src="/Full Logo 1.png"
+          alt="الوسم"
+          className="mx-auto mb-6 h-16 w-auto opacity-40"
+        />
+        <h2 className="text-2xl font-bold text-brand-primary mb-3">
+          {isRtl
+            ? 'قريبًا — أول فرصة استثمار عقاري جزئي'
+            : 'Coming soon — the first fractional real estate opportunity'}
+        </h2>
+        <p className="text-gray-500 text-base mb-2">
+          {isRtl
+            ? 'سجّلي اهتمامك الآن وكوني من أوائل المستثمرين عند الإطلاق.'
+            : 'Register your interest now and be among the first investors at launch.'}
+        </p>
+      </div>
+      <WaitlistSection source="opportunities" />
+
+      {/* Property grid — suppressed until launch. Remove false && to restore. */}
+      {false && <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
         {loading ? (
           <div className="flex items-center justify-center py-12">
             <div className="space-y-3 text-center">
@@ -263,7 +284,7 @@ export default function Opportunities() {
             })}
           </div>
         )}
-      </div>
+      </div>}
     </div>
   );
 }

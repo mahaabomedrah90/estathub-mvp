@@ -27,7 +27,7 @@ export default function HowItWorks() {
           </IconBox>
           <h2 className="text-xl font-bold text-text-strong">{t('howItWorks.forInvestors.title')}</h2>
         </div>
-        <div className="space-y-4">
+        <div className="space-y-6">
           <div className="flex gap-4 items-start">
             <div className="flex-shrink-0">
               <div className="w-12 h-12 bg-brand-accent-soft rounded-xl flex items-center justify-center">
@@ -35,8 +35,8 @@ export default function HowItWorks() {
               </div>
             </div>
             <div className="flex-1">
-              <h3 className="font-semibold text-text-strong mb-2">{t('howItWorks.forInvestors.steps.createAccount.title')}</h3>
-              <p className="text-text-body leading-relaxed">{t('howItWorks.forInvestors.steps.createAccount.description')}</p>
+              <h3 className="font-semibold text-text-strong mb-3">{t('howItWorks.forInvestors.steps.createAccount.title')}</h3>
+              <p className="text-sm text-text-body leading-6">{t('howItWorks.forInvestors.steps.createAccount.description')}</p>
             </div>
           </div>
           <div className="flex gap-4 items-start">
@@ -46,8 +46,8 @@ export default function HowItWorks() {
               </div>
             </div>
             <div className="flex-1">
-              <h3 className="font-semibold text-text-strong mb-2">{t('howItWorks.forInvestors.steps.exploreOpportunities.title')}</h3>
-              <p className="text-text-body leading-relaxed">{t('howItWorks.forInvestors.steps.exploreOpportunities.description')}</p>
+              <h3 className="font-semibold text-text-strong mb-3">{t('howItWorks.forInvestors.steps.exploreOpportunities.title')}</h3>
+              <p className="text-sm text-text-body leading-6">{t('howItWorks.forInvestors.steps.exploreOpportunities.description')}</p>
             </div>
           </div>
           <div className="flex gap-4 items-start">
@@ -57,8 +57,8 @@ export default function HowItWorks() {
               </div>
             </div>
             <div className="flex-1">
-              <h3 className="font-semibold text-text-strong mb-2">{t('howItWorks.forInvestors.steps.invest.title')}</h3>
-              <p className="text-text-body leading-relaxed">{t('howItWorks.forInvestors.steps.invest.description')}</p>
+              <h3 className="font-semibold text-text-strong mb-3">{t('howItWorks.forInvestors.steps.invest.title')}</h3>
+              <p className="text-sm text-text-body leading-6">{t('howItWorks.forInvestors.steps.invest.description')}</p>
             </div>
           </div>
           <div className="flex gap-4 items-start">
@@ -68,8 +68,8 @@ export default function HowItWorks() {
               </div>
             </div>
             <div className="flex-1">
-              <h3 className="font-semibold text-text-strong mb-2">{t('howItWorks.forInvestors.steps.trackPerformance.title')}</h3>
-              <p className="text-text-body leading-relaxed">{t('howItWorks.forInvestors.steps.trackPerformance.description')}</p>
+              <h3 className="font-semibold text-text-strong mb-3">{t('howItWorks.forInvestors.steps.trackPerformance.title')}</h3>
+              <p className="text-sm text-text-body leading-6">{t('howItWorks.forInvestors.steps.trackPerformance.description')}</p>
             </div>
           </div>
         </div>
@@ -83,7 +83,7 @@ export default function HowItWorks() {
           </IconBox>
           <h2 className="text-xl font-bold text-text-strong">{t('howItWorks.forPropertyOwners.title')}</h2>
         </div>
-        <div className="space-y-4">
+        <div className="space-y-6">
           <div className="flex gap-4 items-start">
             <div className="flex-shrink-0">
               <div className="w-12 h-12 bg-brand-primary/5 rounded-xl flex items-center justify-center">
@@ -91,8 +91,8 @@ export default function HowItWorks() {
               </div>
             </div>
             <div className="flex-1">
-              <h3 className="font-semibold text-text-strong mb-2">{t('howItWorks.forPropertyOwners.steps.registerAsOwner.title')}</h3>
-              <p className="text-text-body leading-relaxed">{t('howItWorks.forPropertyOwners.steps.registerAsOwner.description')}</p>
+              <h3 className="font-semibold text-text-strong mb-3">{t('howItWorks.forPropertyOwners.steps.registerAsOwner.title')}</h3>
+              <p className="text-sm text-text-body leading-6">{t('howItWorks.forPropertyOwners.steps.registerAsOwner.description')}</p>
             </div>
           </div>
           <div className="flex gap-4 items-start">
@@ -102,8 +102,8 @@ export default function HowItWorks() {
               </div>
             </div>
             <div className="flex-1">
-              <h3 className="font-semibold text-text-strong mb-2">{t('howItWorks.forPropertyOwners.steps.submitProperty.title')}</h3>
-              <p className="text-text-body leading-relaxed">{t('howItWorks.forPropertyOwners.steps.submitProperty.description')}</p>
+              <h3 className="font-semibold text-text-strong mb-3">{t('howItWorks.forPropertyOwners.steps.submitProperty.title')}</h3>
+              <p className="text-sm text-text-body leading-6">{t('howItWorks.forPropertyOwners.steps.submitProperty.description')}</p>
             </div>
           </div>
           <div className="flex gap-4 items-start">
@@ -113,8 +113,8 @@ export default function HowItWorks() {
               </div>
             </div>
             <div className="flex-1">
-              <h3 className="font-semibold text-text-strong mb-2">{t('howItWorks.forPropertyOwners.steps.reachInvestors.title')}</h3>
-              <p className="text-text-body leading-relaxed">{t('howItWorks.forPropertyOwners.steps.reachInvestors.description')}</p>
+              <h3 className="font-semibold text-text-strong mb-3">{t('howItWorks.forPropertyOwners.steps.reachInvestors.title')}</h3>
+              <p className="text-sm text-text-body leading-6">{t('howItWorks.forPropertyOwners.steps.reachInvestors.description')}</p>
             </div>
           </div>
           <div className="flex gap-4 items-start">
@@ -124,8 +124,8 @@ export default function HowItWorks() {
               </div>
             </div>
             <div className="flex-1">
-              <h3 className="font-semibold text-text-strong mb-2">{t('howItWorks.forPropertyOwners.steps.manageInvestment.title')}</h3>
-              <p className="text-text-body leading-relaxed">{t('howItWorks.forPropertyOwners.steps.manageInvestment.description')}</p>
+              <h3 className="font-semibold text-text-strong mb-3">{t('howItWorks.forPropertyOwners.steps.manageInvestment.title')}</h3>
+              <p className="text-sm text-text-body leading-6">{t('howItWorks.forPropertyOwners.steps.manageInvestment.description')}</p>
             </div>
           </div>
         </div>
@@ -139,33 +139,33 @@ export default function HowItWorks() {
           </div>
           <h2 className="text-2xl font-bold tracking-tight">{t('howItWorks.securityGuarantees.title')}</h2>
         </div>
-        <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-5">
+        <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
           <div className="text-center bg-white/10 border border-white/10 rounded-xl p-6">
-            <div className="w-12 h-12 bg-white/20 rounded-full flex items-center justify-center mx-auto mb-3">
+            <div className="w-12 h-12 bg-white/20 rounded-full flex items-center justify-center mx-auto mb-4">
               <CheckCircle2 className="text-white" size={20} />
             </div>
-            <h3 className="font-semibold text-white mb-2">{t('howItWorks.securityGuarantees.identityVerification.title')}</h3>
+            <h3 className="font-semibold text-white mb-3">{t('howItWorks.securityGuarantees.identityVerification.title')}</h3>
             <p className="text-white/70 text-sm leading-relaxed">{t('howItWorks.securityGuarantees.identityVerification.description')}</p>
           </div>
           <div className="text-center bg-white/10 border border-white/10 rounded-xl p-6">
-            <div className="w-12 h-12 bg-white/20 rounded-full flex items-center justify-center mx-auto mb-3">
+            <div className="w-12 h-12 bg-white/20 rounded-full flex items-center justify-center mx-auto mb-4">
               <Building2 className="text-white" size={20} />
             </div>
-            <h3 className="font-semibold text-white mb-2">{t('howItWorks.securityGuarantees.propertyEvaluation.title')}</h3>
+            <h3 className="font-semibold text-white mb-3">{t('howItWorks.securityGuarantees.propertyEvaluation.title')}</h3>
             <p className="text-white/70 text-sm leading-relaxed">{t('howItWorks.securityGuarantees.propertyEvaluation.description')}</p>
           </div>
           <div className="text-center bg-white/10 border border-white/10 rounded-xl p-6">
-            <div className="w-12 h-12 bg-white/20 rounded-full flex items-center justify-center mx-auto mb-3">
+            <div className="w-12 h-12 bg-white/20 rounded-full flex items-center justify-center mx-auto mb-4">
               <Shield className="text-white" size={20} />
             </div>
-            <h3 className="font-semibold text-white mb-2">{t('howItWorks.securityGuarantees.blockchain.title')}</h3>
+            <h3 className="font-semibold text-white mb-3">{t('howItWorks.securityGuarantees.blockchain.title')}</h3>
             <p className="text-white/70 text-sm leading-relaxed">{t('howItWorks.securityGuarantees.blockchain.description')}</p>
           </div>
           <div className="text-center bg-white/10 border border-white/10 rounded-xl p-6">
-            <div className="w-12 h-12 bg-white/20 rounded-full flex items-center justify-center mx-auto mb-3">
+            <div className="w-12 h-12 bg-white/20 rounded-full flex items-center justify-center mx-auto mb-4">
               <FileCheck className="text-white" size={20} />
             </div>
-            <h3 className="font-semibold text-white mb-2">{t('howItWorks.securityGuarantees.regulatoryCompliance.title')}</h3>
+            <h3 className="font-semibold text-white mb-3">{t('howItWorks.securityGuarantees.regulatoryCompliance.title')}</h3>
             <p className="text-white/70 text-sm leading-relaxed">{t('howItWorks.securityGuarantees.regulatoryCompliance.description')}</p>
           </div>
         </div>

@@ -258,7 +258,7 @@ const SignupForm = React.memo(() => {
   return (
     <div className="min-h-screen bg-surface-base">
       {/* Full-width header — matches Login page pattern */}
-      <div className="bg-brand-primary text-white py-16">
+      <div className="bg-brand-primary text-white py-12">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center">
             <div className="w-16 h-16 bg-white/10 rounded-full flex items-center justify-center mx-auto mb-6">
@@ -289,7 +289,7 @@ const SignupForm = React.memo(() => {
       </div>
 
       {/* Form Section */}
-      <div className="flex items-center justify-center py-12">
+      <div className="flex items-center justify-center py-6">
         <div className="w-full max-w-lg mx-auto px-4">
         <div className="bg-surface-card border border-border-soft rounded-2xl shadow-card p-10">
           <form onSubmit={onSubmit} className="space-y-7">
@@ -418,6 +418,7 @@ const SignupForm = React.memo(() => {
               </div>
             )}
 
+            <div className="mt-3">
             <button type="submit" disabled={loading} className="w-full flex items-center justify-center gap-2 rounded-xl bg-brand-accent hover:bg-brand-accent/90 hover:scale-[1.02] active:scale-95 disabled:bg-surface-muted disabled:cursor-not-allowed text-white px-4 py-3 font-semibold transition-all duration-200 shadow-lg hover:shadow-xl">
               {loading ? (
                 <>
@@ -431,6 +432,7 @@ const SignupForm = React.memo(() => {
                 </>
               )}
             </button>
+            </div>
           </form>
         </div>
 

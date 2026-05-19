@@ -7,6 +7,7 @@ import {
   Eye, History
 } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
+import SarIcon from '../../components/ui/SarIcon'
 export default function InvestorDashboard() {
   const navigate = useNavigate()
   const [loading, setLoading] = useState(true)
@@ -153,7 +154,7 @@ const totalReturns = holdings.reduce((sum, h) => {
                <span>{isArabic ? 'الإجمالي' : 'Total'}</span>
             </div>
           </div>
-          <div className="text-3xl font-bold mb-1">{totalBalance.toLocaleString()} {tCommon('currency.sar')}</div>
+          <div className="text-3xl font-bold mb-1 flex items-center gap-1">{totalBalance.toLocaleString()} <SarIcon size={20} className="text-white/80" /></div>
           <div className="text-brand-accent/20 text-sm">
             {isArabic ? 'قيمة المحفظة' : 'Portfolio Value'}
           </div>
@@ -170,8 +171,8 @@ const totalReturns = holdings.reduce((sum, h) => {
               <span>{isArabic ? 'المستثمر' : 'Invested'}</span>
             </div>
           </div>
-          <div className="text-3xl font-bold text-[#1E1958] mb-1">
-            {totalInvested.toLocaleString()} {tCommon('currency.sar')}
+          <div className="text-3xl font-bold text-[#1E1958] mb-1 flex items-center gap-1">
+            {totalInvested.toLocaleString()} <SarIcon size={20} className="text-[#1E1958]/80" />
           </div>
           <div className="text-sm text-gray-600">
             {isArabic ? 'إجمالي المبلغ المستثمر' : 'Total Invested'}
@@ -189,8 +190,8 @@ const totalReturns = holdings.reduce((sum, h) => {
               <span>{isArabic ? 'شهرياً' : 'Monthly'}</span>
             </div>
           </div>
-          <div className="text-3xl font-bold text-[#41EAD4] mb-1">
-            {totalReturns.toFixed(2)} {tCommon('currency.sar')}
+          <div className="text-3xl font-bold text-[#41EAD4] mb-1 flex items-center gap-1">
+            {totalReturns.toFixed(2)} <SarIcon size={20} className="text-[#41EAD4]/80" />
           </div>
           <div className="text-sm text-gray-600">
             {isArabic ? 'العوائد المتوقعة' : 'Expected Returns'}
@@ -239,8 +240,8 @@ const totalReturns = holdings.reduce((sum, h) => {
                 </div>
               </div>
               <div className="text-right">
-                <div className="text-xl font-bold text-brand-accent">
-                 {totalInvested.toLocaleString()} {tCommon('currency.sar')}
+                <div className="text-xl font-bold text-brand-accent flex items-center gap-1">
+                 {totalInvested.toLocaleString()} <SarIcon size={16} className="text-brand-accent/80" />
                 </div>
                 <div className="text-xs text-gray-500">
                   {totalBalance > 0 ? ((totalInvested / totalBalance) * 100).toFixed(1) : 0}%
@@ -263,8 +264,8 @@ const totalReturns = holdings.reduce((sum, h) => {
                 </div>
               </div>
               <div className="text-right">
-                <div className="text-xl font-bold text-brand-primary">
-                  {(wallet?.cashBalance ?? 0).toLocaleString()} {tCommon('currency.sar')}
+                <div className="text-xl font-bold text-brand-primary flex items-center gap-1">
+                  {(wallet?.cashBalance ?? 0).toLocaleString()} <SarIcon size={16} className="text-brand-primary/80" />
                 </div>
                 <div className="text-xs text-gray-500">
                   {totalBalance > 0 ? (((wallet?.cashBalance ?? 0) / totalBalance) * 100).toFixed(1) : 0}%
@@ -317,8 +318,8 @@ const totalReturns = holdings.reduce((sum, h) => {
               <div className="text-sm text-gray-600 mb-1">
                 {isArabic ? 'تقدير سنوي' : 'Annual projection'}
               </div>
-              <div className="text-2xl font-bold text-gray-900">
-                {(totalReturns * 12).toFixed(2)} {tCommon('currency.sar')}
+              <div className="text-2xl font-bold text-gray-900 flex items-center gap-1">
+                {(totalReturns * 12).toFixed(2)} <SarIcon size={18} className="text-gray-600" />
               </div>
               <div className="text-xs text-brand-primary flex items-center gap-1 mt-1">
                 <Calendar size={14} />
@@ -434,24 +435,24 @@ const totalReturns = holdings.reduce((sum, h) => {
                       <div className="text-xs text-brand-primary mb-1">
                         {isArabic ? 'الاستثمار' : 'Investment'}
                       </div>
-                      <div className="text-lg font-semibold text-brand-primary">
-                       {investmentValue.toLocaleString()} {tCommon('currency.sar')}
+                      <div className="text-lg font-semibold text-brand-primary flex items-center gap-1">
+                       {investmentValue.toLocaleString()} <SarIcon size={16} className="text-brand-primary/80" />
                       </div>
                     </div>
                     <div className="bg-brand-accent/10 rounded-lg p-3">
                       <div className="text-xs text-brand-accent mb-1">
                         {isArabic ? 'العائد الشهري' : 'Monthly return'}
                       </div>
-                      <div className="text-lg font-semibold text-brand-accent">
-                        {monthlyReturn.toFixed(2)} {tCommon('currency.sar')}
+                      <div className="text-lg font-semibold text-brand-accent flex items-center gap-1">
+                        {monthlyReturn.toFixed(2)} <SarIcon size={16} className="text-brand-accent/80" />
                       </div>
                     </div>
                     <div className="bg-brand-primary/10 rounded-lg p-3">
                       <div className="text-xs text-brand-primary mb-1">
                         {isArabic ? 'العائد السنوي' : 'Annual return'}
                       </div>
-                      <div className="text-lg font-semibold text-brand-primary">
-                        {(monthlyReturn * 12).toFixed(2)} {tCommon('currency.sar')}
+                      <div className="text-lg font-semibold text-brand-primary flex items-center gap-1">
+                        {(monthlyReturn * 12).toFixed(2)} <SarIcon size={16} className="text-brand-primary/80" />
                       </div>
                     </div>
                   </div>
@@ -538,8 +539,10 @@ const totalReturns = holdings.reduce((sum, h) => {
               }`}
             >
               <div className="font-semibold">
-                {isWithdraw ? '-' : '+'}
-                {tx.amount.toLocaleString()} {tCommon('currency.sar')}
+                <span className="flex items-center gap-1">
+                  {isWithdraw ? '-' : '+'}
+                  {tx.amount.toLocaleString()} <SarIcon size={16} className="text-text-muted" />
+                </span>
               </div>
               <div className="text-xs text-gray-500">{tx.status}</div>
             </div>
