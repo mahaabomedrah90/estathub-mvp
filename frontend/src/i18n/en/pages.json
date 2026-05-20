@@ -167,63 +167,64 @@
         "desc": "Total Asset Value"
       }
     },
-    "badge": "Blockchain-Powered Real Estate Investment",
-    "heroTitle1": "Invest in Real Estate,",
-    "heroTitle2": "One Token at a Time",
-    "heroTitle": "Start owning real estate from as little as SAR 500",
-    "heroSubtitle": "Without buying a full property — simple and clear",
-    "waitlistCTA": "Join the Waitlist",
-    "trustMicrocopy": "Transparent and structured platform for Saudi investors",
-    "heroCTA": " Start building your property portfolio with as little as one token.",
-    "exploreOpportunities": "Explore Opportunities",
-    "tokenizeProperty": "Tokenize Your Property",
-    "viewBlockchain": "View Blockchain",
-    "feature1Title": "Fractional Ownership",
-    "feature1Description": "Own a piece of premium real estate without the hefty price tag. Start with just one token.",
-    "feature2Title": "Monthly Returns",
-    "feature2Description": "Earn consistent monthly yields from rental income distributed directly to your wallet.",
-    "feature3Title": "Blockchain Security",
-    "feature3Description": "All transactions are secured on Hyperledger Fabric, ensuring transparency and immutability.",
-    "feature4Title": "Easy Payments",
-    "feature4Description": "Invest using local payment methods in SAR. Simple, fast, and secure transactions.",
-    "ctaTitle": "Ready to get started?",
-    "ctaSubtitle": "Join ALWSM today and start building your real estate portfolio through tokenized assets.",
-    "ctaButton": "Browse Properties",
+    "badge": "Institutional-Grade Real Estate Access",
+    "heroTitle1": "Real estate ownership.",
+    "heroTitle2": "Accessible to everyone.",
+    "heroTitle": "Own real estate. Start today.",
+    "heroSubtitle": "Access income-generating properties — without buying outright.",
+    "waitlistCTA": "Reserve Your Place",
+    "trustMicrocopy": "Asset-backed. Verified ownership. Built for serious investors.",
+    "heroCTA": "Start building your property portfolio today.",
+    "exploreOpportunities": "View Opportunities",
+    "tokenizeProperty": "List Your Property",
+    "viewBlockchain": "View Ownership Records",
+    "feature1Title": "Verified Ownership",
+    "feature1Description": "Own a stake in premium real estate. No large capital required.",
+    "feature2Title": "Rental Income",
+    "feature2Description": "Earn periodic income from rental yields distributed directly to your account.",
+    "feature3Title": "Asset Security",
+    "feature3Description": "Every ownership record is verified, stored, and independently auditable.",
+    "feature4Title": "Simple Process",
+    "feature4Description": "Invest in SAR. Straightforward, local, and fully documented.",
+    "ctaTitle": "Start building real ownership.",
+    "ctaSubtitle": "Select a property, invest what suits you, and track your portfolio from one place.",
+    "ctaButton": "View Properties",
     "howItWorks": {
-      "title": "How do you start investing?",
+      "title": "How it works",
       "step1": {
         "title": "Create your account",
-        "desc": "Register your details and verify your identity in minutes."
+        "desc": "Register and verify your identity in minutes."
       },
       "step2": {
-        "title": "Choose your opportunity",
-        "desc": "Browse available real estate opportunities and review full details."
+        "title": "Select a property",
+        "desc": "Browse curated, income-generating opportunities."
       },
       "step3": {
-        "title": "Receive your returns",
-        "desc": "Track your portfolio and receive periodic returns directly."
+        "title": "Own your stake",
+        "desc": "Verified ownership. Clear and documented."
       }
     },
     "features": {
       "items": {
         "partialOwnership": {
-          "title": "Fractional Ownership",
-          "description": "Own a share of premium real estate without a large upfront investment."
+          "title": "Real estate. Verified. Yours.",
+          "description": "Own a stake in a real asset — without buying the whole property."
         },
         "monthlyIncome": {
-          "title": "Monthly Returns",
-          "description": "Receive rental income directly into your wallet every month."
+          "title": "Earn from day one",
+          "description": "Rental income distributed directly to your account on a regular schedule."
         },
         "blockchainSecurity": {
-          "title": "Digital Fractional Ownership",
-          "description": "A transparent and structured system that ensures your investment is secure and verifiable."
+          "title": "Everything in one place",
+          "description": "Track your portfolio, income, and ownership records from a single dashboard."
         },
         "easyPayments": {
-          "title": "Easy Payments",
-          "description": "Invest in Saudi Riyal using simple and secure local payment methods."
+          "title": "Simple entry",
+          "description": "Start with an amount that suits you. No minimum barrier."
         }
       }
-    }
+    },
+    "heroSubtitleLegacy": "ALWSM gives you direct access to real estate ownership — clearly, confidently."
   },
   "admin": {
     "overview": {
@@ -1357,45 +1358,45 @@
     ]
   },
   "about": {
-    "title": "About Us",
-    "subtitle": "ALWSM is a modern real estate investment platform designed to make access to property simple, transparent, and accessible.",
+    "title": "Building a new standard for real estate access",
+    "subtitle": "ALWSM is a real estate ownership platform. We make it possible to own a stake in professionally selected properties — with full clarity and verified documentation.",
     "ourStory": {
-      "title": "Our Story",
-      "content1": "We started with one question: how can real estate investment be as simple as any digital investment?",
-      "content2": "Our team combines expertise in real estate, finance, and technology to create a platform that provides transparency, security, and accessibility for all investors."
+      "title": "Where it started",
+      "content1": "We asked a simple question: why is real estate still out of reach for most people?",
+      "content2": "Our team brings together real estate, legal, and technology expertise to deliver an ownership experience that is clear, documented, and accessible from day one."
     },
     "visionMission": {
       "title": "Vision & Mission",
       "vision": {
         "title": "Our Vision",
-        "content": "To become the leading platform redefining real estate investment accessibility in the region."
+        "content": "A world where real estate ownership is accessible to anyone willing to build their future."
       },
       "mission": {
         "title": "Our Mission",
-        "content": "To empower individuals to build financial growth through simple and trusted real estate investments."
+        "content": "To give investors direct access to income-generating real estate — with full transparency and verified ownership at every step."
       }
     },
     "coreValues": {
-      "title": "Our Core Values",
+      "title": "What we stand for",
       "trust": {
         "title": "Trust",
-        "description": "Building lasting relationships through transparency and reliability"
+        "description": "Verified ownership. Every record is documented and independently auditable."
       },
       "transparency": {
-        "title": "Transparency",
-        "description": "Open communication and clear processes for all investors"
+        "title": "Clarity",
+        "description": "Full visibility into every property, return, and ownership structure."
       },
       "empowerment": {
         "title": "Empowerment",
-        "description": "Enabling financial freedom through smart investment choices"
+        "description": "Real estate ownership, made accessible — regardless of capital size."
       },
       "quality": {
         "title": "Quality",
-        "description": "Selecting the best real estate investment opportunities for our investors"
+        "description": "We select every property against strict criteria. Your investment decisions deserve that."
       }
     },
     "achievements": {
-      "title": "Our Achievements",
+      "title": "Early traction",
       "activeInvestors": "Active Investors",
       "listedProperties": "Listed Properties",
       "customerSatisfaction": "Customer Satisfaction"
@@ -1403,39 +1404,39 @@
     "sections": [
       {
         "title": "Our mission",
-        "content": "Enable more people to access real estate opportunities with clarity, trust, and a great user experience."
+        "content": "Make real estate ownership accessible to individuals who want to build long-term wealth."
       },
       {
         "title": "What we do",
-        "content": "We showcase vetted opportunities, provide clear investment details, and support transparent ownership records."
+        "content": "We source, vet, and present real estate investment opportunities with complete financial and legal clarity."
       },
       {
         "title": "Compliance & privacy",
-        "content": "We design with privacy and security in mind, aligned with applicable regulations in Saudi Arabia."
+        "content": "Built in full alignment with Saudi regulatory requirements. Your data and ownership records are protected."
       }
     ]
   },
   "howItWorks": {
-    "title": "How to Start Your Investment Journey",
-    "subtitle": "Start investing in real estate in simple, clear steps — no complexity.",
+    "title": "How ownership works",
+    "subtitle": "A straightforward path — from first decision to documented ownership.",
     "forInvestors": {
       "title": "For Investors",
       "steps": {
         "createAccount": {
-          "title": "Create Account",
-          "description": "Create your account in minutes."
+          "title": "Open your account",
+          "description": "Register and complete identity verification in minutes."
         },
         "exploreOpportunities": {
-          "title": "Explore Opportunities",
-          "description": "Explore curated real estate opportunities."
+          "title": "Select a property",
+          "description": "Browse professionally selected, income-generating assets."
         },
         "invest": {
-          "title": "Invest",
-          "description": "Start with a small amount and secure your share."
+          "title": "Own your stake",
+          "description": "Start with an amount that fits your goals. Own a real, documented share."
         },
         "trackPerformance": {
-          "title": "Track Performance",
-          "description": "Track performance and receive returns."
+          "title": "Track and earn",
+          "description": "Monitor performance and receive distributions directly to your account."
         }
       }
     },
@@ -1443,101 +1444,101 @@
       "title": "For Property Owners",
       "steps": {
         "registerAsOwner": {
-          "title": "Register as Owner",
-          "description": "Create your account and complete property owner verification"
+          "title": "Register as owner",
+          "description": "Create your account and complete ownership verification."
         },
         "submitProperty": {
-          "title": "Submit Your Property",
-          "description": "Provide property details and documents for review"
+          "title": "Submit your property",
+          "description": "Provide property details and supporting documentation for review."
         },
         "reachInvestors": {
-          "title": "Connect with Investors",
-          "description": "Reach hundreds of verified investors on our platform"
+          "title": "Connect with investors",
+          "description": "Present your property to a network of verified investors."
         },
         "manageInvestment": {
-          "title": "Manage Investment",
-          "description": "Track token sales and receive monthly rental income"
+          "title": "Manage your asset",
+          "description": "Track ownership distribution and receive rental income on schedule."
         }
       }
     },
     "securityGuarantees": {
-      "title": "Security & Guarantees",
+      "title": "Built on trust",
       "identityVerification": {
         "title": "Identity Verification",
-        "description": "All users undergo comprehensive KYC/AML verification"
+        "description": "All users complete full KYC and AML screening before accessing the platform."
       },
       "propertyEvaluation": {
-        "title": "Property Evaluation",
-        "description": "Professional valuation and legal review for all properties"
+        "title": "Professional Valuation",
+        "description": "Every property is independently assessed against clear investment criteria."
       },
       "blockchain": {
-        "title": "Blockchain Security",
-        "description": "All transactions secured with Hyperledger Fabric blockchain"
+        "title": "Ownership Security",
+        "description": "All ownership records are documented, verified, and independently auditable."
       },
       "regulatoryCompliance": {
         "title": "Regulatory Compliance",
-        "description": "Full compliance with Saudi real estate and finance regulations"
+        "description": "Fully aligned with Saudi real estate and financial regulations."
       }
     },
     "steps": [
       {
-        "title": "Explore opportunities",
-        "content": "Browse listings with clear financial and property details."
+        "title": "Browse properties",
+        "content": "Review listings with complete financial and property information."
       },
       {
-        "title": "Review details",
-        "content": "Check valuation, expected returns, risks, and ownership structure."
+        "title": "Assess the opportunity",
+        "content": "Review valuation, projected returns, risk profile, and ownership structure."
       },
       {
         "title": "Invest",
-        "content": "Place your investment and track your portfolio from one dashboard."
+        "content": "Confirm your investment and access your ownership dashboard."
       },
       {
-        "title": "Track & receive returns",
-        "content": "Monitor performance and distributions according to the opportunity schedule."
+        "title": "Earn and track",
+        "content": "Monitor performance and receive distributions according to the property schedule."
       }
     ]
   },
   "faq": {
     "title": "Frequently Asked Questions",
-    "subtitle": "Common questions about ALWASM and property tokens",
+    "subtitle": "Answers to the questions investors ask most.",
     "investorQuestions": {
       "title": "For Investors",
-      "description": "Everything you need to know about investing with ALWASM"
+      "description": "Everything you need to know before you invest."
     },
     "ownerQuestions": {
       "title": "For Property Owners",
-      "description": "Learn how to list your property and reach investors"
+      "description": "How to list your property and connect with verified investors."
     },
     "questions": [
       {
         "question": "What is ALWSM?",
-        "answer": "ALWSM is a platform that enables simple access to real estate investment opportunities."
+        "answer": "ALWSM is a real estate ownership platform. It gives you direct access to income-generating properties — without purchasing the entire asset."
       },
       {
-        "question": "Can I invest with a small amount?",
-        "answer": "Yes, you can start with a small amount, making real estate investment more accessible."
+        "question": "Can I start with a small amount?",
+        "answer": "Yes. You can enter the real estate market with an amount that suits your budget. Ownership is no longer reserved for large capital."
       },
       {
-        "question": "Is it safe?",
-        "answer": "We focus on carefully selected opportunities with transparent data."
+        "question": "How secure is my investment?",
+        "answer": "Every opportunity is carefully assessed before listing. Your ownership is documented and independently verifiable at any time."
       },
       {
         "question": "When will opportunities be available?",
-        "answer": "The platform is currently in pre-launch. Join the waitlist to be among the first."
+        "answer": "The platform is in pre-launch. Reserve your place — you will be notified when the first opportunity goes live."
       },
       {
-        "question": "How do I receive returns?",
-        "answer": "Returns are distributed periodically based on property performance."
+        "question": "How are returns distributed?",
+        "answer": "Returns are distributed periodically based on the property's rental income. All distributions are visible from your account."
       },
       {
-        "question": "Can I sell my tokens?",
-        "answer": "Yes, tokens can be traded on our secondary market or held for long-term growth."
+        "question": "Can I exit my investment?",
+        "answer": "Yes. You will be able to transfer your ownership stake at a later stage, or hold it as a long-term income asset."
       }
     ],
     "stillHaveQuestions": {
       "title": "Still have questions?",
-      "description": "Our support team is here to help with any inquiries",
+      "description": "Our team is available to answer any question before you invest.",
       "email": "support@alwsm.sa",
       "phone": "+966530103099"
     },

@@ -53,19 +53,19 @@ export default function WaitlistSection({ source = 'home' }) {
       <div className="max-w-xl mx-auto text-center">
         {/* Eyebrow */}
         <p className="text-brand-accent text-sm font-semibold uppercase tracking-widest mb-3">
-          {isRtl ? 'كن من الأوائل' : 'Be among the first'}
+          {isRtl ? 'كن من الأوائل' : 'Early access'}
         </p>
 
         {/* Heading */}
         <h2 className="text-3xl md:text-4xl font-bold text-white mb-3 leading-tight">
-          {isRtl ? 'لا تنتظر… امتلك' : 'Don\'t wait — own it'}
+          {isRtl ? 'لا تنتظر… امتلك' : 'Own it. Start now.'}
         </h2>
 
         {/* Microcopy */}
         <p className="text-white/70 text-base mb-6">
           {isRtl
             ? 'خطوة واحدة اليوم قد تصنع أثرًا لسنوات'
-            : 'One step today can make a difference for years'}
+            : 'Reserve your place before the first opportunity closes.'}
         </p>
 
         {submitted ? (
@@ -77,7 +77,7 @@ export default function WaitlistSection({ source = 'home' }) {
             <p className="text-white/60 text-sm">
               {isRtl
                 ? 'سنتواصل معك عند الإطلاق.'
-                : "We'll reach out when we launch."}
+                : "We will notify you when the first property goes live."}
             </p>
           </div>
         ) : (
@@ -89,7 +89,7 @@ export default function WaitlistSection({ source = 'home' }) {
                 type="text"
                 value={contact}
                 onChange={(e) => setContact(e.target.value)}
-                placeholder={isRtl ? 'البريد الإلكتروني أو رقم الجوال' : 'Email or phone number'}
+                placeholder={isRtl ? 'البريد الإلكتروني أو رقم الجوال' : 'Email or phone'}
                 required
                 className="w-full px-5 py-4 rounded-xl bg-white/10 border border-white/20 text-white placeholder-white/40 focus:outline-none focus:ring-2 focus:ring-brand-accent text-base"
               />
@@ -98,7 +98,7 @@ export default function WaitlistSection({ source = 'home' }) {
             {/* GROUP 2 — Investment selection */}
             <div className="mt-2 space-y-3">
               <span className="block text-white/60 text-sm text-center">
-                {isRtl ? 'كم تقدر تستثمر؟' : 'How much can you invest?'}
+                {isRtl ? 'كم تقدر تستثمر؟' : 'Approximate investment range'}
               </span>
               <div className="flex gap-3 justify-center flex-wrap">
                 {amountOptions.map((opt) => (
@@ -129,7 +129,7 @@ export default function WaitlistSection({ source = 'home' }) {
                   <span className="w-5 h-5 border-2 border-white/40 border-t-white rounded-full animate-spin" />
                 ) : (
                   <>
-                    <span>{isRtl ? 'ابدأ الآن' : 'Start Now'}</span>
+                    <span>{isRtl ? 'ابدأ الآن' : 'Reserve My Place'}</span>
                     <ArrowRight className={`w-4 h-4 ${isRtl ? 'rotate-180' : ''}`} />
                   </>
                 )}
@@ -141,7 +141,7 @@ export default function WaitlistSection({ source = 'home' }) {
               <p className="mt-4 text-red-300 text-sm font-medium">
                 {isRtl
                   ? 'تعذر تسجيلك الآن، حاولي مرة أخرى.'
-                  : "We couldn't register you right now. Please try again."}
+                  : "Something went wrong. Please try again."}
               </p>
             )}
 
@@ -149,7 +149,7 @@ export default function WaitlistSection({ source = 'home' }) {
             <p className="mt-4 text-white/40 text-xs text-center">
               {isRtl
                 ? 'نستخدم تقنيات حديثة لضمان أن ملكيتك موثقة، محفوظة، ويمكن التحقق منها'
-                : 'We use modern technology to ensure your ownership is documented, preserved, and verifiable'}
+                : 'Asset-backed. Verified ownership. Saudi-regulated.'}
             </p>
 
           </form>
