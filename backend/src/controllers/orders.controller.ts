@@ -36,6 +36,16 @@ ordersRouter.post('/', auth(true), async (req: Request & { user?: any }, res: Re
     }
     
     userId = req.user!.userId
+
+    // Block SUSPENDED users from investing
+    const investingUser = await prisma.user.findUnique({ where: { id: userId }, select: { status: true } as any })
+    if ((investingUser as any)?.status === 'SUSPENDED') {
+      return res.status(403).json({
+        error: 'account_suspended',
+        message: 'الحساب غير مفعل، يرجى التواصل مع إدارة المنصة.'
+      })
+    }
+
     const { propertyId, tokens } = req.body || {}
     pid = String(propertyId)
     qty = Number(tokens)
@@ -126,6 +136,15 @@ ordersRouter.post('/confirm', auth(true), async (req: Request & { user?: any }, 
       return res.status(403).json({ error: 'forbidden', message: 'You can only confirm your own orders.' })
     }
     if (order.status === 'ISSUED') return res.json({ ok: true })
+
+    // Block SUSPENDED users from confirming payment
+    const confirmingUser = await prisma.user.findUnique({ where: { id: req.user!.userId }, select: { status: true } as any })
+    if ((confirmingUser as any)?.status === 'SUSPENDED') {
+      return res.status(403).json({
+        error: 'account_suspended',
+        message: 'الحساب غير مفعل، يرجى التواصل مع إدارة المنصة.'
+      })
+    }
 
     // Complete database transaction first (without blockchain)
     await prisma.$transaction(async (tx: any) => {

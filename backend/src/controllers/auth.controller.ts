@@ -5,6 +5,7 @@ import rateLimit from 'express-rate-limit'
 import crypto from 'crypto'
 import { prisma } from '../lib/prisma'
 import { auth } from '../middleware/auth'
+import { logAdminAction, AuditAction } from '../lib/auditService'
 import { maintenanceGuard, registrationGuard } from '../middleware/platform'
 import { getSetting } from './settings.controller'
 import { sendEmail, buildPasswordResetEmail, buildVerificationEmail, buildNewUserAdminEmail, getAdminEmail } from '../lib/emailService'
@@ -530,6 +531,14 @@ authRouter.post('/login', loginLimiter, async (req: Request, res: Response) => {
       })
     }
 
+    // Account status check — block inactive accounts from logging in
+    if ((user as any).status === 'INACTIVE') {
+      return res.status(403).json({
+        error: 'account_inactive',
+        message: 'الحساب غير مفعل، يرجى التواصل مع إدارة المنصة.'
+      })
+    }
+
     // Maintenance mode: block non-ADMIN logins
     const maintenanceSetting = await getSetting('maintenanceMode', 'false')
     if (maintenanceSetting === 'true' && user.role !== 'ADMIN') {
@@ -1028,7 +1037,8 @@ usersRouter.get('/', auth(true), async (req: Request, res: Response) => {
       tenantId: user.tenantId,
       emailVerified: user.emailVerified,
       phoneVerified: user.phoneVerified,
-      kycVerified: user.kycVerified
+      kycVerified: user.kycVerified,
+      accountStatus: (user as any).status || 'ACTIVE'
     }))
 
     console.log(`👥 Fetched ${mappedUsers.length} users from database`)
@@ -1057,9 +1067,19 @@ usersRouter.patch('/:id/role', auth(true), async (req: Request, res: Response) =
       return res.status(400).json({ error: 'invalid_role' })
     }
 
+    const existingUser = await prisma.user.findUnique({ where: { id }, select: { role: true } })
     const updatedUser = await prisma.user.update({
       where: { id },
       data: { role: role.toUpperCase() as Role }
+    })
+
+    await logAdminAction({
+      admin: { userId: (req as any).user?.userId, email: (req as any).user?.email },
+      action: AuditAction.USER_ROLE_CHANGED,
+      targetType: 'USER',
+      targetId: id,
+      metadata: { previousRole: existingUser?.role?.toLowerCase(), newRole: role.toLowerCase() },
+      req,
     })
 
     console.log(`🔄 Updated user ${id} role to ${role}`)
@@ -1097,6 +1117,15 @@ usersRouter.patch('/:id/verification', auth(true), async (req: Request, res: Res
       data: updateData
     })
 
+    await logAdminAction({
+      admin: { userId: (req as any).user?.userId, email: (req as any).user?.email },
+      action: AuditAction.USER_VERIFICATION_CHANGED,
+      targetType: 'USER',
+      targetId: id,
+      metadata: updateData,
+      req,
+    })
+
     console.log(`🔄 Updated user ${id} verification status`)
     res.json({
       success: true,
@@ -1106,6 +1135,51 @@ usersRouter.patch('/:id/verification', auth(true), async (req: Request, res: Res
   } catch (error) {
     console.error('❌ Failed to update user verification status:', error)
     res.status(500).json({ error: 'failed_to_update_user_verification' })
+  }
+})
+
+// PATCH /api/users/:id/status — update account status (ACTIVE | INACTIVE | SUSPENDED)
+usersRouter.patch('/:id/status', auth(true), async (req: Request, res: Response) => {
+  try {
+    if ((req as any).user?.role !== 'ADMIN') {
+      return res.status(403).json({ error: 'admin_access_required' })
+    }
+
+    const { id } = req.params
+    const { status } = req.body
+
+    const validStatuses = ['ACTIVE', 'INACTIVE', 'SUSPENDED']
+    if (!status || !validStatuses.includes(status.toUpperCase())) {
+      return res.status(400).json({ error: 'invalid_status', validValues: validStatuses })
+    }
+
+    const previousUser = await prisma.user.findUnique({ where: { id }, select: { status: true } })
+    if (!previousUser) {
+      return res.status(404).json({ error: 'user_not_found' })
+    }
+
+    const updatedUser = await prisma.user.update({
+      where: { id },
+      data: { status: status.toUpperCase() as any },
+    })
+
+    await logAdminAction({
+      admin: { userId: (req as any).user?.userId, email: (req as any).user?.email },
+      action: AuditAction.USER_STATUS_CHANGED,
+      targetType: 'USER',
+      targetId: id,
+      metadata: { previousStatus: (previousUser as any).status, newStatus: status.toUpperCase() },
+      req,
+    })
+
+    console.log(`🔄 Updated user ${id} status to ${status.toUpperCase()}`)
+    return res.json({
+      success: true,
+      accountStatus: (updatedUser as any).status,
+    })
+  } catch (error) {
+    console.error('❌ Failed to update user status:', error)
+    return res.status(500).json({ error: 'failed_to_update_user_status' })
   }
 })
 

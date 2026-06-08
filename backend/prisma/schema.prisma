@@ -80,6 +80,12 @@ enum OwnerType {
   COMPANY
 }
 
+enum UserStatus {
+  ACTIVE
+  INACTIVE
+  SUSPENDED
+}
+
 // Tenant model for multi-tenant support
 model Tenant {
   id        String   @id @default(cuid())
@@ -101,7 +107,8 @@ model User {
   email         String   @unique
   passwordHash  String   // Added for proper authentication
   fullName      String?  // Temporarily optional for migration, enforced at app level
-  role          Role     @default(INVESTOR)
+  role          Role       @default(INVESTOR)
+  status        UserStatus @default(ACTIVE)
   tenantId      String   // Multi-tenant support
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
