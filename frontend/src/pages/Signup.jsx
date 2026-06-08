@@ -56,6 +56,7 @@ const SignupForm = React.memo(() => {
   const [error, setError] = useState('')
   const [showPassword, setShowPassword] = useState(false)
   const [showConfirmPassword, setShowConfirmPassword] = useState(false)
+  const [verificationPending, setVerificationPending] = useState(false)
   const navigate = useNavigate()
   const [searchParams] = useSearchParams()
   const { i18n } = useTranslation('pages')
@@ -185,7 +186,13 @@ const SignupForm = React.memo(() => {
         },
         body: JSON.stringify(payload)
       })
-      if (!res || !res.token) throw new Error('Invalid response from server')
+      if (!res) throw new Error('Invalid response from server')
+      if (res.requiresVerification) {
+        setVerificationPending(true)
+        setLoading(false)
+        return
+      }
+      if (!res.token) throw new Error('Invalid response from server')
       setToken(res.token)
       const userRole = (res.user?.role || 'INVESTOR').toUpperCase()
       localStorage.setItem('role', userRole.toLowerCase())
@@ -205,8 +212,9 @@ const SignupForm = React.memo(() => {
     err?.error?.status ??
     null
 
-  // message priority: backend JSON {message} then fallback (but never show raw technical details)
+  // fetchJson throws with err.data = parsed JSON body; check it first
   const serverMessage =
+    err?.data?.message ??
     err?.response?.data?.message ??
     err?.error?.message ??
     null
@@ -218,7 +226,21 @@ const SignupForm = React.memo(() => {
 
   const safeMessage = isSafeText(serverMessage) ? serverMessage : null
 
-  if (status === 409) {
+  if (status === 503) {
+    setError(
+      safeMessage ||
+      (lang === 'ar'
+        ? 'المنصة تحت الصيانة حالياً'
+        : 'Platform is currently under maintenance')
+    )
+  } else if (status === 403 && err?.data?.error === 'registration_disabled') {
+    setError(
+      safeMessage ||
+      (lang === 'ar'
+        ? 'التسجيل غير متاح حالياً'
+        : 'Registration is currently unavailable')
+    )
+  } else if (status === 409) {
     // ✅ conflict field error (email/phone/nationalId)
     const field =
       err?.response?.data?.field ??
@@ -253,6 +275,37 @@ const SignupForm = React.memo(() => {
 
   setLoading(false)
 }
+  }
+
+  if (verificationPending) {
+    return (
+      <div className="min-h-screen bg-surface-base flex items-center justify-center px-4">
+        <div className="w-full max-w-md bg-surface-card border border-border-soft rounded-2xl shadow-card p-10 text-center">
+          <div className="w-16 h-16 bg-brand-accent/10 rounded-full flex items-center justify-center mx-auto mb-6">
+            <Mail className="text-brand-accent" size={32} />
+          </div>
+          <h2 className="text-2xl font-bold text-text-strong mb-3">
+            {lang === 'ar' ? 'تحقق من بريدك الإلكتروني' : 'Check your email'}
+          </h2>
+          <p className="text-text-body text-sm leading-relaxed mb-6">
+            {lang === 'ar'
+              ? 'تم إنشاء الحساب. يرجى تأكيد بريدك الإلكتروني قبل تسجيل الدخول. تحقق من صندوق الوارد وانقر على رابط التأكيد.'
+              : 'Account created. Please verify your email address before signing in. Check your inbox and click the verification link.'}
+          </p>
+          <div className="bg-brand-accent/5 border border-brand-accent/20 rounded-xl p-4 mb-6 text-xs text-text-muted">
+            {lang === 'ar'
+              ? 'الرابط صالح لمدة 24 ساعة. إذا لم تجد الرسالة، تحقق من مجلد البريد غير المرغوب فيه.'
+              : 'The link is valid for 24 hours. If you do not see the email, check your spam folder.'}
+          </div>
+          <button
+            onClick={() => navigate('/login')}
+            className="w-full bg-brand-accent hover:bg-brand-accent/90 text-white font-semibold py-3 rounded-xl transition-colors"
+          >
+            {lang === 'ar' ? 'الانتقال إلى تسجيل الدخول' : 'Go to Login'}
+          </button>
+        </div>
+      </div>
+    )
   }
 
   return (

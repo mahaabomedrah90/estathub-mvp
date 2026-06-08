@@ -1,8 +1,10 @@
 import { Router, Request, Response } from 'express'
 import { prisma } from '../lib/prisma'
 import { auth } from '../middleware/auth'
+import { requireRole } from '../middleware/roles'
 import { submitMintTokens, isFabricEnabled, submitTxn } from '../lib/fabric'
 import { getSetting } from './settings.controller'
+import { issueDeedAfterPayment } from '../lib/deedService'
 import crypto from 'node:crypto'
 
 export const ordersRouter = Router()
@@ -41,38 +43,64 @@ ordersRouter.post('/', auth(true), async (req: Request & { user?: any }, res: Re
 
     const prop = await prisma.property.findUnique({ where: { id: pid } })
     if (!prop) return res.status(404).json({ error: 'property_not_found' })
+    if (prop.status !== 'APPROVED') return res.status(400).json({ error: 'property_not_available', message: 'This property is not available for investment.' })
+    const existingPendingOrder = await prisma.order.findFirst({
+      where: { userId, propertyId: pid, status: 'PENDING' }
+    })
+    if (existingPendingOrder) {
+      return res.status(409).json({
+        error: 'pending_order_exists',
+        message: 'You already have a pending order for this property.',
+        existingOrderId: existingPendingOrder.id
+      })
+    }
     if (prop.remainingTokens < qty) return res.status(400).json({ error: 'insufficient_tokens' })
 
-    const amount = (prop.tokenPrice || 0) * qty
-    
-    // Validate minimum investment (fetch from settings)
+    const investmentAmount = (prop.tokenPrice || 0) * qty
+
+    // Validate minimum investment against investmentAmount (not totalPayable)
     const minInvestmentStr = await getSetting('minInvestmentAmount', '100')
     const MIN_INVESTMENT = parseInt(minInvestmentStr, 10)
-    if (amount < MIN_INVESTMENT) {
+    if (investmentAmount < MIN_INVESTMENT) {
       return res.status(400).json({
         error: 'minimum_investment_not_met',
-        message: `Minimum investment is ${MIN_INVESTMENT} SAR. Your investment amount is ${amount.toFixed(2)} SAR.`,
+        message: `Minimum investment is ${MIN_INVESTMENT} SAR. Your investment amount is ${investmentAmount.toFixed(2)} SAR.`,
         minInvestment: MIN_INVESTMENT,
-        currentAmount: amount
+        currentAmount: investmentAmount
       })
     }
 
-    // Validate maximum investment (fetch from settings)
+    // Validate maximum investment against investmentAmount (not totalPayable)
     const maxInvestmentStr = await getSetting('maxInvestmentAmount', '1000000')
     const MAX_INVESTMENT = parseInt(maxInvestmentStr, 10)
-    console.log('💰 Investment validation:', { amount, MIN_INVESTMENT, MAX_INVESTMENT })
-    if (amount > MAX_INVESTMENT) {
-      console.log('❌ Maximum investment exceeded:', { amount, MAX_INVESTMENT })
+    console.log('💰 Investment validation:', { investmentAmount, MIN_INVESTMENT, MAX_INVESTMENT })
+    if (investmentAmount > MAX_INVESTMENT) {
+      console.log('❌ Maximum investment exceeded:', { investmentAmount, MAX_INVESTMENT })
       return res.status(400).json({
         error: 'maximum_investment_exceeded',
-        message: `Maximum investment is ${MAX_INVESTMENT.toLocaleString()} SAR. Your investment amount is ${amount.toFixed(2)} SAR.`,
+        message: `Maximum investment is ${MAX_INVESTMENT.toLocaleString()} SAR. Your investment amount is ${investmentAmount.toFixed(2)} SAR.`,
         maxInvestment: MAX_INVESTMENT,
-        currentAmount: amount
+        currentAmount: investmentAmount
       })
     }
 
-    const order = await prisma.order.create({ data: { userId, propertyId: pid, tokens: qty, amount, status: 'PENDING' } })
-    return res.status(201).json({ id: order.id, amount: order.amount, status: order.status })
+    // Calculate platform fee (applied on top of investmentAmount)
+    const platformFeeStr = await getSetting('platformFee', '5')
+    const platformFeePercent = parseFloat(platformFeeStr)
+    const platformFeeAmount = parseFloat((investmentAmount * platformFeePercent / 100).toFixed(2))
+    const totalPayable = parseFloat((investmentAmount + platformFeeAmount).toFixed(2))
+
+    const order = await prisma.order.create({ data: { userId, propertyId: pid, tokens: qty, amount: investmentAmount, status: 'PENDING' } })
+    console.log(`💳 Order created: investmentAmount=${investmentAmount}, fee=${platformFeePercent}%=${platformFeeAmount}, totalPayable=${totalPayable}`)
+    return res.status(201).json({
+      id: order.id,
+      amount: order.amount,
+      investmentAmount: order.amount,
+      platformFeePercent,
+      platformFeeAmount,
+      totalPayable,
+      status: order.status
+    })
   } catch (e) {
     console.error('❌ Order creation failed:', {
       error: e,
@@ -94,39 +122,46 @@ ordersRouter.post('/confirm', auth(true), async (req: Request & { user?: any }, 
 
     const order = await prisma.order.findUnique({ where: { id: oid }, include: { property: true } })
     if (!order) return res.status(404).json({ error: 'order_not_found' })
+    if (order.userId !== req.user!.userId) {
+      return res.status(403).json({ error: 'forbidden', message: 'You can only confirm your own orders.' })
+    }
     if (order.status === 'ISSUED') return res.json({ ok: true })
 
     // Complete database transaction first (without blockchain)
     await prisma.$transaction(async (tx: any) => {
 
-      // Calculate payment amount
-      const amount = (order.property?.tokenPrice || 0) * (order.tokens || 0)
+      // Recalculate payment amounts — must match order creation logic
+      const investmentAmount = (order.property?.tokenPrice || 0) * (order.tokens || 0)
+      const platformFeeStr = await getSetting('platformFee', '5')
+      const platformFeePercent = parseFloat(platformFeeStr)
+      const platformFeeAmount = parseFloat((investmentAmount * platformFeePercent / 100).toFixed(2))
+      const totalPayable = parseFloat((investmentAmount + platformFeeAmount).toFixed(2))
 
       // Get user's tenantId for wallet creation
       const user = await tx.user.findUnique({ where: { id: order.userId } })
       if (!user) throw new Error('user_not_found')
 
-      // Ensure wallet exists and has sufficient balance
+      // Ensure wallet exists and has sufficient balance (checked against totalPayable)
       const wallet = await tx.wallet.upsert({
         where: { userId: order.userId },
         update: {},
         create: { userId: order.userId, tenantId: user.tenantId },
       })
-      if ((wallet.cashBalance || 0) < amount) {
+      if ((wallet.cashBalance || 0) < totalPayable) {
         const insufficientErr = new Error('insufficient_balance') as any
-        insufficientErr.requiredAmount = amount - (wallet.cashBalance || 0)
+        insufficientErr.requiredAmount = parseFloat((totalPayable - (wallet.cashBalance || 0)).toFixed(2))
         throw insufficientErr
       }
 
-      // Mark order paid and debit wallet with a transaction record
+      // Mark order paid and debit totalPayable (investmentAmount + fee) from wallet
       await tx.order.update({ where: { id: oid }, data: { status: 'PENDING' } })
-      await tx.wallet.update({ where: { id: wallet.id }, data: { cashBalance: { decrement: amount } } })
+      await tx.wallet.update({ where: { id: wallet.id }, data: { cashBalance: { decrement: totalPayable } } })
       await tx.transaction.create({
         data: {
           userId: order.userId,
           tenantId: user.tenantId,
           type: 'WITHDRAWAL',
-          amount,
+          amount: totalPayable,
           ref: String(oid)
         }
       })
@@ -145,6 +180,13 @@ ordersRouter.post('/confirm', auth(true), async (req: Request & { user?: any }, 
       await tx.order.update({ where: { id: oid }, data: { status: 'ISSUED' } })
     })
     
+    // Auto-issue digital deed after payment — fire-and-forget
+    issueDeedAfterPayment({
+      userId: order.userId,
+      propertyId: order.propertyId,
+      orderId: oid,
+    }).catch(err => console.error('⚠️  [deed] Auto-issuance failed for order', oid, err?.message))
+
     // After database transaction succeeds, record on blockchain
     if (isFabricEnabled()) {
       try {
@@ -255,7 +297,7 @@ ordersRouter.post('/confirm', auth(true), async (req: Request & { user?: any }, 
 })
 
 // GET /api/orders/investments - get all investments for admin analytics
-ordersRouter.get('/investments', auth(true), async (req: Request & { user?: any }, res: Response) => {
+ordersRouter.get('/investments', auth(true), requireRole(['ADMIN']), async (req: Request & { user?: any }, res: Response) => {
   try {
     console.log('📊 Fetching investments data for admin analytics')
     
@@ -321,7 +363,7 @@ ordersRouter.get('/investments', auth(true), async (req: Request & { user?: any 
 })
 
 // GET /api/orders/investors - get investor data for admin insights
-ordersRouter.get('/investors', auth(true), async (req: Request & { user?: any }, res: Response) => {
+ordersRouter.get('/investors', auth(true), requireRole(['ADMIN']), async (req: Request & { user?: any }, res: Response) => {
   try {
     console.log('👥 Fetching investor data for admin insights')
     
@@ -396,8 +438,6 @@ ordersRouter.get('/investors', auth(true), async (req: Request & { user?: any },
           status: 'active', // Default status
           verificationStatus: !!user.nationalId, // Use nationalId as verification indicator
           lastActive: new Date(), // Current date as default
-          walletAddress: `0x${Math.random().toString(16).substr(2, 40)}`, // Generate mock wallet address
-          
           // Investment metrics
           totalInvestment,
           totalReturns,

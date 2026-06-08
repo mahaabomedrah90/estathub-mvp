@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { 
-  Building2, Users, CheckCircle, Clock, TrendingUp, 
-  DollarSign, AlertCircle, BarChart3, Loader2, Eye, X, Shield
+  Building2, Users, CheckCircle, Clock, TrendingUp,
+  AlertCircle, Loader2, Eye, X, Shield
 } from 'lucide-react'
 import { authHeader, fetchJson, getToken } from '../../lib/api'
 import { useTranslation } from 'react-i18next'
@@ -25,7 +25,6 @@ export default function AdminOverview() {
     rejectedProperties: 0,
     activeInvestors: 0,
     totalInvestmentVolume: 0,
-    monthlyGrowth: 0
   })
 
   const formatDate = (value) => {
@@ -44,41 +43,56 @@ export default function AdminOverview() {
     try {
       setLoading(true)
       setError('')
-      
+
       if (!getToken()) {
         setError(t('admin.overview.loginRequired'))
         setLoading(false)
         return
       }
 
-      const response = await fetchJson('/api/properties', {
-        headers: { ...authHeader() }
-      })
+      const [propertiesResult, usersResult] = await Promise.allSettled([
+        fetchJson('/api/properties', { headers: { ...authHeader() } }),
+        fetchJson('/api/users', { headers: { ...authHeader() } }),
+      ])
 
-      const allProperties = Array.isArray(response) ? response : []
+      const allProperties =
+        propertiesResult.status === 'fulfilled' && Array.isArray(propertiesResult.value)
+          ? propertiesResult.value
+          : []
+      const allUsers =
+        usersResult.status === 'fulfilled' && Array.isArray(usersResult.value)
+          ? usersResult.value
+          : []
+
       setProperties(allProperties)
 
       const pending = allProperties.filter(p => p.status === 'PENDING')
       setPendingProperties(pending)
 
-      // Calculate stats
       const approved = allProperties.filter(p => p.status === 'APPROVED')
       const rejected = allProperties.filter(p => p.status === 'REJECTED')
-      
+
       const totalInvestmentVolume = approved.reduce((sum, p) => {
         return sum + ((p.totalTokens || 0) * (p.tokenPrice || 0))
       }, 0)
+
+      const activeInvestors = allUsers.filter(
+        u => u.role === 'investor' || u.role === 'INVESTOR'
+      ).length
 
       setStats({
         totalProperties: allProperties.length,
         approvedProperties: approved.length,
         pendingProperties: pending.length,
         rejectedProperties: rejected.length,
-        activeInvestors: new Set(approved.map(p => p.ownerId)).size,
+        activeInvestors,
         totalInvestmentVolume,
-        monthlyGrowth: 12.5 // Mock data
       })
 
+      if (propertiesResult.status === 'rejected') {
+        console.error('Failed to load properties:', propertiesResult.reason)
+        setError(t('admin.overview.loadError'))
+      }
     } catch (err) {
       console.error('Admin data load error:', err)
       setError(err.message || t('admin.overview.loadError'))
@@ -111,57 +125,6 @@ export default function AdminOverview() {
       setActionLoading(null)
     }
   }
-
-  const statCards = [
-    {
-      title: t('admin.overview.stats.totalProperties'),
-      value: stats.totalProperties,
-      change: `+${stats.monthlyGrowth}%`,
-      icon: Building2,
-      bgColor: 'bg-blue-100',
-      iconColor: 'text-blue-600'
-    },
-    {
-      title: t('admin.overview.stats.approvedProperties'),
-      value: stats.approvedProperties,
-      change: '+8%',
-      icon: CheckCircle,
-      bgColor: 'bg-green-100',
-      iconColor: 'text-green-600'
-    },
-    {
-      title: t('admin.overview.stats.pendingProperties'),
-      value: stats.pendingProperties,
-      change: '+3',
-      icon: Clock,
-      bgColor: 'bg-yellow-100',
-      iconColor: 'text-yellow-600'
-    },
-    {
-      title: t('admin.overview.stats.activeInvestors'),
-      value: stats.activeInvestors,
-      change: '+12%',
-      icon: Users,
-      bgColor: 'bg-purple-100',
-      iconColor: 'text-purple-600'
-    },
-    {
-      title: t('admin.overview.stats.totalInvestment'),
-      value: `${(stats.totalInvestmentVolume / 1000000).toFixed(1)}M`,
-      change: '+18%',
-      icon: DollarSign,
-      bgColor: 'bg-emerald-100',
-      iconColor: 'text-emerald-600'
-    },
-    {
-      title: t('admin.overview.stats.monthlyGrowth'),
-      value: `${stats.monthlyGrowth}%`,
-      change: '+2.1%',
-      icon: TrendingUp,
-      bgColor: 'bg-indigo-100',
-      iconColor: 'text-indigo-600'
-    }
-  ]
 
   if (!getToken()) {
     return (

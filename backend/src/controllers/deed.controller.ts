@@ -365,6 +365,12 @@ deedRouter.get('/user/:userId', auth(true), async (req: Request & { user?: any }
   try {
     const { userId } = req.params
 
+    // Only the owner of the deeds or an admin/regulator may view them
+    const requestingRole = req.user?.role
+    if (requestingRole !== 'ADMIN' && requestingRole !== 'REGULATOR' && req.user?.userId !== userId) {
+      return res.status(403).json({ error: 'forbidden', message: 'Access denied.' })
+    }
+
     const deeds = await prisma.digitalDeed.findMany({
       where: { userId: String(userId) },
       include: {

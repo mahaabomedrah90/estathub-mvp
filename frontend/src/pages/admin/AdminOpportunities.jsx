@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react'
 import { Building2, Eye, CheckCircle, X, MapPin, DollarSign, Clock, User, Loader2 } from 'lucide-react'
-import { useTranslation } from 'react-i18next';
+import { useTranslation } from 'react-i18next'
+import { fetchJson, authHeader } from '../../lib/api'
 
 
 
@@ -66,9 +67,10 @@ export default function AdminOpportunities() {
   const loadProperties = async () => {
     setLoading(true)
     try {
-      const response = await fetch(import.meta.env.VITE_API_BASE + '/api/properties')
-      const data = await response.json()
-      
+      const data = await fetchJson('/api/properties', {
+        headers: { ...authHeader() }
+      })
+
       // Map backend data to frontend format
       const mapped = data.map(p => ({
         
@@ -101,57 +103,41 @@ description: p.description || t('admin.opportunities.defaults.description'),
 
   const handleApprove = async (id) => {
     try {
-      const response = await fetch(import.meta.env.VITE_API_BASE + `/api/properties/${id}/approve`, {
+      await fetchJson(`/api/properties/${id}/approve`, {
         method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', ...authHeader() },
       })
-      
-      if (response.ok) {
-        setProperties(properties.map(p => 
-          p.id === id ? { ...p, status: 'approved' } : p
-        ))
-        setSelectedProperty(null)
-        alert(t('admin.opportunities.messages.approveSuccess'))
-        loadProperties() // Reload to get fresh data
-      } else {
-        alert(t('admin.opportunities.messages.approveFailed'))
-        console.error('Approve failed with status:', response.status);
-      }
+      setProperties(properties.map(p =>
+        p.id === id ? { ...p, status: 'approved' } : p
+      ))
+      setSelectedProperty(null)
+      alert(t('admin.opportunities.messages.approveSuccess'))
+      loadProperties()
     } catch (error) {
       console.error('Approve error:', error)
       alert(t('admin.opportunities.messages.approveFailed'))
-
     }
   }
 
   const handleReject = async (id) => {
     const reason =
-  prompt(t('admin.opportunities.messages.rejectReasonPrompt')) ||
-  t('admin.opportunities.messages.rejectNoReason')    
+      prompt(t('admin.opportunities.messages.rejectReasonPrompt')) ||
+      t('admin.opportunities.messages.rejectNoReason')
     try {
-      const response = await fetch(import.meta.env.VITE_API_BASE + `/api/properties/${id}/reject`, {
+      await fetchJson(`/api/properties/${id}/reject`, {
         method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', ...authHeader() },
         body: JSON.stringify({ reason }),
       })
-      
-      if (response.ok) {
-        setProperties(properties.map(p => 
-          p.id === id ? { ...p, status: 'rejected', rejectionReason: reason } : p
-        ))
-        setSelectedProperty(null)
-        alert(t('admin.opportunities.messages.rejectFailed'))
-
-        loadProperties() // Reload to get fresh data
-      } else {
-        console.error('Reject failed with status:', response.status);
-        alert(t('admin.opportunities.messages.rejectFailed'))
-
-      }
+      setProperties(properties.map(p =>
+        p.id === id ? { ...p, status: 'rejected', rejectionReason: reason } : p
+      ))
+      setSelectedProperty(null)
+      alert(t('admin.opportunities.messages.rejectSuccess'))
+      loadProperties()
     } catch (error) {
       console.error('Reject error:', error)
       alert(t('admin.opportunities.messages.rejectFailed'))
-
     }
   }
 

@@ -1,6 +1,7 @@
 import { Router, Request, Response } from 'express'
 import { prisma } from '../lib/prisma'
 import { auth } from '../middleware/auth'
+import { sendEmail, buildDepositApprovedEmail, buildDepositRejectedEmail } from '../lib/emailService'
 
 export const depositRequestAdminRouter = Router()
 
@@ -103,6 +104,28 @@ depositRequestAdminRouter.post('/:id/approve', auth(true), async (req: Request &
     })
 
     console.log(`✅ Deposit request ${id} approved. New balance: ${result.newBalance}`)
+
+    // Fire-and-forget email notification to investor
+    ;(async () => {
+      try {
+        const user = await prisma.user.findUnique({
+          where: { id: result.depositRequest.userId },
+          select: { email: true, fullName: true },
+        })
+        if (user) {
+          const { subject, html, text } = buildDepositApprovedEmail({
+            userName: user.fullName || user.email,
+            amount: result.depositRequest.amount,
+            newBalance: result.newBalance,
+            requestId: id,
+          })
+          await sendEmail({ to: user.email, subject, html, text })
+        }
+      } catch (emailErr) {
+        console.error('⚠️  Failed to send deposit approval email:', emailErr)
+      }
+    })()
+
     return res.json({
       success: true,
       depositRequest: result.depositRequest,
@@ -146,6 +169,28 @@ depositRequestAdminRouter.post('/:id/reject', auth(true), async (req: Request & 
     })
 
     console.log(`🚫 Deposit request ${id} rejected.`)
+
+    // Fire-and-forget email notification to investor
+    ;(async () => {
+      try {
+        const user = await prisma.user.findUnique({
+          where: { id: depositReq.userId },
+          select: { email: true, fullName: true },
+        })
+        if (user) {
+          const { subject, html, text } = buildDepositRejectedEmail({
+            userName: user.fullName || user.email,
+            amount: depositReq.amount,
+            requestId: id,
+            adminNote: adminNote || undefined,
+          })
+          await sendEmail({ to: user.email, subject, html, text })
+        }
+      } catch (emailErr) {
+        console.error('⚠️  Failed to send deposit rejection email:', emailErr)
+      }
+    })()
+
     return res.json({ success: true, depositRequest: updated })
   } catch (e: any) {
     console.error('❌ Deposit rejection error:', e)

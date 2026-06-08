@@ -6,7 +6,7 @@ import { isFabricEnabled, submitMintTokens } from '../lib/fabric'
 
 export const tokenRouter = Router()
 
-tokenRouter.post('/api/tokens/mint', auth(true), requireRole(['ADMIN', 'OWNER']), async (req: Request & { user?: any }, res: Response) => {
+tokenRouter.post('/mint', auth(true), requireRole(['ADMIN', 'OWNER']), async (req: Request & { user?: any }, res: Response) => {
   try {
     const { propertyId, userEmail, userId, tokens } = req.body || {}
    const pid = String(propertyId)
@@ -110,7 +110,7 @@ tokenRouter.post('/api/tokens/mint', auth(true), requireRole(['ADMIN', 'OWNER'])
   }
 })
 
-tokenRouter.get('/api/holdings', async (_req: Request, res: Response) => {
+tokenRouter.get('/holdings', auth(true), requireRole(['ADMIN']), async (_req: Request, res: Response) => {
   try {
     const rows = await prisma.holding.findMany({ include: { property: true, user: true }, orderBy: { id: 'asc' } })
     const data = rows.map((r: any) => ({

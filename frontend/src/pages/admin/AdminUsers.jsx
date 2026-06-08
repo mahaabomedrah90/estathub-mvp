@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react'
-import { Users, Edit2, Ban, CheckCircle, Mail, Phone, Shield, User, Loader2, TrendingUp } from 'lucide-react'
+import { Users, Edit2, CheckCircle, Shield, User, Loader2, TrendingUp } from 'lucide-react'
 import { authHeader, fetchJson } from '../../lib/api'
 import { useTranslation } from 'react-i18next'
 
@@ -36,30 +36,6 @@ export default function AdminUsers() {
     loadUsers()
   }, [])
 
-  const handleStatusToggle = async (id) => {
-    try {
-      const user = users.find(u => u.id === id)
-      const newStatus = user.status === 'Active' ? 'Suspended' : 'Active'
-      
-      await fetchJson(`/api/users/${id}/status`, {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json', ...authHeader() },
-        body: JSON.stringify({ status: newStatus })
-      })
-      
-      setUsers(users.map(u => 
-        u.id === id 
-          ? { ...u, status: newStatus }
-          : u
-      ))
-      
-      console.log(`🔄 Updated user ${id} status to ${newStatus}`)
-    } catch (err) {
-      console.error('❌ Failed to update user status:', err)
-      setError(t('admin.users.messages.statusUpdateFailed'))
-    }
-  }
-
   const handleRoleChange = async (id, newRole) => {
     try {
       await fetchJson(`/api/users/${id}/role`, {
@@ -68,8 +44,7 @@ export default function AdminUsers() {
         body: JSON.stringify({ role: newRole })
       })
       
-      const updatedUser = users.find(u => u.id === id)
-      setUsers(users.map(u => 
+      setUsers(users.map(u =>
         u.id === id ? { ...u, role: newRole } : u
       ))
       
@@ -101,9 +76,21 @@ export default function AdminUsers() {
   }
 
   const getStatusBadge = (status) => {
-    return status === 'Active' 
-      ? 'bg-[#41EAD4]/10 text-[#41EAD4] border border-[#41EAD4]/30' 
+    return (status === 'Verified' || status === 'Active')
+      ? 'bg-[#41EAD4]/10 text-[#41EAD4] border border-[#41EAD4]/30'
       : 'bg-[#ED9072]/10 text-[#ED9072] border border-[#ED9072]/30'
+  }
+
+  const STATUS_KEY_MAP = {
+    'Verified': 'verified',
+    'Pending Verification': 'pendingVerification',
+    'Active': 'active',
+    'Suspended': 'suspended',
+  }
+
+  const getStatusLabel = (status) => {
+    const key = STATUS_KEY_MAP[status]
+    return key ? t(`admin.users.status.${key}`, { defaultValue: status }) : (status ?? '—')
   }
 
   if (loading) {
@@ -302,39 +289,19 @@ export default function AdminUsers() {
                     </td>
                     <td className="px-6 py-4">
                       <span className={`px-2 py-1 rounded-full text-xs font-medium ${getRoleBadge(user.role)}`}>
-                        {user.role}
+                        {t(`admin.users.role.${user.role}`, { defaultValue: user.role })}
                       </span>
                     </td>
                     <td className="px-6 py-4">
                       <span className={`px-2 py-1 rounded-full text-xs font-medium ${getStatusBadge(user.status)}`}>
-                        {user.status}
+                        {getStatusLabel(user.status)}
                       </span>
                     </td>
                     <td className="px-6 py-4 text-sm text-gray-600">
-                      {new Date(user.createdAt).toLocaleDateString()}
+                      {user.joinedDate ?? '—'}
                     </td>
                     <td className="px-6 py-4">
                       <div className="flex items-center justify-end gap-2">
-                        <button
-                          onClick={() => handleStatusToggle(user.id)}
-                          className={`px-4 py-2 rounded-xl text-sm font-medium transition-all duration-200 ${
-                            user.status === 'Active' 
-                              ? 'bg-[#ED9072] hover:bg-[#ED9072]/80 text-white shadow-sm' 
-                              : 'bg-[#41EAD4] hover:bg-[#41EAD4]/80 text-white shadow-sm'
-                          }`}
-                        >
-                          {user.status === 'Active' ? (
-                            <>
-                              <Ban size={14} className="inline mr-1" />
-                              {t('admin.users.actions.suspend')}
-                            </>
-                          ) : (
-                            <>
-                              <CheckCircle size={14} className="inline mr-1" />
-                              {t('admin.users.actions.activate')}
-                            </>
-                          )}
-                        </button>
                         <button
                           onClick={() => {
                             setSelectedUser(user)
@@ -365,10 +332,10 @@ export default function AdminUsers() {
               {t('admin.users.roleChange.title')}
             </h3>
             <p className="text-gray-600 mb-8 text-center leading-relaxed">
-              {t('admin.users.roleChange.message', { 
-                currentRole: selectedUser.role, 
-                newRole: confirmRole,
-                userName: selectedUser.fullName || selectedUser.email 
+              {t('admin.users.roleChange.message', {
+                currentRole: t(`admin.users.role.${selectedUser.role}`, { defaultValue: selectedUser.role }),
+                newRole: t(`admin.users.role.${confirmRole}`, { defaultValue: confirmRole }),
+                userName: selectedUser.fullName || selectedUser.email
               })}
             </p>
             <div className="flex gap-3">

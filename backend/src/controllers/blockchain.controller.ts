@@ -2,9 +2,10 @@ import { Router, Request, Response, NextFunction } from 'express'
 import jwt from 'jsonwebtoken'
 import { prisma } from '../lib/prisma'
 import { auth } from '../middleware/auth'
-import { 
-  isFabricEnabled, 
-  getAllPropertiesFromLedger, 
+import { requireRole } from '../middleware/roles'
+import {
+  isFabricEnabled,
+  getAllPropertiesFromLedger,
   getAllDeedsFromLedger,
   getAllHoldingsFromLedger,
   getTransactionHistoryFromLedger
@@ -13,7 +14,7 @@ import {
 export const blockchainRouter = Router()
 
 // Temporary test endpoint - REMOVE IN PRODUCTION
-blockchainRouter.post('/test-mint', auth(true), async (req: Request & { user?: any }, res: Response) => {
+blockchainRouter.post('/test-mint', auth(true), requireRole(['ADMIN']), async (req: Request & { user?: any }, res: Response) => {
   try {
     const { propertyId, userId, tokens } = req.body
     const pid = Number(propertyId)

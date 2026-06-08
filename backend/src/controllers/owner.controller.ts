@@ -9,6 +9,10 @@ export const ownerRouter = Router()
 ownerRouter.get('/:ownerId/investors', auth(true), async (req: Request, res: Response) => {
   try {
     const { ownerId } = req.params
+    const requestingUser = (req as any).user
+    if (requestingUser?.role !== 'ADMIN' && requestingUser?.userId !== ownerId) {
+      return res.status(403).json({ error: 'forbidden', message: 'Access denied.' })
+    }
 
     if (!ownerId) {
       return res.status(400).json({ error: 'ownerId_required' })

@@ -1,13 +1,11 @@
 import React, { useState, useEffect } from 'react'
-import { Save, AlertCircle, CheckCircle, Settings, Bell, Shield, Globe, Users, Eye, EyeOff } from 'lucide-react'
+import { Save, AlertCircle, CheckCircle, Settings, Bell, Shield, Globe } from 'lucide-react'
 import { authHeader, fetchJson, getToken } from '../../lib/api'
-import { defaultPermissions, navigationPermissions, updateNavigationVisibility } from '../../lib/api'
+import { navigationPermissions, updateNavigationVisibility } from '../../lib/api'
 import { useTranslation } from 'react-i18next';
 
 export default function AdminSettings() {
-  const { t, i18n } = useTranslation('pages');
-  const isArabic = i18n.language === 'ar'
-  const [loading, setLoading] = useState(false)
+  const { t } = useTranslation('pages');
   const [saving, setSaving] = useState(false)
   const [message, setMessage] = useState({ type: '', text: '' })
   const [settings, setSettings] = useState({
@@ -47,15 +45,12 @@ export default function AdminSettings() {
 
   const loadSettings = async () => {
     try {
-      setLoading(true)
       const data = await fetchJson('/api/settings', { headers: authHeader() })
       setSettings(data)
       console.log('✅ Settings loaded from database:', data)
     } catch (error) {
       console.error('❌ Failed to load settings:', error)
-      showMessage('error', 'Failed to load settings')
-    } finally {
-      setLoading(false)
+      showMessage('error', t('admin.settings.loadError'))
     }
   }
 
@@ -68,10 +63,10 @@ export default function AdminSettings() {
         body: JSON.stringify(settings)
       })
       console.log('✅ Settings saved to database')
-      showMessage('success', 'Settings saved successfully')
+      showMessage('success', t('admin.settings.saveSuccess'))
     } catch (error) {
       console.error('❌ Failed to save settings:', error)
-      showMessage('error', 'Failed to save settings')
+      showMessage('error', t('admin.settings.saveError'))
     } finally {
       setSaving(false)
     }
@@ -113,7 +108,7 @@ export default function AdminSettings() {
       <div className="flex items-center justify-center py-12">
         <div className="text-center space-y-4">
           <AlertCircle className="mx-auto text-gray-400" size={64} />
-          <div className="text-gray-600">Please login as admin to access settings.</div>
+          <div className="text-gray-600">{t('admin.settings.loginRequired')}</div>
         </div>
       </div>
     )
@@ -138,12 +133,12 @@ export default function AdminSettings() {
             {saving ? (
               <>
                 <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white mr-3"></div>
-                {isArabic ? 'جاري حفظ الإعدادات...' : 'Saving settings...'}
+                {t('admin.settings.saving')}
               </>
             ) : (
               <>
                 <Save size={20} className="mr-3" />
-                {isArabic ? 'حفظ التغييرات' : 'Save changes'}
+                {t('admin.settings.saveChanges')}
               </>
             )}
           </button>

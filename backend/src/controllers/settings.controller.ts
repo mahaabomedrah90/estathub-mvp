@@ -8,6 +8,8 @@ export const settingsRouter = Router()
 const DEFAULT_SETTINGS = {
   // General Settings
   platformName: 'Estathub',
+  maintenanceMode: 'false',
+  allowNewRegistrations: 'true',
   requireEmailVerification: 'true',
   platformFee: '5',
   minInvestmentAmount: '100',
@@ -53,6 +55,8 @@ settingsRouter.get('/', auth(true), async (req: Request & { user?: any }, res: R
     const structuredSettings = {
       general: {
         platformName: completeSettings.platformName,
+        maintenanceMode: completeSettings.maintenanceMode === 'true',
+        allowNewRegistrations: completeSettings.allowNewRegistrations === 'true',
         requireEmailVerification: completeSettings.requireEmailVerification === 'true',
         platformFee: parseFloat(completeSettings.platformFee),
         minInvestmentAmount: parseInt(completeSettings.minInvestmentAmount),
@@ -108,6 +112,8 @@ settingsRouter.put('/', auth(true), async (req: Request & { user?: any }, res: R
     
     if (general) {
       flatSettings.platformName = String(general.platformName || 'Estathub')
+      flatSettings.maintenanceMode = String(!!general.maintenanceMode)
+      flatSettings.allowNewRegistrations = String(general.allowNewRegistrations !== false)
       flatSettings.requireEmailVerification = String(general.requireEmailVerification)
       flatSettings.platformFee = String(general.platformFee)
       flatSettings.minInvestmentAmount = String(general.minInvestmentAmount)
@@ -160,7 +166,7 @@ settingsRouter.put('/', auth(true), async (req: Request & { user?: any }, res: R
 })
 
 // GET /api/settings/:key - Get a specific setting value
-settingsRouter.get('/:key', async (req: Request, res: Response) => {
+settingsRouter.get('/:key', auth(true), async (req: Request, res: Response) => {
   try {
     const { key } = req.params
     

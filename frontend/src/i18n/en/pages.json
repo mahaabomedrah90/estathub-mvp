@@ -276,7 +276,19 @@
         "approvedPrefix": "Approved: ",
         "submittedPrefix": "Submitted: ",
         "rejectedPrefix": "Rejected: "
-      }
+      },
+      "stats": {
+        "totalProperties": "Total Properties",
+        "approvedProperties": "Approved Properties",
+        "pendingProperties": "Pending Properties",
+        "activeInvestors": "Active Investors",
+        "totalInvestment": "Investment Volume",
+        "monthlyGrowth": "Monthly Growth"
+      },
+      "approveSuccess": "Property approved successfully!",
+      "rejectSuccess": "Property rejected successfully!",
+      "approveError": "Failed to approve property. Please try again.",
+      "rejectError": "Failed to reject property. Please try again."
     },
     "users": {
       "headerTitle": "User Management",
@@ -293,7 +305,8 @@
         "totalUsers": "Total Users",
         "owners": "Owners",
         "investors": "Investors",
-        "active": "Active"
+        "active": "Active",
+        "admins": "Admins"
       },
       "messages": {
         "deleteConfirm": "Are you sure you want to delete this user?",
@@ -340,12 +353,15 @@
       },
       "status": {
         "active": "Active",
-        "suspended": "Suspended"
+        "suspended": "Suspended",
+        "verified": "Verified",
+        "pendingVerification": "Pending Verification"
       },
       "role": {
         "owner": "Owner",
         "investor": "Investor",
-        "admin": "Admin"
+        "admin": "Admin",
+        "regulator": "Regulator"
       },
       "texts": {
         "selectNewRole": "Select a new role for {{name}}",
@@ -378,7 +394,14 @@
         "role": "Role",
         "status": "Status",
         "joined": "Joined",
-        "actions": "Actions"
+        "actions": "Actions",
+        "name": "Name",
+        "email": "Email",
+        "registered": "Registered"
+      },
+      "roleChange": {
+        "title": "Change User Role",
+        "message": "Change {{userName}}'s role from {{currentRole}} to {{newRole}}? The user must log out and back in for changes to take effect."
       }
     },
     "issueDeeds": {
@@ -600,7 +623,10 @@
         "growthBody": "{{count}} growth seekers ({{percent}}%). Offer portfolio analysis tools and diversified investment options.",
         "whaleTitle": "Whale Investor Retention",
         "whaleBody": "{{count}} whale investors ({{percent}}%). Provide premium deals and dedicated relationship management."
-      }
+      },
+      "notAvailable": "Not available",
+      "timeRangeNote": "Time range filtering will be enabled later",
+      "analyticsNotice": "This page shows available metrics only. Advanced analytics will be enabled later."
     },
     "opportunities": {
       "headerTitle": "Property Submissions",
@@ -651,7 +677,8 @@
         "rejectFailed": "Failed to reject property",
         "rejectReasonPrompt": "Reason for rejection (optional):",
         "loadFailed": "Failed to load properties",
-        "saveFailed": "Failed to save property"
+        "saveFailed": "Failed to save property",
+        "rejectNoReason": "No reason provided"
       },
       "list": {
         "title": "Current Properties",
@@ -780,7 +807,13 @@
       },
       "table": {
         "details": "Details"
-      }
+      },
+      "saveSuccess": "Settings saved successfully",
+      "saveError": "Failed to save settings",
+      "loadError": "Failed to load settings",
+      "saveChanges": "Save Changes",
+      "saving": "Saving...",
+      "loginRequired": "Please log in as admin to access settings."
     }
   },
   "investor": {

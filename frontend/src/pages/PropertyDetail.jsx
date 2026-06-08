@@ -23,6 +23,7 @@ export default function PropertyDetail() {
   const [showSuccessModal, setShowSuccessModal] = useState(false)
   const [, setPurchaseDetails] = useState(null)
   const [minInvestment, setMinInvestment] = useState(100)
+  const [platformFeePercent, setPlatformFeePercent] = useState(5)
   const [showAllDocs, setShowAllDocs] = useState(false)
   const investCardRef = useRef(null)
 
@@ -70,6 +71,9 @@ export default function PropertyDetail() {
           setMinInvestment(s.general.minInvestmentAmount)
           setInvestAmount(String(s.general.minInvestmentAmount))
         }
+        if (s?.general?.platformFee != null) {
+          setPlatformFeePercent(s.general.platformFee)
+        }
       })
       .catch(() => {})
   }, [])
@@ -88,6 +92,9 @@ export default function PropertyDetail() {
   const tokensToGet = tokenPrice > 0 ? Math.floor(amountNum / tokenPrice) : 0
   const estimatedMonthly = tokensToGet * tokenPrice * monthlyYield / 100
   const estimatedAnnual = estimatedMonthly * 12
+
+  const platformFeeAmount = parseFloat((amountNum * platformFeePercent / 100).toFixed(2))
+  const totalPayable = parseFloat((amountNum + platformFeeAmount).toFixed(2))
 
   const amountTooLow = amountNum > 0 && amountNum < minInvestment
   const amountTooHigh = tokensToGet > remainingTokens
@@ -555,6 +562,30 @@ export default function PropertyDetail() {
                       <span className="font-bold text-brand-accent">
                         {estimatedAnnual.toLocaleString(undefined, { maximumFractionDigits: 2 })} {isRtl ? 'ريال' : 'SAR'}
                       </span>
+                    </div>
+
+                    {/* Platform fee breakdown */}
+                    <div className="border-t border-brand-accent/20 pt-2 space-y-2">
+                      <div className="flex justify-between text-sm">
+                        <span className="text-text-muted">{isRtl ? 'مبلغ الاستثمار' : 'Investment Amount'}</span>
+                        <span className="font-bold text-text-strong">
+                          {amountNum.toLocaleString(undefined, { maximumFractionDigits: 2 })} {isRtl ? 'ريال' : 'SAR'}
+                        </span>
+                      </div>
+                      <div className="flex justify-between text-sm">
+                        <span className="text-text-muted">
+                          {isRtl ? `رسوم المنصة (${platformFeePercent}%)` : `Platform Fee (${platformFeePercent}%)`}
+                        </span>
+                        <span className="font-bold text-text-strong">
+                          {platformFeeAmount.toLocaleString(undefined, { maximumFractionDigits: 2 })} {isRtl ? 'ريال' : 'SAR'}
+                        </span>
+                      </div>
+                      <div className="flex justify-between text-sm border-t border-brand-accent/20 pt-2">
+                        <span className="font-semibold text-text-strong">{isRtl ? 'الإجمالي المستحق' : 'Total Payable'}</span>
+                        <span className="font-bold text-brand-primary">
+                          {totalPayable.toLocaleString(undefined, { maximumFractionDigits: 2 })} {isRtl ? 'ريال' : 'SAR'}
+                        </span>
+                      </div>
                     </div>
                   </div>
                 )}

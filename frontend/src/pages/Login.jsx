@@ -65,16 +65,32 @@ export default function Login() {
 
     } catch (err) {
       const status = err.status
-      const serverMessage = err.message || ''
+      // fetchJson puts parsed JSON body in err.data
+      const serverMessage = err?.data?.message || err.message || ''
 
       let errorMessage
 
-      if (status === 401) {
-        errorMessage = lang === 'ar' ? 'Invalid email/phone or password' : 'Invalid email/phone or password'
+      if (status === 503) {
+        errorMessage = serverMessage ||
+          (lang === 'ar'
+            ? 'المنصة تحت الصيانة حالياً'
+            : 'Platform is currently under maintenance')
+      } else if (status === 403 && err?.data?.error === 'email_not_verified') {
+        errorMessage = lang === 'ar'
+          ? 'يرجى تأكيد بريدك الإلكتروني قبل تسجيل الدخول.'
+          : 'Please verify your email address before signing in.'
+      } else if (status === 401) {
+        errorMessage = lang === 'ar'
+          ? 'البريد الإلكتروني/الجوال أو كلمة المرور غير صحيحة'
+          : 'Invalid email/phone or password'
       } else if (status === 429) {
-        errorMessage = lang === 'ar' ? 'Too many attempts. Please try again later.' : 'Too many attempts. Please try again later.'
+        errorMessage = lang === 'ar'
+          ? 'عدد محاولات كثيرة. يرجى المحاولة لاحقاً.'
+          : 'Too many attempts. Please try again later.'
       } else {
-        errorMessage = lang === 'ar' ? 'Unexpected error occurred. Please try again.' : 'Unexpected error occurred. Please try again.'
+        errorMessage = lang === 'ar'
+          ? 'حدث خطأ غير متوقع. يرجى المحاولة مرة أخرى.'
+          : 'Unexpected error occurred. Please try again.'
       }
 
       setError(errorMessage)

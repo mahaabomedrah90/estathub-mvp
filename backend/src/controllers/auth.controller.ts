@@ -5,7 +5,9 @@ import rateLimit from 'express-rate-limit'
 import crypto from 'crypto'
 import { prisma } from '../lib/prisma'
 import { auth } from '../middleware/auth'
-import { sendEmail, buildPasswordResetEmail, buildNewUserAdminEmail, getAdminEmail } from '../lib/emailService'
+import { maintenanceGuard, registrationGuard } from '../middleware/platform'
+import { getSetting } from './settings.controller'
+import { sendEmail, buildPasswordResetEmail, buildVerificationEmail, buildNewUserAdminEmail, getAdminEmail } from '../lib/emailService'
 import {
   validateEmail,
   normalizeEmail,
@@ -103,6 +105,19 @@ function buildResetLink(token: string): string {
   return `${frontendUrl}/reset-password?token=${token}`
 }
 
+function buildVerifyLink(token: string): string {
+  const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:5173'
+  return `${frontendUrl}/verify-email?token=${token}`
+}
+
+function generateVerificationToken(userId: string, email: string): string {
+  return jwt.sign(
+    { userId, email, purpose: 'email-verify' },
+    JWT_SECRET,
+    { expiresIn: '24h', issuer: 'estathub-mvp', audience: 'estathub-users' } as any
+  )
+}
+
 function signToken(user: {
   id: string
   email: string
@@ -158,7 +173,7 @@ function sanitizeUserForResponse(user: any) {
 // POST /api/auth/register - User Registration
 // ============================================================================
 
-authRouter.post('/register', registerLimiter, async (req: Request, res: Response) => {
+authRouter.post('/register', registerLimiter, maintenanceGuard, registrationGuard, async (req: Request, res: Response) => {
   console.log('🔐 Registration request received:', sanitizeForLog(req.body))
 
   try {
@@ -334,6 +349,28 @@ authRouter.post('/register', registerLimiter, async (req: Request, res: Response
       }
     })()
 
+    // Email verification gating
+    const requireVerification = await getSetting('requireEmailVerification', 'true')
+    if (requireVerification === 'true') {
+      const verifyToken = generateVerificationToken(user.id, user.email)
+      const verifyLink = buildVerifyLink(verifyToken)
+      if (process.env.NODE_ENV === 'production') {
+        const emailContent = buildVerificationEmail(verifyLink, lang === 'ar')
+        sendEmail({ to: user.email, ...emailContent })
+          .catch(err => console.error('❌ Failed to send verification email:', err.message))
+      } else {
+        console.log('🔗 [DEV] Email verification link:', verifyLink)
+        console.log('📧 [DEV] Would send verification email to:', user.email)
+      }
+      return res.status(201).json({
+        requiresVerification: true,
+        message: lang === 'ar'
+          ? 'تم إنشاء الحساب. يرجى تأكيد بريدك الإلكتروني قبل تسجيل الدخول.'
+          : 'Account created. Please verify your email address before signing in.',
+        user: sanitizeUserForResponse(user)
+      })
+    }
+
     const token = signToken({
       id: user.id,
       email: user.email,
@@ -491,6 +528,30 @@ authRouter.post('/login', loginLimiter, async (req: Request, res: Response) => {
       })
     }
 
+    // Maintenance mode: block non-ADMIN logins
+    const maintenanceSetting = await getSetting('maintenanceMode', 'false')
+    if (maintenanceSetting === 'true' && user.role !== 'ADMIN') {
+      console.log(`🔧 Maintenance mode active — blocking login for role: ${user.role}`)
+      return res.status(503).json({
+        error: 'maintenance_mode',
+        message: lang === 'ar'
+          ? 'المنصة تحت الصيانة حالياً'
+          : 'Platform is currently under maintenance',
+      })
+    }
+
+    // Email verification gate: block non-ADMIN users whose email is unverified
+    const requireVerification = await getSetting('requireEmailVerification', 'true')
+    if (requireVerification === 'true' && !user.emailVerified && user.role !== 'ADMIN') {
+      console.log(`📧 Login blocked — email not verified for user: ${user.id}`)
+      return res.status(403).json({
+        error: 'email_not_verified',
+        message: lang === 'ar'
+          ? 'يرجى تأكيد بريدك الإلكتروني قبل تسجيل الدخول.'
+          : 'Please verify your email address before signing in.',
+      })
+    }
+
     console.log('✅ User authenticated:', { id: user.id, email: user.email, role: user.role })
 
     const token = signToken({
@@ -527,11 +588,43 @@ authRouter.post('/login', loginLimiter, async (req: Request, res: Response) => {
 // Stub endpoints for Phase 2
 // ============================================================================
 
-authRouter.post('/verify-email', async (_req: Request, res: Response) => {
-  return res.status(501).json({
-    error: 'not_implemented',
-    message: 'Email verification will be available in Phase 2'
-  })
+// GET /api/auth/verify-email?token=... — validate JWT verification token, mark email verified
+authRouter.get('/verify-email', async (req: Request, res: Response) => {
+  const lang = (req.headers['accept-language']?.includes('ar') ? 'ar' : 'en') as 'en' | 'ar'
+  try {
+    const token = req.query.token as string | undefined
+    if (!token) {
+      return res.status(400).json({ error: 'token_required', message: lang === 'ar' ? 'رمز التحقق مطلوب' : 'Verification token is required' })
+    }
+
+    let decoded: any
+    try {
+      decoded = jwt.verify(token, JWT_SECRET, { issuer: 'estathub-mvp', audience: 'estathub-users' })
+    } catch {
+      return res.status(400).json({ error: 'invalid_or_expired_token', message: lang === 'ar' ? 'الرابط غير صالح أو منتهي الصلاحية' : 'Verification link is invalid or has expired' })
+    }
+
+    if (decoded.purpose !== 'email-verify') {
+      return res.status(400).json({ error: 'invalid_token_purpose', message: lang === 'ar' ? 'رمز غير صالح' : 'Invalid token' })
+    }
+
+    const user = await prisma.user.findUnique({ where: { id: decoded.userId } })
+    if (!user) {
+      return res.status(404).json({ error: 'user_not_found', message: lang === 'ar' ? 'المستخدم غير موجود' : 'User not found' })
+    }
+
+    if (user.emailVerified) {
+      return res.json({ ok: true, alreadyVerified: true, message: lang === 'ar' ? 'البريد الإلكتروني مؤكد مسبقاً' : 'Email already verified' })
+    }
+
+    await prisma.user.update({ where: { id: user.id }, data: { emailVerified: true } })
+    console.log('✅ Email verified for user:', user.id)
+    return res.json({ ok: true, message: lang === 'ar' ? 'تم تأكيد البريد الإلكتروني بنجاح' : 'Email verified successfully' })
+
+  } catch (error: any) {
+    console.error('❌ Email verification error:', error.message)
+    return res.status(500).json({ error: 'verification_failed', message: lang === 'ar' ? 'حدث خطأ. يرجى المحاولة مرة أخرى.' : 'Verification failed. Please try again.' })
+  }
 })
 
 authRouter.post('/verify-phone', async (_req: Request, res: Response) => {
@@ -733,7 +826,7 @@ authRouter.post('/reset-password', async (req: Request, res: Response) => {
 // Legacy signup endpoint (redirects to /register with mapped fields)
 // ============================================================================
 
-authRouter.post('/signup', registerLimiter, async (req: Request, res: Response) => {
+authRouter.post('/signup', registerLimiter, maintenanceGuard, registrationGuard, async (req: Request, res: Response) => {
   req.body.fullName = req.body.name || req.body.fullName
   req.body.termsAccepted = true
 
@@ -833,6 +926,28 @@ authRouter.post('/signup', registerLimiter, async (req: Request, res: Response) 
         console.error('❌ Failed to send new-user admin email (signup):', emailErr.message)
       }
     })()
+
+    // Email verification gating
+    const requireVerification = await getSetting('requireEmailVerification', 'true')
+    if (requireVerification === 'true') {
+      const verifyToken = generateVerificationToken(user.id, user.email)
+      const verifyLink = buildVerifyLink(verifyToken)
+      if (process.env.NODE_ENV === 'production') {
+        const emailContent = buildVerificationEmail(verifyLink, lang === 'ar')
+        sendEmail({ to: user.email, ...emailContent })
+          .catch(err => console.error('❌ Failed to send verification email (signup):', err.message))
+      } else {
+        console.log('🔗 [DEV] Email verification link:', verifyLink)
+        console.log('📧 [DEV] Would send verification email to:', user.email)
+      }
+      return res.status(201).json({
+        requiresVerification: true,
+        message: lang === 'ar'
+          ? 'تم إنشاء الحساب. يرجى تأكيد بريدك الإلكتروني قبل تسجيل الدخول.'
+          : 'Account created. Please verify your email address before signing in.',
+        user: sanitizeUserForResponse(user)
+      })
+    }
 
     const token = signToken({
       id: user.id,

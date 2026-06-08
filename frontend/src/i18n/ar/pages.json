@@ -352,7 +352,19 @@
         "approvedPrefix": "تم الاعتماد: ",
         "submittedPrefix": "تم التقديم: ",
         "rejectedPrefix": "تم الرفض: "
-      }
+      },
+      "stats": {
+        "totalProperties": "إجمالي العقارات",
+        "approvedProperties": "العقارات المعتمدة",
+        "pendingProperties": "قيد المراجعة",
+        "activeInvestors": "المستثمرون النشطون",
+        "totalInvestment": "حجم الاستثمارات",
+        "monthlyGrowth": "النمو الشهري"
+      },
+      "approveSuccess": "تم اعتماد العقار بنجاح!",
+      "rejectSuccess": "تم رفض العقار بنجاح!",
+      "approveError": "فشل في اعتماد العقار. يرجى المحاولة مرة أخرى.",
+      "rejectError": "فشل في رفض العقار. يرجى المحاولة مرة أخرى."
     },
     "users": {
       "headerTitle": "إدارة المستخدمين",
@@ -369,7 +381,8 @@
         "totalUsers": "إجمالي المستخدمين",
         "owners": "المالكون",
         "investors": "المستثمرون",
-        "active": "النشطون"
+        "active": "النشطون",
+        "admins": "المسؤولون"
       },
       "messages": {
         "deleteConfirm": "هل أنت متأكد أنك تريد حذف هذا المستخدم؟",
@@ -385,12 +398,15 @@
       },
       "status": {
         "active": "نشط",
-        "suspended": "معلّق"
+        "suspended": "معلّق",
+        "verified": "موثق",
+        "pendingVerification": "قيد التحقق"
       },
       "role": {
         "owner": "مالك",
         "investor": "مستثمر",
-        "admin": "مسؤول"
+        "admin": "مسؤول",
+        "regulator": "جهة رقابية"
       },
       "texts": {
         "selectNewRole": "اختر دوراً جديداً لـ {{name}}",
@@ -414,7 +430,14 @@
         "role": "الدور",
         "status": "الحالة",
         "joined": "تاريخ الانضمام",
-        "actions": "الإجراءات"
+        "actions": "الإجراءات",
+        "name": "الاسم",
+        "email": "البريد الإلكتروني",
+        "registered": "تاريخ التسجيل"
+      },
+      "roleChange": {
+        "title": "تغيير صلاحية المستخدم",
+        "message": "هل أنت متأكد من تغيير صلاحية {{userName}} من {{currentRole}} إلى {{newRole}}؟ يجب على المستخدم إعادة تسجيل الدخول لتطبيق التغييرات."
       }
     },
     "issueDeeds": {
@@ -699,7 +722,10 @@
         "growthBody": "{{count}} من الباحثين عن النمو ({{percent}}٪). قدّم أدوات تحليل المحافظ وخيارات استثمار متنوعة.",
         "whaleTitle": "الاحتفاظ بالمستثمرين الكبار",
         "whaleBody": "{{count}} من المستثمرين الكبار ({{percent}}٪). قدّم صفقات مميزة وإدارة علاقات مخصصة."
-      }
+      },
+      "notAvailable": "غير متوفر",
+      "timeRangeNote": "سيتم تفعيل الفلترة الزمنية لاحقًا",
+      "analyticsNotice": "تعرض هذه الصفحة المؤشرات المتاحة فقط، وسيتم تفعيل التحليلات المتقدمة لاحقًا."
     },
     "opportunities": {
       "headerTitle": "طلبات العقارات",
@@ -850,7 +876,23 @@
       },
       "toggleNavigation": "تبديل رؤية القائمة لـ {role}",
       "navigationItemVisible": "{item} مرئي لـ {role}",
-      "navigationItemHidden": "{item} مخفي عن {role}"
+      "navigationItemHidden": "{item} مخفي عن {role}",
+      "saveSuccess": "تم حفظ الإعدادات بنجاح",
+      "saveError": "فشل في حفظ الإعدادات",
+      "loadError": "فشل في تحميل الإعدادات",
+      "toggleMaintenance": "تبديل وضع الصيانة",
+      "toggleRegistrations": "تبديل التسجيلات",
+      "toggleEmailVerification": "تبديل التحقق من البريد الإلكتروني",
+      "toggleEmailNotifications": "تبديل الإشعارات البريدية",
+      "togglePropertyAlerts": "تبديل تنبيهات العقارات",
+      "toggleInvestmentAlerts": "تبديل تنبيهات الاستثمار",
+      "toggleSystemAlerts": "تبديل التنبيهات النظامية",
+      "toggle2FA": "تبديل المصادقة الثنائية",
+      "toggleQRCodes": "تبديل رموز QR",
+      "toggleAnalytics": "تبديل التحليلات",
+      "toggleReports": "تبديل التقارير",
+      "toggleMessaging": "تبديل المراسلة",
+      "loginRequired": "يرجى تسجيل الدخول كمسؤول للوصول إلى الإعدادات."
     }
   },
   "investor": {
