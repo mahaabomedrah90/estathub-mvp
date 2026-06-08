@@ -38,17 +38,17 @@ const BCRYPT_SALT_ROUNDS = parseInt(process.env.BCRYPT_SALT_ROUNDS || '12')
 // Rate Limiting Configuration
 // ============================================================================
 
-// Register rate limiter: 5 attempts per hour per IP
+// Register rate limiter: relaxed in dev, enforced in production
 const registerLimiter = rateLimit({
-  windowMs: 60 * 60 * 1000, // 1 hour
-  max: 5,
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: process.env.NODE_ENV === 'production' ? 20 : 50,
   message: {
     error: 'rate_limit_exceeded',
-    message: 'Too many registration attempts. Please try again later.'
+    message: 'عدد المحاولات كبير، يرجى المحاولة لاحقًا.'
   },
   standardHeaders: true,
   legacyHeaders: false,
-  skipSuccessfulRequests: false
+  skipSuccessfulRequests: true
 })
 
 // Forgot password rate limiter: 3 attempts per hour per IP
@@ -195,6 +195,7 @@ authRouter.post('/register', registerLimiter, maintenanceGuard, registrationGuar
     if (!termsValidation.valid) {
       return res.status(400).json({
         error: termsValidation.error,
+        field: 'termsAccepted',
         message: getErrorMessage(termsValidation.error!, lang)
       })
     }
@@ -245,11 +246,12 @@ authRouter.post('/register', registerLimiter, maintenanceGuard, registrationGuar
     // Validate Password
     const passwordValidation = validatePassword(password)
     if (!passwordValidation.valid) {
+      const passwordMessages = passwordValidation.errors.map(e => getErrorMessage(e, lang))
       return res.status(400).json({
         error: 'password_validation_failed',
-        errors: passwordValidation.errors,
-        messages: passwordValidation.errors.map(e => getErrorMessage(e, lang)),
         field: 'password',
+        message: passwordMessages[0],
+        messages: passwordMessages,
         strength: passwordValidation.strength
       })
     }

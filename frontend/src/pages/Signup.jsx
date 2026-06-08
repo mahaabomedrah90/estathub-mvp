@@ -212,11 +212,11 @@ const SignupForm = React.memo(() => {
     err?.error?.status ??
     null
 
-  // fetchJson throws with err.data = parsed JSON body; check it first
+  // fetchJson throws with err.data = parsed JSON body
   const serverMessage =
     err?.data?.message ??
+    err?.data?.messages?.[0] ??   // password_validation_failed returns messages[]
     err?.response?.data?.message ??
-    err?.error?.message ??
     null
 
   const isSafeText = (s) =>
@@ -240,13 +240,24 @@ const SignupForm = React.memo(() => {
         ? 'التسجيل غير متاح حالياً'
         : 'Registration is currently unavailable')
     )
-  } else if (status === 409) {
-    // ✅ conflict field error (email/phone/nationalId)
-    const field =
-      err?.response?.data?.field ??
-      err?.error?.field ??
-      'email'
+  } else if (status === 400) {
+    const field = err?.data?.field ?? null
+    if (field) {
+      setFieldErrors(prev => ({
+        ...prev,
+        [field]: safeMessage || (lang === 'ar' ? 'قيمة غير صحيحة' : 'Invalid value')
+      }))
+    } else {
+      setError(
+        safeMessage ||
+        (lang === 'ar'
+          ? 'فشل إنشاء الحساب. يرجى مراجعة البيانات.'
+          : 'Registration failed. Please check your details.')
+      )
+    }
 
+  } else if (status === 409) {
+    const field = err?.data?.field ?? 'email'
     setFieldErrors(prev => ({
       ...prev,
       [field]:

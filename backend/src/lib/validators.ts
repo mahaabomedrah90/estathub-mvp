@@ -86,46 +86,11 @@ export function validateNationalId(nationalId: string): { valid: boolean; error?
     return { valid: false, error: 'national_id_required' }
   }
 
-  // Remove any whitespace
-  const cleaned = nationalId.trim()
-
-  // Must be exactly 10 digits
-  if (!/^\d{10}$/.test(cleaned)) {
-    return { valid: false, error: 'national_id_must_be_10_digits' }
-  }
-
-  // First digit must be 1 (Saudi citizens) or 2 (residents/Iqama)
-  const firstDigit = parseInt(cleaned[0], 10)
-  if (firstDigit !== 1 && firstDigit !== 2) {
-    return { valid: false, error: 'national_id_must_start_with_1_or_2' }
-  }
-
-  // Luhn algorithm checksum validation (Saudi NIN uses this)
-  if (!validateLuhnChecksum(cleaned)) {
-    return { valid: false, error: 'national_id_invalid_checksum' }
+  if (!/^[12]\d{9}$/.test(nationalId.trim())) {
+    return { valid: false, error: 'national_id_invalid' }
   }
 
   return { valid: true }
-}
-
-/**
- * Luhn algorithm checksum validation (mod 11)
- * Used by Saudi National ID numbers
- */
-function validateLuhnChecksum(digits: string): boolean {
-  let sum = 0
-  for (let i = 0; i < 9; i++) {
-    const digit = parseInt(digits[i], 10)
-    // Odd positions (0-indexed even): multiply by 2
-    if (i % 2 === 0) {
-      const doubled = digit * 2
-      sum += doubled > 9 ? doubled - 9 : doubled
-    } else {
-      sum += digit
-    }
-  }
-  const checksum = (10 - (sum % 10)) % 10
-  return checksum === parseInt(digits[9], 10)
 }
 
 export function maskNationalId(nationalId: string): string {
@@ -309,9 +274,13 @@ export const validationErrorMessages: Record<string, { en: string; ar: string }>
     en: 'National ID must start with 1 (citizen) or 2 (resident)',
     ar: 'يجب أن يبدأ رقم الهوية بالرقم 1 (مواطن) أو 2 (مقيم)'
   },
+  national_id_invalid: {
+    en: 'National ID must be exactly 10 digits and start with 1 or 2',
+    ar: 'رقم الهوية يجب أن يتكون من 10 أرقام ويبدأ بـ 1 أو 2'
+  },
   national_id_invalid_checksum: {
-    en: 'National ID appears to be invalid (checksum failed)',
-    ar: 'رقم الهوية غير صحيح (فشل التحقق)'
+    en: 'National ID must be exactly 10 digits and start with 1 or 2',
+    ar: 'رقم الهوية يجب أن يتكون من 10 أرقام ويبدأ بـ 1 أو 2'
   },
   national_id_already_exists: {
     en: 'This National ID is already registered',
@@ -372,6 +341,10 @@ export const validationErrorMessages: Record<string, { en: string; ar: string }>
   terms_acceptance_required: {
     en: 'You must accept the Terms and Conditions',
     ar: 'يجب قبول الشروط والأحكام'
+  },
+  password_mismatch: {
+    en: 'Passwords do not match',
+    ar: 'كلمتا المرور غير متطابقتين'
   },
   invalid_credentials: {
     en: 'Invalid email/phone or password',
