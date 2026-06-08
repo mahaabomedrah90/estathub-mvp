@@ -14,13 +14,15 @@ function requireAdmin(req: Request & { user?: any }, res: Response): boolean {
 
 // ─── GET /api/admin/audit-logs ────────────────────────────────────────────────
 // Query params:
-//   action        — filter by action string (partial, case-insensitive)
-//   adminEmail    — filter by admin email (partial)
-//   investorName  — filter by investor name (partial)
-//   targetId      — exact match
+//   q             — OR-search across action / adminEmail / investorName /
+//                   investorId / targetId / targetType (partial, case-insensitive)
 //   range         — "today" | "7d" | "30d" (default: all)
 //   page          — 1-based (default 1)
 //   limit         — rows per page (default 20, max 100)
+//
+// Backwards-compat (when q is absent):
+//   action, adminEmail, investorName — partial AND filters
+//   targetId                         — exact AND filter
 auditLogRouter.get('/audit-logs', auth(true), async (req: Request & { user?: any }, res: Response) => {
   if (!requireAdmin(req, res)) return
 
@@ -29,7 +31,7 @@ auditLogRouter.get('/audit-logs', auth(true), async (req: Request & { user?: any
     const limit = Math.min(100, Math.max(1, Number(req.query.limit) || 20))
     const skip  = (page - 1) * limit
 
-    // Date range filter
+    // ── Date range (always AND) ────────────────────────────────────────────────
     let createdAtFilter: any = undefined
     const range = req.query.range as string | undefined
     if (range === 'today') {
@@ -41,12 +43,32 @@ auditLogRouter.get('/audit-logs', auth(true), async (req: Request & { user?: any
       createdAtFilter = { gte: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000) }
     }
 
+    // ── Search logic ───────────────────────────────────────────────────────────
+    const q = req.query.q ? String(req.query.q).trim() : ''
+
     const where: any = {}
-    if (createdAtFilter)           where.createdAt    = createdAtFilter
-    if (req.query.action)          where.action       = { contains: String(req.query.action),       mode: 'insensitive' }
-    if (req.query.adminEmail)      where.adminEmail   = { contains: String(req.query.adminEmail),   mode: 'insensitive' }
-    if (req.query.investorName)    where.investorName = { contains: String(req.query.investorName), mode: 'insensitive' }
-    if (req.query.targetId)        where.targetId     = String(req.query.targetId)
+
+    if (createdAtFilter) {
+      where.createdAt = createdAtFilter
+    }
+
+    if (q) {
+      // OR across all searchable text fields
+      where.OR = [
+        { action:       { contains: q, mode: 'insensitive' } },
+        { adminEmail:   { contains: q, mode: 'insensitive' } },
+        { investorName: { contains: q, mode: 'insensitive' } },
+        { investorId:   { contains: q, mode: 'insensitive' } },
+        { targetId:     { contains: q, mode: 'insensitive' } },
+        { targetType:   { contains: q, mode: 'insensitive' } },
+      ]
+    } else {
+      // Backwards-compat: individual AND filters (used when q is absent)
+      if (req.query.action)       where.action       = { contains: String(req.query.action),       mode: 'insensitive' }
+      if (req.query.adminEmail)   where.adminEmail   = { contains: String(req.query.adminEmail),   mode: 'insensitive' }
+      if (req.query.investorName) where.investorName = { contains: String(req.query.investorName), mode: 'insensitive' }
+      if (req.query.targetId)     where.targetId     = { contains: String(req.query.targetId),     mode: 'insensitive' }
+    }
 
     const [total, logs] = await Promise.all([
       prisma.adminAuditLog.count({ where }),

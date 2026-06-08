@@ -43,13 +43,50 @@ export const AuditAction = {
 
 export type AuditActionType = typeof AuditAction[keyof typeof AuditAction]
 
-function extractIp(req: Request): string | null {
-  const forwarded = req.headers['x-forwarded-for']
-  if (forwarded) {
-    const first = Array.isArray(forwarded) ? forwarded[0] : forwarded
-    return first.split(',')[0].trim() || null
+// Priority: x-forwarded-for → x-real-ip → cf-connecting-ip → req.ip → socket.remoteAddress
+function extractClientIp(req: Request): string | null {
+  try {
+    const candidates: (string | string[] | undefined)[] = [
+      req.headers['x-forwarded-for'],
+      req.headers['x-real-ip'],
+      req.headers['cf-connecting-ip'],
+      req.ip,
+      req.socket?.remoteAddress,
+    ]
+
+    for (const candidate of candidates) {
+      if (!candidate) continue
+      const raw = Array.isArray(candidate) ? candidate[0] : candidate
+      if (!raw) continue
+      // Take first IP before any comma (x-forwarded-for can be a list)
+      const ip = raw.split(',')[0].trim()
+      if (!ip) continue
+      // Strip IPv6-mapped IPv4 prefix
+      const clean = ip.startsWith('::ffff:') ? ip.slice(7) : ip
+      // Sanity-check length (IPv6 max is 39, CIDR adds a few more chars)
+      return clean.slice(0, 45) || null
+    }
+    return null
+  } catch {
+    return null
   }
-  return (req.socket?.remoteAddress) || null
+}
+
+function extractUserAgent(req: Request | undefined): string | null {
+  if (!req) return null
+  try {
+    // Cast to unknown first — Express types user-agent as string|undefined,
+    // but in practice it can arrive as a string[] via some proxies.
+    const raw: unknown = req.headers?.['user-agent']
+    if (typeof raw === 'string')  return raw.slice(0, 255) || null
+    if (Array.isArray(raw)) {
+      const first = raw[0]
+      return typeof first === 'string' ? first.slice(0, 255) || null : null
+    }
+    return null
+  } catch {
+    return null
+  }
 }
 
 /**
@@ -58,8 +95,8 @@ function extractIp(req: Request): string | null {
  */
 export async function logAdminAction(params: LogAdminActionParams): Promise<void> {
   try {
-    const ipAddress  = params.req ? extractIp(params.req) : null
-    const userAgent  = params.req?.headers?.['user-agent'] ?? null
+    const ipAddress  = params.req ? extractClientIp(params.req) : null
+    const userAgent  = extractUserAgent(params.req)
 
     await prisma.adminAuditLog.create({
       data: {

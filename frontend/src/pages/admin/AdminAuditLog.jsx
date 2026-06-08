@@ -86,14 +86,7 @@ export default function AdminAuditLog() {
         limit: String(PAGE_SIZE),
       })
       if (range !== 'all')    params.set('range', range)
-      if (debouncedSearch) {
-        // Search across multiple fields — send as generic query the server can use
-        // We pass individual fields; the server handles each separately
-        params.set('action',       debouncedSearch)
-        params.set('adminEmail',   debouncedSearch)
-        params.set('investorName', debouncedSearch)
-        params.set('targetId',     debouncedSearch)
-      }
+      if (debouncedSearch)    params.set('q', debouncedSearch)
 
       const data = await fetchJson(`/api/admin/audit-logs?${params}`, { headers: authHeader() })
       setLogs(Array.isArray(data.data) ? data.data : [])
