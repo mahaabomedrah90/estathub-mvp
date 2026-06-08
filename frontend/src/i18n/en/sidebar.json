@@ -16,7 +16,8 @@
     "issueDeeds": "Issue Deeds",
     "reports": "Reports",
     "settings": "Settings",
-    "investors": "Investor Management"
+    "investors": "Investor Management",
+    "deposits": "Deposit Requests"
   },
   "regulator": {
     "dashboard": "Dashboard",

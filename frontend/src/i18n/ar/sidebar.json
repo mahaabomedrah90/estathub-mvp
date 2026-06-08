@@ -16,7 +16,8 @@
     "issueDeeds": "إصدار الصكوك",
     "reports": "التقارير",
     "settings": "الإعدادات",
-    "investors": "إدارة المستثمرين"
+    "investors": "إدارة المستثمرين",
+    "deposits": "طلبات الإيداع"
   },
   "regulator": {
     "dashboard": "لوحة الجهة الرقابية",

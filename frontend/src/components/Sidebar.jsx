@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from 'react'
 import { NavLink } from 'react-router-dom'
-import { 
-  Home, Building2, Wallet, Link2, BarChart3, Users, 
-  FileText, Settings, PieChart, Plus, TrendingUp, Shield, Pin, PinOff, ChevronLeft, ChevronRight
+import {
+  Home, Building2, Wallet, Link2, BarChart3, Users,
+  FileText, Settings, PieChart, Plus, TrendingUp, Shield, Pin, PinOff, ChevronLeft, ChevronRight, Banknote
 } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 
@@ -23,6 +23,7 @@ const roleMenus = {
     { path: '/admin/users', label: (t) => t('admin.users'), icon: Users },
     { path: '/admin/investors', label: (t) => t('admin.investors'), icon: Users },
     { path: '/admin/issue-deeds', label: (t) => t('admin.issueDeeds'), icon: FileText },
+    { path: '/admin/deposits', label: (t) => t('admin.deposits'), icon: Banknote },
     { path: '/admin/reports', label: (t) => t('admin.reports'), icon: FileText },
     { path: '/admin/settings', label: (t) => t('admin.settings'), icon: Settings },
   ],

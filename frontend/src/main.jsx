@@ -45,6 +45,7 @@ import './index.css'
 import AdminReports from './pages/admin/AdminReports.jsx'
 import AdminSettings from './pages/admin/AdminSettings.jsx'
 import AdminInvestors from './pages/admin/AdminInvestors.jsx'
+import AdminDepositRequests from './pages/admin/AdminDepositRequests.jsx'
 // Regulator Pages
 import RegOverview from './pages/regulator/RegOverview.jsx'
 import RegProperties from './pages/regulator/RegProperties.jsx'
@@ -154,6 +155,7 @@ const router = createBrowserRouter([
   { path: 'reports', element: <AdminReports /> },
   { path: 'settings', element: <AdminSettings /> },
   { path: 'investors', element: <AdminInvestors /> },
+  { path: 'deposits', element: <AdminDepositRequests /> },
 ],
 },
 // Regulator Routes
