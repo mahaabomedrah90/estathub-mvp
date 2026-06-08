@@ -17,7 +17,8 @@
     "reports": "التقارير",
     "settings": "الإعدادات",
     "investors": "إدارة المستثمرين",
-    "deposits": "طلبات الإيداع"
+    "deposits": "طلبات الإيداع",
+    "auditLogs": "سجل التدقيق"
   },
   "regulator": {
     "dashboard": "لوحة الجهة الرقابية",

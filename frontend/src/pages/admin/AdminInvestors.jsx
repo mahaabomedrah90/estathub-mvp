@@ -1,10 +1,11 @@
 import React, { useState, useEffect } from 'react'
-import { 
-  Users, Building2, DollarSign, Mail, Phone, TrendingUp, TrendingDown, 
-  Activity, Target, Calendar, Award, AlertCircle, CheckCircle, Eye
+import {
+  Users, Building2, DollarSign, Mail, Phone, TrendingUp, TrendingDown,
+  Activity, Target, Calendar, Award, AlertCircle, CheckCircle, Eye, Wallet
 } from 'lucide-react'
 import { authHeader, fetchJson, getToken } from '../../lib/api'
-import { useTranslation } from 'react-i18next';
+import { useTranslation } from 'react-i18next'
+import WalletHistoryModal from '../../components/ui/WalletHistoryModal'
 
 
 
@@ -15,6 +16,7 @@ export default function OwnerInvestors() {
   const [investors, setInvestors] = useState([])
   const [selectedInvestor, setSelectedInvestor] = useState(null)
   const [showDetails, setShowDetails] = useState(false)
+  const [walletTarget, setWalletTarget] = useState(null) // { userId, name }
   const [analytics, setAnalytics] = useState({
     totalInvestors: 0,
     totalInvestment: 0,
@@ -363,6 +365,15 @@ const property = inv.property || {}
 
   return (
     <div className="space-y-6">
+      {/* Wallet History Modal */}
+      {walletTarget && (
+        <WalletHistoryModal
+          userId={walletTarget.userId}
+          investorName={walletTarget.name}
+          onClose={() => setWalletTarget(null)}
+        />
+      )}
+
       {/* Header */}
       <div>
         <h1 className="text-3xl font-bold text-[#1E1958]">
@@ -571,16 +582,25 @@ const property = inv.property || {}
                       </div>
                     </td>
                     <td className="px-6 py-4">
-                      <button
-                        onClick={() => {
-                          setSelectedInvestor(investor)
-                          setShowDetails(true)
-                        }}
-                        className="text-blue-600 hover:text-blue-800 text-sm font-medium flex items-center space-x-1"
-                      >
-                        <Eye size={14} />
-                        <span>{i18n.language === 'ar' ? 'التفاصيل' : 'Details'}</span>
-                      </button>
+                      <div className="flex flex-col gap-2">
+                        <button
+                          onClick={() => {
+                            setSelectedInvestor(investor)
+                            setShowDetails(true)
+                          }}
+                          className="text-blue-600 hover:text-blue-800 text-sm font-medium flex items-center gap-1"
+                        >
+                          <Eye size={14} />
+                          <span>{i18n.language === 'ar' ? 'التفاصيل' : 'Details'}</span>
+                        </button>
+                        <button
+                          onClick={() => setWalletTarget({ userId: investor.id, name: investor.name })}
+                          className="text-[#1E1958] hover:text-[#41EAD4] text-sm font-medium flex items-center gap-1"
+                        >
+                          <Wallet size={14} />
+                          <span>{i18n.language === 'ar' ? 'سجل المحفظة' : 'Wallet History'}</span>
+                        </button>
+                      </div>
                     </td>
                   </tr>
                 )

@@ -17,7 +17,8 @@
     "reports": "Reports",
     "settings": "Settings",
     "investors": "Investor Management",
-    "deposits": "Deposit Requests"
+    "deposits": "Deposit Requests",
+    "auditLogs": "Audit Logs"
   },
   "regulator": {
     "dashboard": "Dashboard",

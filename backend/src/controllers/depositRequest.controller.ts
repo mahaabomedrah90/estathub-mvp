@@ -2,6 +2,7 @@ import { Router, Request, Response } from 'express'
 import { prisma } from '../lib/prisma'
 import { auth } from '../middleware/auth'
 import { sendEmail, buildDepositApprovedEmail, buildDepositRejectedEmail } from '../lib/emailService'
+import { logAdminAction, AuditAction } from '../lib/auditService'
 
 export const depositRequestAdminRouter = Router()
 
@@ -105,6 +106,33 @@ depositRequestAdminRouter.post('/:id/approve', auth(true), async (req: Request &
 
     console.log(`✅ Deposit request ${id} approved. New balance: ${result.newBalance}`)
 
+    // Fire-and-forget audit log + email
+    ;(async () => {
+      try {
+        const investor = await prisma.user.findUnique({
+          where: { id: result.depositRequest.userId },
+          select: { email: true, fullName: true },
+        })
+        await logAdminAction({
+          admin:       { userId: req.user!.userId, email: req.user!.email },
+          action:      AuditAction.DEPOSIT_APPROVED,
+          targetType:  'DepositRequest',
+          targetId:    id,
+          investor:    { id: result.depositRequest.userId, name: investor?.fullName || investor?.email },
+          amount:      result.depositRequest.amount,
+          walletBefore: result.newBalance - result.depositRequest.amount,
+          walletAfter:  result.newBalance,
+          metadata: {
+            bankReference: result.depositRequest.bankReference,
+            bankName:      result.depositRequest.bankName,
+          },
+          req,
+        })
+      } catch (auditErr: any) {
+        console.error('⚠️  Failed to write audit log (approve):', auditErr.message)
+      }
+    })()
+
     // Fire-and-forget email notification to investor
     ;(async () => {
       try {
@@ -169,6 +197,28 @@ depositRequestAdminRouter.post('/:id/reject', auth(true), async (req: Request & 
     })
 
     console.log(`🚫 Deposit request ${id} rejected.`)
+
+    // Fire-and-forget audit log
+    ;(async () => {
+      try {
+        const investor = await prisma.user.findUnique({
+          where: { id: depositReq.userId },
+          select: { fullName: true, email: true },
+        })
+        await logAdminAction({
+          admin:      { userId: req.user!.userId, email: req.user!.email },
+          action:     AuditAction.DEPOSIT_REJECTED,
+          targetType: 'DepositRequest',
+          targetId:   id,
+          investor:   { id: depositReq.userId, name: investor?.fullName || investor?.email },
+          amount:     depositReq.amount,
+          metadata:   { reason: adminNote || null },
+          req,
+        })
+      } catch (auditErr: any) {
+        console.error('⚠️  Failed to write audit log (reject):', auditErr.message)
+      }
+    })()
 
     // Fire-and-forget email notification to investor
     ;(async () => {

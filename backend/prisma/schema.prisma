@@ -492,3 +492,35 @@ model WaitlistLead {
   source    String   @default("home")
   createdAt DateTime @default(now())
 }
+
+model AdminAuditLog {
+  id           String   @id @default(cuid())
+
+  adminId      String?
+  adminEmail   String?
+
+  action       String
+
+  targetType   String
+  targetId     String?
+
+  investorId   String?
+  investorName String?
+
+  amount       Float?
+
+  walletBefore Float?
+  walletAfter  Float?
+
+  metadata     Json?
+
+  ipAddress    String?
+  userAgent    String?
+
+  createdAt    DateTime @default(now())
+
+  @@index([action])
+  @@index([targetType])
+  @@index([investorId])
+  @@index([createdAt])
+}

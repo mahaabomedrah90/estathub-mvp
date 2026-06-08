@@ -2,10 +2,11 @@ import React, { useState, useEffect, useCallback, useMemo } from 'react'
 import {
   Banknote, CheckCircle2, XCircle, Loader2, AlertCircle,
   Eye, RefreshCw, User, Calendar, FileText, X, ExternalLink,
-  Phone, Building2, Search, TrendingUp, Clock
+  Phone, Building2, Search, TrendingUp, Clock, Wallet
 } from 'lucide-react'
 import { authHeader, fetchJson } from '../../lib/api'
 import { useTranslation } from 'react-i18next'
+import WalletHistoryModal from '../../components/ui/WalletHistoryModal'
 
 // ─── helpers ────────────────────────────────────────────────────────────────
 
@@ -211,7 +212,7 @@ function RejectModal({ onConfirm, onCancel, t, isRtl }) {
 
 // ─── DepositRow ───────────────────────────────────────────────────────────────
 
-function DepositRow({ req, onApprove, onReject, onPreviewReceipt, approving, rejecting, t, isRtl }) {
+function DepositRow({ req, onApprove, onReject, onPreviewReceipt, onWalletHistory, approving, rejecting, t, isRtl }) {
   const isPending    = req.status === 'PENDING'
   const isApproving  = approving === req.id
   const isRejecting  = rejecting === req.id
@@ -285,26 +286,35 @@ function DepositRow({ req, onApprove, onReject, onPreviewReceipt, approving, rej
 
       {/* Actions */}
       <td className="px-4 py-4">
-        {isPending ? (
-          <div className="flex items-center gap-2">
-            <button
-              onClick={() => onApprove(req)}
-              disabled={isBusy}
-              className="inline-flex items-center gap-1 px-3 py-1.5 bg-green-500 hover:bg-green-600 disabled:opacity-50 disabled:cursor-not-allowed text-white text-xs font-semibold rounded-lg transition-colors"
-            >
-              {isApproving ? <Loader2 size={12} className="animate-spin" /> : <CheckCircle2 size={13} />}
-              {t('admin.depositRequests.approve')}
-            </button>
-            <button
-              onClick={() => onReject(req)}
-              disabled={isBusy}
-              className="inline-flex items-center gap-1 px-3 py-1.5 bg-red-100 hover:bg-red-200 disabled:opacity-50 disabled:cursor-not-allowed text-red-700 text-xs font-semibold rounded-lg transition-colors"
-            >
-              {isRejecting ? <Loader2 size={12} className="animate-spin text-red-600" /> : <XCircle size={13} />}
-              {t('admin.depositRequests.reject')}
-            </button>
-          </div>
-        ) : <span className="text-xs text-gray-400">—</span>}
+        <div className="flex flex-wrap items-center gap-2">
+          {isPending ? (
+            <>
+              <button
+                onClick={() => onApprove(req)}
+                disabled={isBusy}
+                className="inline-flex items-center gap-1 px-3 py-1.5 bg-green-500 hover:bg-green-600 disabled:opacity-50 disabled:cursor-not-allowed text-white text-xs font-semibold rounded-lg transition-colors"
+              >
+                {isApproving ? <Loader2 size={12} className="animate-spin" /> : <CheckCircle2 size={13} />}
+                {t('admin.depositRequests.approve')}
+              </button>
+              <button
+                onClick={() => onReject(req)}
+                disabled={isBusy}
+                className="inline-flex items-center gap-1 px-3 py-1.5 bg-red-100 hover:bg-red-200 disabled:opacity-50 disabled:cursor-not-allowed text-red-700 text-xs font-semibold rounded-lg transition-colors"
+              >
+                {isRejecting ? <Loader2 size={12} className="animate-spin text-red-600" /> : <XCircle size={13} />}
+                {t('admin.depositRequests.reject')}
+              </button>
+            </>
+          ) : null}
+          <button
+            onClick={() => onWalletHistory({ userId: req.userId, name: req.user?.fullName || req.user?.email })}
+            className="inline-flex items-center gap-1 px-3 py-1.5 bg-brand-primary/10 hover:bg-brand-primary/20 text-brand-primary text-xs font-semibold rounded-lg transition-colors"
+          >
+            <Wallet size={12} />
+            {t('admin.walletHistory.walletHistoryBtn')}
+          </button>
+        </div>
       </td>
     </tr>
   )
@@ -327,6 +337,7 @@ export default function AdminDepositRequests() {
   const [approveTarget, setApproveTarget] = useState(null)  // req waiting for modal confirm
   const [rejectTarget, setRejectTarget]   = useState(null)
   const [previewUrl, setPreviewUrl]   = useState(null)
+  const [walletTarget, setWalletTarget] = useState(null) // { userId, name }
 
   const loadRequests = useCallback(async () => {
     try {
@@ -429,6 +440,13 @@ export default function AdminDepositRequests() {
       )}
 
       {/* Modals */}
+      {walletTarget && (
+        <WalletHistoryModal
+          userId={walletTarget.userId}
+          investorName={walletTarget.name}
+          onClose={() => setWalletTarget(null)}
+        />
+      )}
       {previewUrl && <ReceiptModal url={previewUrl} onClose={() => setPreviewUrl(null)} t={t} />}
       {approveTarget && (
         <ApproveConfirmModal
@@ -557,6 +575,7 @@ export default function AdminDepositRequests() {
                     onApprove={handleApproveClick}
                     onReject={r => setRejectTarget(r)}
                     onPreviewReceipt={url => setPreviewUrl(url)}
+                    onWalletHistory={setWalletTarget}
                     approving={approving}
                     rejecting={rejecting}
                     t={t}
