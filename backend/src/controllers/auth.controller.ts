@@ -93,12 +93,10 @@ async function generateResetToken(): Promise<string> {
   return crypto.randomBytes(32).toString('hex')
 }
 
-async function hashResetToken(token: string): Promise<string> {
-  return await bcrypt.hash(token, BCRYPT_SALT_ROUNDS)
-}
-
-async function verifyResetToken(token: string, hashedToken: string): Promise<boolean> {
-  return await bcrypt.compare(token, hashedToken)
+// SHA-256 is appropriate here: the 32-byte random token provides the security,
+// not the hash function. Using bcrypt was O(N*300ms) — this is O(1).
+function hashResetToken(token: string): string {
+  return crypto.createHash('sha256').update(token).digest('hex')
 }
 
 function buildResetLink(token: string): string {
@@ -686,7 +684,7 @@ authRouter.post('/forgot-password', forgotPasswordLimiter, async (req: Request, 
     if (user) {
       // Generate and store reset token
       const resetToken = await generateResetToken()
-      const hashedToken = await hashResetToken(resetToken)
+      const hashedToken = hashResetToken(resetToken)
       const expiresAt = new Date(Date.now() + 30 * 60 * 1000) // 30 minutes
 
       await prisma.user.update({
@@ -776,31 +774,31 @@ authRouter.post('/reset-password', async (req: Request, res: Response) => {
       })
     }
 
-    // Find user with valid reset token
-    const users = await prisma.user.findMany({
-      where: {
-        passwordResetToken: { not: null },
-        passwordResetExpiresAt: { not: null }
-      }
+    // Direct O(1) lookup: hash the incoming token and match against stored hash
+    const tokenHash = hashResetToken(token)
+    const userWithToken = await prisma.user.findFirst({
+      where: { passwordResetToken: tokenHash }
     })
 
-    let validUser = null
-    for (const user of users) {
-      if (user.passwordResetToken && await verifyResetToken(token, user.passwordResetToken)) {
-        // Check if token is not expired
-        if (user.passwordResetExpiresAt && user.passwordResetExpiresAt > new Date()) {
-          validUser = user
-          break
-        }
-      }
-    }
-
-    if (!validUser) {
+    if (!userWithToken) {
       return res.status(400).json({
-        error: 'invalid_or_expired_token',
-        message: lang === 'ar' ? 'الرمز غير صالح أو منتهي الصلاحية' : 'Invalid or expired reset token'
+        error: 'invalid_token',
+        message: lang === 'ar'
+          ? 'رابط إعادة تعيين كلمة المرور غير صالح. يرجى طلب رابط جديد.'
+          : 'Invalid password reset link. Please request a new one.'
       })
     }
+
+    if (!userWithToken.passwordResetExpiresAt || userWithToken.passwordResetExpiresAt <= new Date()) {
+      return res.status(400).json({
+        error: 'expired_token',
+        message: lang === 'ar'
+          ? 'انتهت صلاحية رابط إعادة تعيين كلمة المرور. يرجى طلب رابط جديد.'
+          : 'Password reset link has expired. Please request a new one.'
+      })
+    }
+
+    const validUser = userWithToken
 
     // Hash new password
     const newPasswordHash = await hashPassword(password)
