@@ -2,326 +2,366 @@ import { useState, useEffect } from 'react'
 import { Link, useSearchParams, useNavigate } from 'react-router-dom'
 import { Lock, Eye, EyeOff, CheckCircle, AlertCircle, ArrowLeft, Loader2, Check, X } from 'lucide-react'
 
+// ─── Password rules (mirrors backend validators.ts) ──────────────────────────
 const RULES = [
-  { key: 'length',    label: '10 أحرف على الأقل',  test: p => p.length >= 10 },
-  { key: 'upper',     label: 'حرف كبير',             test: p => /[A-Z]/.test(p) },
-  { key: 'lower',     label: 'حرف صغير',             test: p => /[a-z]/.test(p) },
-  { key: 'number',    label: 'رقم',                  test: p => /[0-9]/.test(p) },
-  { key: 'special',   label: 'رمز خاص',              test: p => /[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?]/.test(p) },
+  { id: 'length',  label: '10 أحرف على الأقل',  test: p => p.length >= 10 },
+  { id: 'upper',   label: 'حرف كبير (A–Z)',       test: p => /[A-Z]/.test(p) },
+  { id: 'lower',   label: 'حرف صغير (a–z)',       test: p => /[a-z]/.test(p) },
+  { id: 'number',  label: 'رقم (0–9)',            test: p => /[0-9]/.test(p) },
+  { id: 'special', label: 'رمز خاص (!@#$…)',      test: p => /[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?]/.test(p) },
 ]
 
-function RuleRow({ met, label }) {
+// ─── Sub-components ───────────────────────────────────────────────────────────
+
+function RuleItem({ met, label }) {
   return (
     <div className="flex items-center gap-2">
       {met
-        ? <Check size={13} className="text-emerald-500 shrink-0" />
-        : <X size={13} className="text-gray-400 shrink-0" />}
-      <span className={`text-xs ${met ? 'text-emerald-600' : 'text-gray-400'}`}>{label}</span>
+        ? <Check size={12} className="text-emerald-500 shrink-0" strokeWidth={3} />
+        : <X    size={12} className="text-gray-350 shrink-0"    strokeWidth={2.5} />}
+      <span className={`text-xs leading-tight ${met ? 'text-emerald-600 font-medium' : 'text-gray-400'}`}>
+        {label}
+      </span>
     </div>
   )
 }
 
-function PasswordField({ id, label, value, onChange, show, onToggle, placeholder, error }) {
+function PasswordInput({ id, label, value, onChange, show, onToggle, placeholder, error, autoComplete }) {
   return (
     <div>
-      <label htmlFor={id} className="block text-sm font-medium text-text-body mb-2">
+      <label htmlFor={id} className="block text-sm font-semibold text-text-body mb-2">
         {label}
       </label>
       <div className="relative">
-        <div className="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none">
-          <Lock className="text-gray-400" size={17} />
+        {/* Lock icon — right side in RTL */}
+        <div className="absolute inset-y-0 right-3 flex items-center pointer-events-none">
+          <Lock size={16} className="text-gray-400" />
         </div>
+
         <input
           id={id}
           type={show ? 'text' : 'password'}
           value={value}
           onChange={onChange}
-          autoComplete={id === 'password' ? 'new-password' : 'new-password'}
-          className={`border rounded-xl w-full pr-10 pl-11 py-3 bg-surface-base focus:ring-2 focus:ring-brand-accent focus:border-brand-accent transition-colors text-sm ${
-            error ? 'border-red-400' : 'border-border-soft'
-          }`}
+          autoComplete={autoComplete || 'new-password'}
+          dir="ltr"
+          className={`w-full rounded-xl border py-3.5 pr-10 pl-11 text-sm bg-surface-base
+            focus:outline-none focus:ring-2 focus:ring-brand-accent focus:border-brand-accent
+            transition-colors placeholder:text-gray-400
+            ${error ? 'border-red-400 bg-red-50/30' : 'border-border-soft'}
+          `}
           placeholder={placeholder}
           required
-          dir="ltr"
         />
+
+        {/* Eye toggle — left side in RTL layout */}
         <button
           type="button"
           onClick={onToggle}
-          className="absolute inset-y-0 left-0 pl-3 flex items-center text-gray-400 hover:text-gray-600 transition-colors"
           tabIndex={-1}
           aria-label={show ? 'إخفاء كلمة المرور' : 'إظهار كلمة المرور'}
+          className="absolute inset-y-0 left-3 flex items-center text-gray-400
+            hover:text-brand-accent transition-colors"
         >
-          {show ? <EyeOff size={17} /> : <Eye size={17} />}
+          {show ? <EyeOff size={18} /> : <Eye size={18} />}
         </button>
       </div>
+
       {error && (
-        <p className="mt-1.5 text-xs text-red-600">{error}</p>
+        <p role="alert" className="mt-1.5 flex items-center gap-1.5 text-xs text-red-600">
+          <AlertCircle size={12} className="shrink-0" />
+          {error}
+        </p>
       )}
     </div>
   )
 }
 
+// ─── Main Page ────────────────────────────────────────────────────────────────
+
 export default function ResetPassword() {
-  const [searchParams] = useSearchParams()
-  const navigate = useNavigate()
+  const [searchParams]  = useSearchParams()
+  const navigate        = useNavigate()
 
-  const [token, setToken]               = useState('')
-  const [password, setPassword]         = useState('')
-  const [confirmPassword, setConfirm]   = useState('')
-  const [showPassword, setShowPassword] = useState(false)
-  const [showConfirm, setShowConfirm]   = useState(false)
-  const [isLoading, setIsLoading]       = useState(false)
-  const [isSuccess, setIsSuccess]       = useState(false)
-  const [tokenValid, setTokenValid]     = useState(true)
+  const [token, setToken]             = useState('')
+  const [password, setPassword]       = useState('')
+  const [confirm, setConfirm]         = useState('')
+  const [showPass, setShowPass]       = useState(false)
+  const [showConf, setShowConf]       = useState(false)
+  const [isLoading, setIsLoading]     = useState(false)
+  const [state, setState]             = useState('form') // 'form' | 'success' | 'invalid' | 'expired'
 
-  // per-field errors
-  const [passwordError, setPasswordError]   = useState('')
-  const [confirmError, setConfirmError]     = useState('')
-  const [generalError, setGeneralError]     = useState('')
-  const [expiredError, setExpiredError]     = useState(false)
+  const [passError, setPassError]     = useState('')
+  const [confError, setConfError]     = useState('')
+  const [generalError, setGeneralError] = useState('')
 
+  // ── Extract token from URL once on mount ───────────────────────────────────
   useEffect(() => {
-    const t = searchParams.get('token')
+    // Trim whitespace: some email clients or line-wrap rules add trailing spaces
+    const raw = searchParams.get('token')
+    const t   = raw ? raw.trim() : ''
     if (!t) {
-      setTokenValid(false)
+      setState('invalid')
     } else {
       setToken(t)
     }
   }, [searchParams])
 
-  // Auto-redirect to login after success
+  // ── Auto-navigate to login after success ───────────────────────────────────
   useEffect(() => {
-    if (!isSuccess) return
-    const timer = setTimeout(() => navigate('/login', { replace: true }), 3500)
-    return () => clearTimeout(timer)
-  }, [isSuccess, navigate])
+    if (state !== 'success') return
+    const id = setTimeout(() => navigate('/login', { replace: true }), 4000)
+    return () => clearTimeout(id)
+  }, [state, navigate])
 
-  const rulesMet = RULES.map(r => r.test(password))
-  const allRulesMet = rulesMet.every(Boolean)
-  const passwordTouched = password.length > 0
+  // ── Derived validation state ───────────────────────────────────────────────
+  const ruleResults  = RULES.map(r => r.test(password))
+  const allRulesMet  = ruleResults.every(Boolean)
+  const hasTouched   = password.length > 0
+  const canSubmit    = !isLoading && token && allRulesMet && password === confirm
 
-  function clearErrors() {
-    setPasswordError('')
-    setConfirmError('')
-    setGeneralError('')
-    setExpiredError(false)
-  }
-
+  // ── Submit handler ─────────────────────────────────────────────────────────
   async function handleSubmit(e) {
     e.preventDefault()
-    clearErrors()
+    setPassError('')
+    setConfError('')
+    setGeneralError('')
 
-    // Client-side validation
+    // Client-side guard — prevents unnecessary round-trip
     if (!allRulesMet) {
-      setPasswordError('كلمة المرور لا تستوفي المتطلبات أدناه.')
+      setPassError('كلمة المرور لا تستوفي المتطلبات المذكورة أدناه.')
       return
     }
-    if (password !== confirmPassword) {
-      setConfirmError('كلمتا المرور غير متطابقتين.')
+    if (password !== confirm) {
+      setConfError('كلمتا المرور غير متطابقتين.')
       return
     }
 
     setIsLoading(true)
     try {
-      const res = await fetch('/api/auth/reset-password', {
-        method: 'POST',
+      const res  = await fetch('/api/auth/reset-password', {
+        method:  'POST',
         headers: { 'Content-Type': 'application/json', 'Accept-Language': 'ar' },
-        body: JSON.stringify({ token, password, confirmPassword }),
+        body:    JSON.stringify({ token, password, confirmPassword: confirm }),
       })
-      const data = await res.json()
+
+      // Network gave us a response — parse JSON
+      let data = {}
+      try { data = await res.json() } catch { /* non-JSON body (e.g. ALB 504 HTML) */ }
 
       if (res.ok) {
-        setIsSuccess(true)
+        setState('success')
         return
       }
 
-      if (data.error === 'expired_token') {
-        setExpiredError(true)
+      // Map backend error codes → Arabic UX
+      const code = data?.error || ''
+
+      if (code === 'invalid_or_expired_token') {
+        // Show the best possible message given a single error code
+        setGeneralError('رابط إعادة تعيين كلمة المرور غير صالح أو منتهي الصلاحية. يرجى طلب رابط جديد.')
         return
       }
-      if (data.error === 'invalid_token') {
-        setTokenValid(false)
+      if (code === 'password_mismatch') {
+        setConfError('كلمتا المرور غير متطابقتين.')
         return
       }
-      if (data.error === 'password_mismatch') {
-        setConfirmError('كلمتا المرور غير متطابقتين.')
-        return
-      }
-      if (data.error === 'password_validation_failed') {
+      if (code === 'password_validation_failed') {
         const msgs = Array.isArray(data.messages) ? data.messages : []
-        setPasswordError(msgs.join(' — ') || 'كلمة المرور لا تستوفي المتطلبات.')
+        setPassError(msgs.join(' — ') || 'كلمة المرور لا تستوفي المتطلبات.')
+        return
+      }
+      if (code === 'missing_required_fields') {
+        setGeneralError('حدث خطأ في قراءة الرابط. يرجى طلب رابط جديد.')
         return
       }
 
-      setGeneralError(data.message || 'فشل إعادة تعيين كلمة المرور. حاول مرة أخرى.')
+      // 5xx or unexpected
+      setGeneralError(
+        res.status >= 500
+          ? 'حدث خطأ غير متوقع في الخادم. حاول مرة أخرى.'
+          : (data.message || 'فشل إعادة تعيين كلمة المرور. حاول مرة أخرى.')
+      )
+
     } catch {
-      setGeneralError('فشل الاتصال بالخادم. تحقق من اتصالك وحاول مرة أخرى.')
+      // true network error (offline, DNS, TLS)
+      setGeneralError('تعذر الاتصال بالخادم. تحقق من اتصالك وحاول مرة أخرى.')
     } finally {
       setIsLoading(false)
     }
   }
 
-  // ── Invalid link ──────────────────────────────────────────────────────────
-  if (!tokenValid) {
+  // ─────────────────────────────────────────────────────────────────────────
+  // Render states
+  // ─────────────────────────────────────────────────────────────────────────
+
+  if (state === 'invalid' || state === 'expired') {
     return (
-      <div className="min-h-[calc(100vh-200px)] flex items-center justify-center px-4" dir="rtl">
+      <div
+        dir="rtl"
+        className="min-h-[calc(100vh-180px)] flex items-center justify-center px-4 py-12"
+      >
         <div className="w-full max-w-md text-center space-y-6">
           <div className="w-16 h-16 bg-red-50 rounded-full flex items-center justify-center mx-auto">
-            <AlertCircle className="w-8 h-8 text-red-600" />
+            <AlertCircle className="w-8 h-8 text-red-500" />
           </div>
           <div>
-            <h2 className="text-2xl font-bold text-text-strong mb-2">رابط غير صالح</h2>
-            <p className="text-text-muted leading-relaxed">
-              رابط إعادة تعيين كلمة المرور غير صالح. يرجى طلب رابط جديد.
+            <h2 className="text-2xl font-bold text-text-strong mb-3">
+              {state === 'expired' ? 'انتهت صلاحية الرابط' : 'رابط غير صالح'}
+            </h2>
+            <p className="text-text-muted leading-relaxed text-sm">
+              {state === 'expired'
+                ? 'انتهت صلاحية رابط إعادة تعيين كلمة المرور، يرجى طلب رابط جديد.'
+                : 'رابط إعادة تعيين كلمة المرور غير صالح. يرجى طلب رابط جديد.'}
             </p>
           </div>
           <Link
             to="/forgot-password"
-            className="inline-flex items-center justify-center gap-2 px-6 py-3 bg-brand-accent text-white rounded-full font-semibold hover:bg-brand-accent/90 transition-colors shadow-lg"
+            className="inline-flex items-center justify-center gap-2 w-full max-w-xs mx-auto
+              px-6 py-3.5 rounded-xl font-semibold text-white transition-colors shadow-md
+              bg-brand-accent hover:bg-brand-accent/90"
           >
             طلب رابط جديد
           </Link>
+          <div>
+            <Link
+              to="/login"
+              className="inline-flex items-center gap-1.5 text-sm text-brand-accent hover:text-brand-accent/80 transition-colors"
+            >
+              <ArrowLeft size={14} />
+              العودة لتسجيل الدخول
+            </Link>
+          </div>
         </div>
       </div>
     )
   }
 
-  // ── Expired token ─────────────────────────────────────────────────────────
-  if (expiredError) {
+  if (state === 'success') {
     return (
-      <div className="min-h-[calc(100vh-200px)] flex items-center justify-center px-4" dir="rtl">
-        <div className="w-full max-w-md text-center space-y-6">
-          <div className="w-16 h-16 bg-amber-50 rounded-full flex items-center justify-center mx-auto">
-            <AlertCircle className="w-8 h-8 text-amber-500" />
-          </div>
-          <div>
-            <h2 className="text-2xl font-bold text-text-strong mb-2">انتهت صلاحية الرابط</h2>
-            <p className="text-text-muted leading-relaxed">
-              انتهت صلاحية رابط إعادة تعيين كلمة المرور. يرجى طلب رابط جديد.
-            </p>
-          </div>
-          <Link
-            to="/forgot-password"
-            className="inline-flex items-center justify-center gap-2 px-6 py-3 bg-brand-accent text-white rounded-full font-semibold hover:bg-brand-accent/90 transition-colors shadow-lg"
-          >
-            طلب رابط جديد
-          </Link>
-        </div>
-      </div>
-    )
-  }
-
-  // ── Success ───────────────────────────────────────────────────────────────
-  if (isSuccess) {
-    return (
-      <div className="min-h-[calc(100vh-200px)] flex items-center justify-center px-4" dir="rtl">
+      <div
+        dir="rtl"
+        className="min-h-[calc(100vh-180px)] flex items-center justify-center px-4 py-12"
+      >
         <div className="w-full max-w-md text-center space-y-6">
           <div className="w-16 h-16 bg-emerald-50 rounded-full flex items-center justify-center mx-auto">
             <CheckCircle className="w-8 h-8 text-emerald-500" />
           </div>
           <div>
-            <h2 className="text-2xl font-bold text-text-strong mb-2">تم إعادة التعيين بنجاح</h2>
-            <p className="text-text-muted leading-relaxed">
-              تم إعادة تعيين كلمة المرور بنجاح. سيتم توجيهك لصفحة تسجيل الدخول.
+            <h2 className="text-2xl font-bold text-text-strong mb-3">
+              تم إعادة التعيين بنجاح
+            </h2>
+            <p className="text-text-muted leading-relaxed text-sm">
+              تم تحديث كلمة المرور بنجاح. سيتم توجيهك لصفحة تسجيل الدخول تلقائياً.
             </p>
           </div>
           <Link
             to="/login"
-            className="inline-flex items-center justify-center gap-2 px-6 py-3 bg-brand-accent text-white rounded-full font-semibold hover:bg-brand-accent/90 transition-colors shadow-lg"
+            className="inline-flex items-center justify-center gap-2 w-full max-w-xs mx-auto
+              px-6 py-3.5 rounded-xl font-semibold text-white transition-colors shadow-md
+              bg-brand-accent hover:bg-brand-accent/90"
           >
-            <ArrowLeft className="w-4 h-4" />
-            تسجيل الدخول
+            <ArrowLeft size={16} />
+            تسجيل الدخول الآن
           </Link>
         </div>
       </div>
     )
   }
 
-  // ── Main form ─────────────────────────────────────────────────────────────
-  const canSubmit = !isLoading && password && confirmPassword && allRulesMet && password === confirmPassword
-
+  // ─── Main form ─────────────────────────────────────────────────────────────
   return (
-    <div className="min-h-[calc(100vh-200px)] flex items-center justify-center px-4 pb-8" dir="rtl">
+    <div
+      dir="rtl"
+      className="min-h-[calc(100vh-180px)] flex items-center justify-center px-4 pb-10 pt-8"
+    >
       <div className="w-full max-w-md">
 
-        {/* Brand Header */}
-        <div className="text-center py-8 bg-brand-primary rounded-2xl mb-5">
+        {/* Brand header */}
+        <div className="text-center py-8 bg-brand-primary rounded-2xl mb-5 px-6">
           <div className="w-14 h-14 bg-white/10 rounded-full flex items-center justify-center mx-auto mb-4">
             <Lock className="w-7 h-7 text-brand-accent" />
           </div>
-          <h1 className="text-2xl font-bold text-white mb-1">إعادة تعيين كلمة المرور</h1>
-          <p className="text-white/70 text-sm">أدخل كلمة المرور الجديدة</p>
+          <h1 className="text-2xl font-bold text-white mb-1.5">إعادة تعيين كلمة المرور</h1>
+          <p className="text-white/70 text-sm">أدخل كلمة مرور جديدة لحسابك</p>
         </div>
 
-        {/* Form Card */}
-        <div className="bg-surface-card border border-border-soft rounded-2xl shadow-card p-6 space-y-5">
-          <form onSubmit={handleSubmit} className="space-y-5" noValidate>
+        {/* Form card */}
+        <div className="bg-surface-card border border-border-soft rounded-2xl shadow-card p-6">
+          <form onSubmit={handleSubmit} noValidate className="space-y-5">
 
-            {/* New Password */}
-            <div className="space-y-3">
-              <PasswordField
+            {/* New password */}
+            <div className="space-y-2.5">
+              <PasswordInput
                 id="password"
                 label="كلمة المرور الجديدة"
                 value={password}
-                onChange={e => { setPassword(e.target.value); setPasswordError('') }}
-                show={showPassword}
-                onToggle={() => setShowPassword(v => !v)}
-                placeholder="أدخل كلمة المرور الجديدة"
-                error={passwordError}
+                onChange={e => { setPassword(e.target.value); setPassError('') }}
+                show={showPass}
+                onToggle={() => setShowPass(v => !v)}
+                placeholder="أدخل كلمة مرور قوية"
+                error={passError}
+                autoComplete="new-password"
               />
 
-              {/* Requirements checklist — visible once user starts typing */}
-              {passwordTouched && (
-                <div className="bg-gray-50 border border-border-soft rounded-xl p-3 space-y-1.5">
+              {/* Requirements checklist — appears as soon as user starts typing */}
+              {hasTouched && (
+                <div className="rounded-xl border border-border-soft bg-gray-50 px-4 py-3 grid grid-cols-2 gap-x-3 gap-y-2">
                   {RULES.map((r, i) => (
-                    <RuleRow key={r.key} met={rulesMet[i]} label={r.label} />
+                    <RuleItem key={r.id} met={ruleResults[i]} label={r.label} />
                   ))}
                 </div>
               )}
             </div>
 
-            {/* Confirm Password */}
-            <PasswordField
-              id="confirmPassword"
+            {/* Confirm password */}
+            <PasswordInput
+              id="confirm"
               label="تأكيد كلمة المرور"
-              value={confirmPassword}
-              onChange={e => { setConfirm(e.target.value); setConfirmError('') }}
-              show={showConfirm}
-              onToggle={() => setShowConfirm(v => !v)}
-              placeholder="أعد إدخال كلمة المرور"
-              error={confirmError}
+              value={confirm}
+              onChange={e => { setConfirm(e.target.value); setConfError('') }}
+              show={showConf}
+              onToggle={() => setShowConf(v => !v)}
+              placeholder="أعد كتابة كلمة المرور"
+              error={confError}
+              autoComplete="new-password"
             />
 
-            {/* General error */}
+            {/* General / server error */}
             {generalError && (
-              <div className="bg-red-50 border border-red-200 rounded-xl p-3 flex items-start gap-2">
-                <AlertCircle size={16} className="text-red-500 shrink-0 mt-0.5" />
-                <p className="text-sm text-red-700">{generalError}</p>
+              <div
+                role="alert"
+                className="flex items-start gap-2.5 rounded-xl bg-red-50 border border-red-200 p-3.5 text-sm text-red-700"
+              >
+                <AlertCircle size={16} className="shrink-0 mt-0.5 text-red-500" />
+                <span>{generalError}</span>
               </div>
             )}
 
+            {/* Submit — full width, large touch target */}
             <button
               type="submit"
               disabled={!canSubmit}
-              className="w-full flex items-center justify-center gap-2 rounded-xl bg-brand-accent hover:bg-brand-accent/90 disabled:opacity-50 disabled:cursor-not-allowed text-white px-4 py-3.5 font-semibold transition-colors shadow-md text-sm"
+              className="w-full flex items-center justify-center gap-2 rounded-xl py-4 px-4
+                font-semibold text-white text-sm transition-all shadow-md
+                bg-brand-accent hover:bg-brand-accent/90
+                disabled:opacity-50 disabled:cursor-not-allowed disabled:shadow-none"
             >
-              {isLoading ? (
-                <>
-                  <Loader2 className="animate-spin" size={17} />
-                  <span>جاري إعادة التعيين...</span>
-                </>
-              ) : (
-                <span>إعادة تعيين كلمة المرور</span>
-              )}
+              {isLoading
+                ? <><Loader2 size={18} className="animate-spin" /><span>جاري إعادة التعيين...</span></>
+                : <span>تأكيد كلمة المرور الجديدة</span>
+              }
             </button>
+
           </form>
 
-          <div className="text-center pt-1">
+          <div className="mt-5 text-center">
             <Link
               to="/login"
-              className="inline-flex items-center gap-1.5 text-sm text-brand-accent hover:text-brand-accent/80 font-medium transition-colors"
+              className="inline-flex items-center gap-1.5 text-sm text-brand-accent
+                hover:text-brand-accent/80 font-medium transition-colors"
             >
-              <ArrowLeft className="w-4 h-4" />
+              <ArrowLeft size={14} />
               العودة لتسجيل الدخول
             </Link>
           </div>

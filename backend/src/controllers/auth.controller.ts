@@ -93,10 +93,12 @@ async function generateResetToken(): Promise<string> {
   return crypto.randomBytes(32).toString('hex')
 }
 
-// SHA-256 is appropriate here: the 32-byte random token provides the security,
-// not the hash function. Using bcrypt was O(N*300ms) — this is O(1).
-function hashResetToken(token: string): string {
-  return crypto.createHash('sha256').update(token).digest('hex')
+async function hashResetToken(token: string): Promise<string> {
+  return await bcrypt.hash(token, BCRYPT_SALT_ROUNDS)
+}
+
+async function verifyResetToken(token: string, hashedToken: string): Promise<boolean> {
+  return await bcrypt.compare(token, hashedToken)
 }
 
 function buildResetLink(token: string): string {
@@ -684,7 +686,7 @@ authRouter.post('/forgot-password', forgotPasswordLimiter, async (req: Request, 
     if (user) {
       // Generate and store reset token
       const resetToken = await generateResetToken()
-      const hashedToken = hashResetToken(resetToken)
+      const hashedToken = await hashResetToken(resetToken)
       const expiresAt = new Date(Date.now() + 30 * 60 * 1000) // 30 minutes
 
       await prisma.user.update({
@@ -774,31 +776,32 @@ authRouter.post('/reset-password', async (req: Request, res: Response) => {
       })
     }
 
-    // Direct O(1) lookup: hash the incoming token and match against stored hash
-    const tokenHash = hashResetToken(token)
-    const userWithToken = await prisma.user.findFirst({
-      where: { passwordResetToken: tokenHash }
+    // Find user with valid reset token (bcrypt compare per candidate)
+    const candidates = await prisma.user.findMany({
+      where: {
+        passwordResetToken:     { not: null },
+        passwordResetExpiresAt: { not: null }
+      }
     })
 
-    if (!userWithToken) {
-      return res.status(400).json({
-        error: 'invalid_token',
-        message: lang === 'ar'
-          ? 'رابط إعادة تعيين كلمة المرور غير صالح. يرجى طلب رابط جديد.'
-          : 'Invalid password reset link. Please request a new one.'
-      })
+    let validUser = null
+    for (const candidate of candidates) {
+      if (candidate.passwordResetToken && await verifyResetToken(token, candidate.passwordResetToken)) {
+        if (candidate.passwordResetExpiresAt && candidate.passwordResetExpiresAt > new Date()) {
+          validUser = candidate
+        }
+        break  // token matched this candidate (whether expired or not) — stop searching
+      }
     }
 
-    if (!userWithToken.passwordResetExpiresAt || userWithToken.passwordResetExpiresAt <= new Date()) {
+    if (!validUser) {
       return res.status(400).json({
-        error: 'expired_token',
+        error: 'invalid_or_expired_token',
         message: lang === 'ar'
-          ? 'انتهت صلاحية رابط إعادة تعيين كلمة المرور. يرجى طلب رابط جديد.'
-          : 'Password reset link has expired. Please request a new one.'
+          ? 'رابط إعادة تعيين كلمة المرور غير صالح أو منتهي الصلاحية. يرجى طلب رابط جديد.'
+          : 'Invalid or expired password reset link. Please request a new one.'
       })
     }
-
-    const validUser = userWithToken
 
     // Hash new password
     const newPasswordHash = await hashPassword(password)
