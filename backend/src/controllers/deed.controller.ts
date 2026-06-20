@@ -2,6 +2,8 @@ import { Router, Request, Response } from 'express'
 import { prisma } from '../lib/prisma'
 import * as fabric from '../lib/fabric'
 import { auth } from '../middleware/auth'
+import { requireRole } from '../middleware/roles'
+import { getFeatureFlag } from '../lib/featureFlags'
 import {
   generateDeedNumber,
   calculateDeedHash,
@@ -82,10 +84,15 @@ deedRouter.get('/:deedNumber', auth(true), async (req: Request & { user?: any },
 // POST /deeds/issue - Issue a new digital deed
 // Body: { userId, propertyId, orderId }
 // ============================================================================
-deedRouter.post('/issue', auth(true), async (req: Request & { user?: any }, res: Response) => {
+deedRouter.post('/issue', auth(true), requireRole(['ADMIN']), async (req: Request & { user?: any }, res: Response) => {
     try {
+    const deedIssuanceEnabled = await getFeatureFlag('deedIssuanceEnabled', true)
+    if (!deedIssuanceEnabled) {
+      return res.status(410).json({ error: 'DEED_ISSUANCE_DISABLED', message: 'إصدار الصكوك متوقف حالياً.' })
+    }
+
     const { userId, propertyId, orderId } = req.body
-    
+
     if (!userId || !propertyId) {
       return res.status(400).json({ error: 'userId and propertyId required' })
     }

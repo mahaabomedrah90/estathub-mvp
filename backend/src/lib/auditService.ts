@@ -42,6 +42,8 @@ export const AuditAction = {
   USER_STATUS_CHANGED:      'USER_STATUS_CHANGED',
   USER_ROLE_CHANGED:        'USER_ROLE_CHANGED',
   USER_VERIFICATION_CHANGED:'USER_VERIFICATION_CHANGED',
+  INVESTMENT_PURCHASED:     'INVESTMENT_PURCHASED',
+  FEATURE_FLAG_CHANGED:     'FEATURE_FLAG_CHANGED',
 } as const
 
 export type AuditActionType = typeof AuditAction[keyof typeof AuditAction]

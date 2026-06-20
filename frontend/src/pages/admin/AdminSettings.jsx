@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react'
-import { Save, AlertCircle, CheckCircle, Settings, Bell, Shield, Globe } from 'lucide-react'
+import { Save, AlertCircle, CheckCircle, Settings, Bell, Shield, Globe, Power } from 'lucide-react'
 import { authHeader, fetchJson, getToken } from '../../lib/api'
 import { navigationPermissions, updateNavigationVisibility } from '../../lib/api'
 import { useTranslation } from 'react-i18next';
@@ -8,6 +8,18 @@ export default function AdminSettings() {
   const { t } = useTranslation('pages');
   const [saving, setSaving] = useState(false)
   const [message, setMessage] = useState({ type: '', text: '' })
+  const [services, setServices] = useState({
+    purchaseEnabled: false,
+    depositEnabled: true,
+    withdrawalEnabled: true,
+    walletEnabled: true,
+    deedIssuanceEnabled: true,
+    deedExportEnabled: true,
+    blockchainEnabled: false,
+    distributionEnabled: true,
+    notificationsEnabled: false,
+    maintenanceMode: false,
+  })
   const [settings, setSettings] = useState({
     general: {
       platformName: 'ALWASM',
@@ -46,11 +58,30 @@ export default function AdminSettings() {
   const loadSettings = async () => {
     try {
       const data = await fetchJson('/api/settings', { headers: authHeader() })
-      setSettings(data)
+      const { services: srv, ...rest } = data
+      setSettings(rest)
+      if (srv) setServices(srv)
       console.log('✅ Settings loaded from database:', data)
     } catch (error) {
       console.error('❌ Failed to load settings:', error)
       showMessage('error', t('admin.settings.loadError'))
+    }
+  }
+
+  const toggleServiceFlag = async (key, currentValue) => {
+    const newValue = !currentValue
+    setServices(prev => ({ ...prev, [key]: newValue }))
+    try {
+      await fetchJson(`/api/settings/flag/${key}`, {
+        method: 'PATCH',
+        headers: { ...authHeader(), 'Content-Type': 'application/json' },
+        body: JSON.stringify({ value: newValue }),
+      })
+      showMessage('success', 'تم تحديث الإعداد')
+    } catch (error) {
+      console.error('❌ Failed to update service flag:', error)
+      setServices(prev => ({ ...prev, [key]: currentValue }))
+      showMessage('error', 'فشل تحديث الإعداد')
     }
   }
 
@@ -565,6 +596,51 @@ export default function AdminSettings() {
                 />
               </button>
             </div>
+          </div>
+        </div>
+
+        {/* Service Feature Flags — إدارة الخدمات */}
+        <div className="bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden">
+          <div className="px-8 py-6 border-b border-gray-200">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center">
+                <div className="p-3 bg-[#1E1958]/10 rounded-xl mr-3">
+                  <Power className="text-[#1E1958]" size={24} />
+                </div>
+                <div>
+                  <h2 className="text-2xl font-bold text-[#1E1958]">إدارة الخدمات</h2>
+                  <p className="text-sm text-gray-500 mt-1">يمكنك تشغيل أو إيقاف الخدمات بدون إعادة نشر النظام.</p>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div className="p-8 space-y-4">
+            {[
+              { key: 'purchaseEnabled',     label: 'الاستثمار',      danger: false },
+              { key: 'depositEnabled',      label: 'الإيداع',        danger: false },
+              { key: 'withdrawalEnabled',   label: 'السحب',          danger: false },
+              { key: 'walletEnabled',       label: 'المحفظة',        danger: false },
+              { key: 'deedIssuanceEnabled', label: 'إصدار الصكوك',   danger: false },
+              { key: 'deedExportEnabled',   label: 'تصدير الصكوك',   danger: false },
+              { key: 'blockchainEnabled',   label: 'البلوكشين',      danger: false },
+              { key: 'distributionEnabled', label: 'التوزيعات',      danger: false },
+              { key: 'notificationsEnabled',label: 'الإشعارات',      danger: false },
+              { key: 'maintenanceMode',     label: 'وضع الصيانة',    danger: true  },
+            ].map(({ key, label, danger }) => (
+              <div key={key} className="flex items-center justify-between p-4 bg-gray-50 rounded-xl">
+                <span className={`text-sm font-semibold ${danger ? 'text-[#ED9072]' : 'text-gray-700'}`}>{label}</span>
+                <button
+                  onClick={() => toggleServiceFlag(key, services[key])}
+                  className={`relative inline-flex h-8 w-14 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 ${
+                    danger
+                      ? `focus:ring-[#ED9072] focus:ring-offset-2 ${services[key] ? 'bg-[#ED9072]' : 'bg-gray-300'}`
+                      : `focus:ring-[#41EAD4] focus:ring-offset-2 ${services[key] ? 'bg-[#41EAD4]' : 'bg-gray-300'}`
+                  }`}
+                >
+                  <span className={`pointer-events-none inline-block h-6 w-6 transform rounded-full bg-white shadow-lg ring-0 transition duration-200 ease-in-out ${services[key] ? 'translate-x-6' : 'translate-x-0'}`} />
+                </button>
+              </div>
+            ))}
           </div>
         </div>
 

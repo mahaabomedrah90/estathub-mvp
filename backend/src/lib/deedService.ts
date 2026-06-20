@@ -1,5 +1,6 @@
 import crypto from 'node:crypto'
 import { prisma } from './prisma'
+import { getFeatureFlag } from './featureFlags'
 
 /**
  * Generate unique deed number
@@ -116,6 +117,12 @@ export async function issueDeedAfterPayment(params: {
       orderBy: { createdAt: 'asc' },
     }),
   ])
+
+  const deedEnabled = await getFeatureFlag('deedIssuanceEnabled', true)
+  if (!deedEnabled) {
+    console.log(`ℹ️  [deed] Deed issuance disabled by feature flag — skipping order ${orderId}`)
+    return
+  }
 
   if (!property || !user) {
     console.error(`❌ [deed] Cannot issue deed — property or user not found (userId=${userId}, propertyId=${propertyId})`)
