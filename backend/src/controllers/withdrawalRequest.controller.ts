@@ -158,10 +158,19 @@ withdrawalRequestAdminRouter.post('/:id/approve', auth(true), async (req: Reques
 
   try {
     const result = await prisma.$transaction(async (tx: any) => {
+      // Atomically claim the request — prevents double-debit under concurrent approvals.
+      const claimed = await tx.withdrawalRequest.updateMany({
+        where: { id, status: 'PENDING' },
+        data:  { status: 'APPROVED', reviewedBy: req.user!.userId, reviewedAt: new Date() },
+      })
+      if (claimed.count === 0) {
+        const current = await tx.withdrawalRequest.findUnique({ where: { id }, select: { status: true } })
+        if (!current) throw Object.assign(new Error('not_found'), { status: 404 })
+        throw Object.assign(new Error(current.status === 'APPROVED' ? 'already_approved' : 'already_rejected'), { status: 409 })
+      }
+
       const wReq = await tx.withdrawalRequest.findUnique({ where: { id } })
       if (!wReq) throw Object.assign(new Error('not_found'), { status: 404 })
-      if (wReq.status === 'APPROVED') throw Object.assign(new Error('already_approved'), { status: 409 })
-      if (wReq.status === 'REJECTED') throw Object.assign(new Error('already_rejected'), { status: 409 })
 
       // Validate wallet balance
       const wallet = await tx.wallet.findUnique({ where: { userId: wReq.userId } })
@@ -192,15 +201,8 @@ withdrawalRequestAdminRouter.post('/:id/approve', auth(true), async (req: Reques
         },
       })
 
-      // Mark request approved
-      const updated = await tx.withdrawalRequest.update({
-        where: { id },
-        data: {
-          status: 'APPROVED',
-          reviewedBy: req.user!.userId,
-          reviewedAt: new Date(),
-        },
-      })
+      // Re-fetch final state for response/email/audit (status already set by atomic claim above)
+      const updated = await tx.withdrawalRequest.findUnique({ where: { id } })
 
       return { updated, walletBefore, walletAfter: updatedWallet.cashBalance ?? 0 }
     })
@@ -214,7 +216,7 @@ withdrawalRequestAdminRouter.post('/:id/approve', auth(true), async (req: Reques
         })
         await logAdminAction({
           admin:      { userId: req.user!.userId, email: req.user!.email },
-          action:     AuditAction.DEPOSIT_APPROVED, // reuse closest action
+          action:     AuditAction.WITHDRAWAL_APPROVED,
           targetType: 'WithdrawalRequest',
           targetId:   id,
           investor:   { id: wReq!.userId, name: wReq?.user?.fullName || wReq?.user?.email },
@@ -281,6 +283,24 @@ withdrawalRequestAdminRouter.post('/:id/reject', auth(true), async (req: Request
         reviewedAt: new Date(),
       },
     })
+
+    // Fire-and-forget audit log for rejection
+    ;(async () => {
+      try {
+        await logAdminAction({
+          admin:      { userId: req.user!.userId, email: req.user!.email },
+          action:     AuditAction.WITHDRAWAL_REJECTED,
+          targetType: 'WithdrawalRequest',
+          targetId:   id,
+          investor:   { id: wReq.userId },
+          amount:     wReq.amount,
+          metadata:   { reason: adminNote || null },
+          req,
+        })
+      } catch (err: any) {
+        console.error('⚠️  Audit log failed (withdrawal reject):', err.message)
+      }
+    })()
 
     // Fire-and-forget investor rejection email
     ;(async () => {

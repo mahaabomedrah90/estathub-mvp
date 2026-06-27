@@ -6,6 +6,7 @@ import { isFabricEnabled, submitTxn } from '../lib/fabric'
 import { getSetting } from './settings.controller'
 import { getFeatureFlag } from '../lib/featureFlags'
 import { issueDeedAfterPayment } from '../lib/deedService'
+import { logAdminAction, AuditAction } from '../lib/auditService'
 import crypto from 'node:crypto'
 
 export const ordersRouter = Router()
@@ -70,12 +71,19 @@ ordersRouter.post('/', purchaseGate, auth(true), async (req: Request & { user?: 
     // Reject suspended accounts before any DB work
     const investingUser = await prisma.user.findUnique({
       where: { id: userId },
-      select: { status: true } as any,
+      select: { status: true, kycVerified: true } as any,
     })
     if ((investingUser as any)?.status === 'SUSPENDED') {
       return res.status(403).json({
         error: 'account_suspended',
         message: 'الحساب غير مفعل، يرجى التواصل مع إدارة المنصة.',
+      })
+    }
+
+    if (!(investingUser as any)?.kycVerified) {
+      return res.status(403).json({
+        code: 'KYC_REQUIRED',
+        message: 'Complete identity verification before investing.',
       })
     }
 
@@ -148,6 +156,18 @@ ordersRouter.post('/', purchaseGate, auth(true), async (req: Request & { user?: 
 
     console.log(`💳 Order created: investor=${userId} property=${pid} tokens=${qty} investmentAmount=${investmentAmount} fee=${platformFeePercent}%=${platformFeeAmount} totalPayable=${totalPayable}`)
 
+    // Audit: ORDER_CREATED — fire-and-forget
+    logAdminAction({
+      admin:      null,
+      action:     AuditAction.ORDER_CREATED,
+      targetType: 'Order',
+      targetId:   order.id,
+      investor:   { id: userId },
+      amount:     investmentAmount,
+      metadata:   { propertyId: pid, tokens: qty, totalPayable },
+      req,
+    }).catch(() => {})
+
     // Root-level response shape — web reads order.id directly for the confirm call
     return res.status(201).json({
       id: order.id,
@@ -186,6 +206,7 @@ ordersRouter.post('/confirm', purchaseGate, auth(true), async (req: Request & { 
     if (order.userId !== req.user!.userId) {
       return res.status(403).json({ error: 'forbidden', message: 'You can only confirm your own orders.' })
     }
+    // Fast-path idempotency for already-issued orders (checked again inside tx below)
     if (order.status === 'ISSUED') return res.json({ ok: true })
 
     // Maintenance mode blocks confirm for non-admin roles
@@ -207,7 +228,30 @@ ordersRouter.post('/confirm', purchaseGate, auth(true), async (req: Request & { 
     }
 
     // Complete database transaction first (without blockchain)
+    let confirmedTotalPayable = 0
+    let confirmedWalletBefore = 0
+    let confirmedWalletAfter = 0
+
     await prisma.$transaction(async (tx: any) => {
+
+      // ── Atomic idempotency claim ────────────────────────────────────────────
+      // Atomically transition PENDING → PAID as the first write.
+      // If two concurrent confirm requests arrive, only one can update a row
+      // with status = 'PENDING'. The second finds no matching row and throws,
+      // preventing double-debit without relying on the Certificate unique constraint.
+      const claimed = await tx.order.updateMany({
+        where: { id: oid, status: 'PENDING' },
+        data:  { status: 'PAID' },
+      })
+      if (claimed.count === 0) {
+        // Either already PAID/ISSUED (idempotent) or CANCELLED — fetch current status
+        const current = await tx.order.findUnique({ where: { id: oid }, select: { status: true } })
+        if (current?.status === 'ISSUED') {
+          // Already fully confirmed — safe to return ok outside the tx via a sentinel
+          throw Object.assign(new Error('already_issued'), { alreadyIssued: true })
+        }
+        throw new Error('order_not_confirmable')
+      }
 
       // Recalculate payment amounts — must match order creation logic
       const investmentAmount = (order.property?.tokenPrice || 0) * (order.tokens || 0)
@@ -215,6 +259,7 @@ ordersRouter.post('/confirm', purchaseGate, auth(true), async (req: Request & { 
       const platformFeePercent = parseFloat(platformFeeStr)
       const platformFeeAmount = parseFloat((investmentAmount * platformFeePercent / 100).toFixed(2))
       const totalPayable = parseFloat((investmentAmount + platformFeeAmount).toFixed(2))
+      confirmedTotalPayable = totalPayable
 
       // Get user's tenantId for wallet creation
       const user = await tx.user.findUnique({ where: { id: order.userId } })
@@ -231,33 +276,66 @@ ordersRouter.post('/confirm', purchaseGate, auth(true), async (req: Request & { 
         insufficientErr.requiredAmount = parseFloat((totalPayable - (wallet.cashBalance || 0)).toFixed(2))
         throw insufficientErr
       }
+      confirmedWalletBefore = wallet.cashBalance || 0
 
-      // Mark order paid and debit totalPayable (investmentAmount + fee) from wallet
-      await tx.order.update({ where: { id: oid }, data: { status: 'PENDING' } })
-      await tx.wallet.update({ where: { id: wallet.id }, data: { cashBalance: { decrement: totalPayable } } })
+      // Debit totalPayable (investmentAmount + fee) from wallet
+      const updatedWallet = await tx.wallet.update({
+        where: { id: wallet.id },
+        data:  { cashBalance: { decrement: totalPayable } },
+      })
+      confirmedWalletAfter = updatedWallet.cashBalance || 0
+
       await tx.transaction.create({
         data: {
-          userId: order.userId,
+          userId:   order.userId,
           tenantId: user.tenantId,
-          type: 'WITHDRAWAL',
-          amount: totalPayable,
-          ref: String(oid)
-        }
+          type:     'WITHDRAWAL',
+          amount:   totalPayable,
+          ref:      String(oid),
+        },
       })
+
+      // Re-read remainingTokens inside the transaction before decrementing.
+      // Prevents overselling when two orders for the same property confirm concurrently.
+      const freshProp = await tx.property.findUnique({
+        where:  { id: order.propertyId },
+        select: { remainingTokens: true },
+      })
+      if (!freshProp || freshProp.remainingTokens < order.tokens) {
+        throw new Error('tokens_sold_out')
+      }
 
       // Issue tokens off-chain: decrement property supply and credit holding
       await tx.property.update({ where: { id: order.propertyId }, data: { remainingTokens: { decrement: order.tokens } } })
       await tx.holding.upsert({
-        where: { userId_propertyId: { userId: order.userId, propertyId: order.propertyId } },
+        where:  { userId_propertyId: { userId: order.userId, propertyId: order.propertyId } },
         update: { tokens: { increment: order.tokens } },
         create: { userId: order.userId, propertyId: order.propertyId, tokens: order.tokens },
       })
 
-      // Certificate and finalize
+      // Certificate and finalize — set status ISSUED
       const code = crypto.randomUUID()
       await tx.certificate.create({ data: { code, userId: order.userId, propertyId: order.propertyId, orderId: order.id } })
       await tx.order.update({ where: { id: oid }, data: { status: 'ISSUED' } })
     })
+
+    // Audit: ORDER_CONFIRMED + WALLET_DEBITED — fire-and-forget
+    ;(async () => {
+      try {
+        await logAdminAction({
+          admin:        null,
+          action:       AuditAction.ORDER_CONFIRMED,
+          targetType:   'Order',
+          targetId:     oid,
+          investor:     { id: order.userId },
+          amount:       confirmedTotalPayable,
+          walletBefore: confirmedWalletBefore,
+          walletAfter:  confirmedWalletAfter,
+          metadata:     { propertyId: order.propertyId, tokens: order.tokens },
+          req,
+        })
+      } catch {}
+    })()
 
     // Auto-issue digital deed after payment — fire-and-forget
     issueDeedAfterPayment({
@@ -358,9 +436,16 @@ ordersRouter.post('/confirm', purchaseGate, auth(true), async (req: Request & { 
     }
 
     return res.json({ ok: true })
-  } catch (e) {
-    if (String((e as Error).message || '').includes('insufficient_balance')) {
-      const requiredAmount = (e as any).requiredAmount ?? 0
+  } catch (e: any) {
+    if (e?.alreadyIssued) return res.json({ ok: true })
+    if (String(e?.message || '').includes('order_not_confirmable')) {
+      return res.status(409).json({ error: 'order_not_confirmable', message: 'هذا الطلب لا يمكن تأكيده.' })
+    }
+    if (String(e?.message || '').includes('tokens_sold_out')) {
+      return res.status(409).json({ error: 'tokens_sold_out', message: 'عذراً، نفدت الحصص المتاحة لهذا العقار.' })
+    }
+    if (String(e?.message || '').includes('insufficient_balance')) {
+      const requiredAmount = e?.requiredAmount ?? 0
       return res.status(400).json({
         error: 'insufficient_balance',
         action: 'DEPOSIT_REQUIRED',

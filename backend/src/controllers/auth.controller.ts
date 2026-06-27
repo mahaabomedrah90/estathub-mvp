@@ -806,13 +806,15 @@ authRouter.post('/reset-password', async (req: Request, res: Response) => {
     // Hash new password
     const newPasswordHash = await hashPassword(password)
 
-    // Update user password and clear reset token
+    // Update user password and clear reset token.
+    // Also mark emailVerified: completing a password reset proves inbox ownership.
     await prisma.user.update({
       where: { id: validUser.id },
       data: {
         passwordHash: newPasswordHash,
         passwordResetToken: null,
-        passwordResetExpiresAt: null
+        passwordResetExpiresAt: null,
+        emailVerified: true,
       }
     })
 
@@ -978,6 +980,139 @@ authRouter.post('/signup', registerLimiter, maintenanceGuard, registrationGuard,
   } catch (error: any) {
     console.error('❌ Signup error:', error.message)
     return res.status(500).json({ error: 'signup_failed' })
+  }
+})
+
+// ============================================================================
+// GET /api/auth/me — current authenticated user with wallet summary
+// ============================================================================
+
+authRouter.get('/me', auth(true), async (req: Request & { user?: any }, res: Response) => {
+  try {
+    const user = await prisma.user.findUnique({
+      where: { id: req.user!.userId },
+      select: {
+        id: true,
+        fullName: true,
+        email: true,
+        phoneNumber: true,
+        nationalId: true,
+        role: true,
+        status: true,
+        emailVerified: true,
+        phoneVerified: true,
+        kycVerified: true,
+        tenantId: true,
+        address: true,
+        createdAt: true,
+      },
+    })
+
+    if (!user) {
+      return res.status(404).json({ error: 'user_not_found' })
+    }
+
+    const wallet = await prisma.wallet.findUnique({
+      where: { userId: req.user!.userId },
+      select: { walletId: true, cashBalance: true },
+    })
+
+    return res.json({
+      success: true,
+      data: {
+        id: user.id,
+        fullName: user.fullName,
+        email: user.email,
+        phoneNumber: user.phoneNumber
+          ? user.phoneNumber.slice(0, -6) + '***' + user.phoneNumber.slice(-3)
+          : null,
+        nationalId: user.nationalId ? maskNationalId(user.nationalId) : null,
+        role: user.role,
+        status: user.status,
+        emailVerified: user.emailVerified,
+        phoneVerified: user.phoneVerified,
+        kycVerified: user.kycVerified,
+        tenantId: user.tenantId,
+        address: user.address,
+        createdAt: user.createdAt,
+        wallet: wallet ? { walletId: wallet.walletId, cashBalance: wallet.cashBalance } : null,
+      },
+    })
+  } catch (error: any) {
+    console.error('❌ GET /me error:', error.message)
+    return res.status(500).json({ error: 'failed_to_fetch_user' })
+  }
+})
+
+// ============================================================================
+// PUT /api/auth/profile — update own profile (fullName, phoneNumber, address)
+// ============================================================================
+
+authRouter.put('/profile', auth(true), async (req: Request & { user?: any }, res: Response) => {
+  try {
+    const lang = (req.headers['accept-language']?.includes('ar') ? 'ar' : 'en') as 'en' | 'ar'
+    const { fullName, phoneNumber, address } = req.body
+    const updates: Record<string, any> = {}
+
+    if (fullName !== undefined) {
+      const nameValidation = validateFullName(fullName)
+      if (!nameValidation.valid) {
+        return res.status(400).json({
+          error: nameValidation.error,
+          message: getErrorMessage(nameValidation.error!, lang),
+          field: 'fullName',
+        })
+      }
+      updates.fullName = nameValidation.normalized!
+    }
+
+    if (phoneNumber !== undefined) {
+      const phoneValidation = validatePhone(phoneNumber)
+      if (!phoneValidation.valid) {
+        return res.status(400).json({
+          error: phoneValidation.error,
+          message: getErrorMessage(phoneValidation.error!, lang),
+          field: 'phoneNumber',
+        })
+      }
+      const taken = await prisma.user.findFirst({
+        where: { phoneNumber: phoneValidation.normalized!, id: { not: req.user!.userId } },
+      })
+      if (taken) {
+        return res.status(409).json({
+          error: 'phone_already_exists',
+          message: getErrorMessage('phone_already_exists', lang),
+          field: 'phoneNumber',
+        })
+      }
+      updates.phoneNumber = phoneValidation.normalized!
+    }
+
+    if (address !== undefined) {
+      if (typeof address !== 'string' || address.length > 500) {
+        return res.status(400).json({ error: 'invalid_address', field: 'address' })
+      }
+      updates.address = address.trim() || null
+    }
+
+    if (Object.keys(updates).length === 0) {
+      return res.status(400).json({ error: 'no_fields_to_update' })
+    }
+
+    const updated = await prisma.user.update({
+      where: { id: req.user!.userId },
+      data: updates,
+      select: { id: true, fullName: true, email: true, phoneNumber: true, address: true },
+    })
+
+    return res.json({
+      success: true,
+      message: 'تم تحديث الملف الشخصي بنجاح',
+      data: updated,
+    })
+  } catch (error: any) {
+    console.error('❌ PUT /profile error:', error.message)
+    return res.status(500).json({ error: 'failed_to_update_profile' })
   }
 })
 

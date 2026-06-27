@@ -47,17 +47,21 @@ depositRequestAdminRouter.post('/:id/approve', auth(true), async (req: Request &
 
   try {
     const result = await prisma.$transaction(async (tx: any) => {
-      const depositReq = await tx.depositRequest.findUnique({ where: { id } })
+      // Atomically claim the request — only one concurrent approve wins.
+      // updateMany where status='PENDING' returns count=0 if already approved/rejected,
+      // preventing double-credit under READ COMMITTED isolation.
+      const claimed = await tx.depositRequest.updateMany({
+        where: { id, status: 'PENDING' },
+        data:  { status: 'APPROVED', reviewedBy: req.user!.userId, reviewedAt: new Date() },
+      })
+      if (claimed.count === 0) {
+        const current = await tx.depositRequest.findUnique({ where: { id }, select: { status: true } })
+        if (!current) throw Object.assign(new Error('not_found'), { status: 404 })
+        throw Object.assign(new Error(current.status === 'APPROVED' ? 'already_approved' : 'already_rejected'), { status: 409 })
+      }
 
-      if (!depositReq) {
-        throw Object.assign(new Error('not_found'), { status: 404 })
-      }
-      if (depositReq.status === 'APPROVED') {
-        throw Object.assign(new Error('already_approved'), { status: 409 })
-      }
-      if (depositReq.status === 'REJECTED') {
-        throw Object.assign(new Error('already_rejected'), { status: 409 })
-      }
+      const depositReq = await tx.depositRequest.findUnique({ where: { id } })
+      if (!depositReq) throw Object.assign(new Error('not_found'), { status: 404 })
 
       // Upsert wallet so it exists
       const wallet = await tx.wallet.upsert({
@@ -91,15 +95,8 @@ depositRequestAdminRouter.post('/:id/approve', auth(true), async (req: Request &
         },
       })
 
-      // Mark request as approved
-      const updated = await tx.depositRequest.update({
-        where: { id },
-        data: {
-          status: 'APPROVED',
-          reviewedBy: req.user!.userId,
-          reviewedAt: new Date(),
-        },
-      })
+      // Re-fetch after wallet update to get final state for response/email
+      const updated = await tx.depositRequest.findUnique({ where: { id } })
 
       return { depositRequest: updated, newBalance: updatedWallet.cashBalance }
     })

@@ -384,6 +384,255 @@ export function buildVerificationEmail(verifyLink: string, isRTL: boolean = fals
   return { subject, html, text }
 }
 
+export function maskIban(iban: string): string {
+  const clean = iban.replace(/\s+/g, '')
+  if (clean.length < 8) return '****'
+  return `${clean.slice(0, 4)} **** **** **** **** ${clean.slice(-4)}`
+}
+
+export function buildWithdrawalApprovedEmail(data: {
+  userName: string
+  amount: number
+  requestId: string
+  bankName?: string
+  ibanMasked?: string
+  newBalance: number
+  approvedAt: Date
+}): { subject: string; html: string; text: string } {
+  const subject = 'تم تنفيذ طلب السحب'
+  const formattedDate = data.approvedAt.toLocaleString('ar-SA', { timeZone: 'Asia/Riyadh' })
+  const amountFormatted  = data.amount.toLocaleString('ar-SA')
+  const balanceFormatted = data.newBalance.toLocaleString('ar-SA')
+
+  const html = `
+    <!DOCTYPE html>
+    <html dir="rtl">
+    <head>
+      <meta charset="UTF-8">
+      <style>
+        body { font-family: Arial, sans-serif; line-height: 1.8; color: #333; direction: rtl; }
+        .container { max-width: 600px; margin: 0 auto; padding: 20px; }
+        .header { background: #1E1958; color: white; padding: 20px; text-align: center; border-radius: 8px 8px 0 0; }
+        .content { background: #f9fafb; padding: 30px; border-radius: 0 0 8px 8px; }
+        .field { margin: 12px 0; }
+        .label { font-weight: bold; color: #555; }
+        .value { color: #1E1958; font-size: 16px; }
+        .amount { color: #dc2626; font-size: 20px; font-weight: bold; }
+        .balance { color: #16a34a; font-size: 16px; font-weight: bold; }
+        .success { background: #dcfce7; border: 1px solid #16a34a; padding: 15px; border-radius: 6px; margin: 20px 0; }
+        .note { background: #fef9c3; border: 1px solid #ca8a04; padding: 12px 15px; border-radius: 6px; margin: 20px 0; font-size: 13px; }
+        .footer { text-align: center; color: #666; font-size: 12px; margin-top: 20px; }
+      </style>
+    </head>
+    <body>
+      <div class="container">
+        <div class="header">
+          <h1>منصة الوسم</h1>
+          <p>إشعار تنفيذ طلب السحب</p>
+        </div>
+        <div class="content">
+          <h2>مرحباً ${data.userName}،</h2>
+          <div class="success">
+            <strong>تم تنفيذ طلب السحب الخاص بك بنجاح.</strong><br>
+            تم تحويل مبلغ السحب من منصة الوسم إلى حسابك البنكي.
+          </div>
+          <div class="field"><span class="label">المبلغ المحوّل: </span><span class="amount">${amountFormatted} ريال سعودي</span></div>
+          ${data.bankName ? `<div class="field"><span class="label">البنك: </span><span class="value">${data.bankName}</span></div>` : ''}
+          ${data.ibanMasked ? `<div class="field"><span class="label">رقم الآيبان: </span><span class="value" style="font-family:monospace">${data.ibanMasked}</span></div>` : ''}
+          <div class="field"><span class="label">رقم الطلب: </span><span class="value">${data.requestId}</span></div>
+          <div class="field"><span class="label">تاريخ التنفيذ: </span><span class="value">${formattedDate}</span></div>
+          <div class="field"><span class="label">الرصيد المتبقي في المحفظة: </span><span class="balance">${balanceFormatted} ريال سعودي</span></div>
+          <div class="note">
+            إذا لم يظهر المبلغ في حسابك البنكي خلال المدة المعتادة، يرجى التواصل مع البنك أو فريق الدعم مع الإشارة إلى رقم الطلب.
+          </div>
+        </div>
+        <div class="footer">
+          <p>© 2025 الوسم. هذا إيميل تلقائي، لا ترد عليه.</p>
+        </div>
+      </div>
+    </body>
+    </html>
+  `
+
+  const text = [
+    'تم تنفيذ طلب السحب - الوسم',
+    '',
+    `مرحباً ${data.userName}،`,
+    'تم تنفيذ طلب السحب الخاص بك وتحويل المبلغ إلى حسابك البنكي.',
+    '',
+    `المبلغ المحوّل: ${amountFormatted} ريال سعودي`,
+    data.bankName  ? `البنك: ${data.bankName}` : '',
+    data.ibanMasked ? `رقم الآيبان: ${data.ibanMasked}` : '',
+    `رقم الطلب: ${data.requestId}`,
+    `تاريخ التنفيذ: ${formattedDate}`,
+    `الرصيد المتبقي: ${balanceFormatted} ريال سعودي`,
+    '',
+    'إذا لم يظهر المبلغ في حسابك البنكي خلال المدة المعتادة، يرجى التواصل مع البنك أو فريق الدعم.',
+  ].filter(Boolean).join('\n')
+
+  return { subject, html, text }
+}
+
+export function buildAdminWithdrawalRequestEmail(data: {
+  investorName: string
+  investorEmail: string
+  investorPhone?: string
+  amount: number
+  requestId: string
+  customerIbanMasked?: string
+  customerBankName?: string
+  createdAt: Date
+}): { subject: string; html: string; text: string } {
+  const subject = 'طلب سحب جديد يحتاج مراجعة'
+  const formattedDate = data.createdAt.toLocaleString('ar-SA', { timeZone: 'Asia/Riyadh' })
+  const amountFormatted = data.amount.toLocaleString('ar-SA')
+
+  const html = `
+    <!DOCTYPE html>
+    <html dir="rtl">
+    <head>
+      <meta charset="UTF-8">
+      <style>
+        body { font-family: Arial, sans-serif; line-height: 1.8; color: #333; direction: rtl; }
+        .container { max-width: 600px; margin: 0 auto; padding: 20px; }
+        .header { background: #1E1958; color: white; padding: 20px; text-align: center; border-radius: 8px 8px 0 0; }
+        .content { background: #f9fafb; padding: 30px; border-radius: 0 0 8px 8px; }
+        .field { margin: 12px 0; }
+        .label { font-weight: bold; color: #555; }
+        .value { color: #1E1958; font-size: 16px; }
+        .amount { color: #dc2626; font-size: 20px; font-weight: bold; }
+        .footer { text-align: center; color: #666; font-size: 12px; margin-top: 20px; }
+        .alert { background: #fee2e2; border: 1px solid #dc2626; padding: 15px; border-radius: 6px; margin: 20px 0; }
+        .btn { display: inline-block; background: #1E1958; color: white; padding: 12px 28px; text-decoration: none; border-radius: 6px; margin-top: 16px; font-weight: bold; }
+      </style>
+    </head>
+    <body>
+      <div class="container">
+        <div class="header">
+          <h1>منصة الوسم</h1>
+          <p>إشعار طلب سحب جديد</p>
+        </div>
+        <div class="content">
+          <h2>طلب سحب جديد يحتاج مراجعة</h2>
+          <p>تم إنشاء طلب سحب جديد من أحد المستثمرين ويحتاج إلى مراجعة الإدارة.</p>
+          <div class="field"><span class="label">اسم المستثمر: </span><span class="value">${data.investorName}</span></div>
+          <div class="field"><span class="label">البريد الإلكتروني: </span><span class="value">${data.investorEmail}</span></div>
+          ${data.investorPhone ? `<div class="field"><span class="label">رقم الجوال: </span><span class="value">${data.investorPhone}</span></div>` : ''}
+          <div class="field"><span class="label">المبلغ المطلوب سحبه: </span><span class="amount">${amountFormatted} ريال سعودي</span></div>
+          <div class="field"><span class="label">رقم الطلب: </span><span class="value">${data.requestId}</span></div>
+          ${data.customerBankName ? `<div class="field"><span class="label">البنك: </span><span class="value">${data.customerBankName}</span></div>` : ''}
+          ${data.customerIbanMasked ? `<div class="field"><span class="label">رقم الآيبان: </span><span class="value" style="font-family:monospace">${data.customerIbanMasked}</span></div>` : ''}
+          <div class="field"><span class="label">وقت الطلب: </span><span class="value">${formattedDate}</span></div>
+          <div class="alert">
+            <strong>تنبيه:</strong> يرجى مراجعة الطلب والتحقق من بيانات الحساب البنكي قبل الموافقة على صرف المبلغ.
+          </div>
+          <div style="text-align: center;">
+            <a href="https://www.alwsm.sa/admin/withdrawals" class="btn">مراجعة طلبات السحب</a>
+          </div>
+        </div>
+        <div class="footer">
+          <p>© 2025 الوسم. هذا إيميل تلقائي، لا ترد عليه.</p>
+        </div>
+      </div>
+    </body>
+    </html>
+  `
+
+  const text = [
+    'طلب سحب جديد يحتاج مراجعة - الوسم',
+    '',
+    'تم إنشاء طلب سحب جديد من أحد المستثمرين ويحتاج إلى مراجعة الإدارة.',
+    '',
+    `اسم المستثمر: ${data.investorName}`,
+    `البريد الإلكتروني: ${data.investorEmail}`,
+    data.investorPhone ? `رقم الجوال: ${data.investorPhone}` : '',
+    `المبلغ: ${amountFormatted} ريال سعودي`,
+    `رقم الطلب: ${data.requestId}`,
+    data.customerBankName ? `البنك: ${data.customerBankName}` : '',
+    data.customerIbanMasked ? `الآيبان: ${data.customerIbanMasked}` : '',
+    `وقت الطلب: ${formattedDate}`,
+    '',
+    'رابط المراجعة: https://www.alwsm.sa/admin/withdrawals',
+  ].filter(Boolean).join('\n')
+
+  return { subject, html, text }
+}
+
+export function buildWithdrawalRejectedEmail(data: {
+  userName: string
+  amount: number
+  requestId: string
+  adminNote?: string
+  rejectedAt: Date
+}): { subject: string; html: string; text: string } {
+  const subject = 'تعذر تنفيذ طلب السحب'
+  const formattedDate = data.rejectedAt.toLocaleString('ar-SA', { timeZone: 'Asia/Riyadh' })
+  const amountFormatted = data.amount.toLocaleString('ar-SA')
+  const noteText = data.adminNote || 'لم يتم توضيح سبب الرفض. يرجى التواصل مع فريق الدعم.'
+
+  const html = `
+    <!DOCTYPE html>
+    <html dir="rtl">
+    <head>
+      <meta charset="UTF-8">
+      <style>
+        body { font-family: Arial, sans-serif; line-height: 1.8; color: #333; direction: rtl; }
+        .container { max-width: 600px; margin: 0 auto; padding: 20px; }
+        .header { background: #1E1958; color: white; padding: 20px; text-align: center; border-radius: 8px 8px 0 0; }
+        .content { background: #f9fafb; padding: 30px; border-radius: 0 0 8px 8px; }
+        .field { margin: 12px 0; }
+        .label { font-weight: bold; color: #555; }
+        .value { color: #1E1958; font-size: 16px; }
+        .amount { color: #dc2626; font-size: 20px; font-weight: bold; }
+        .reject { background: #fee2e2; border: 1px solid #dc2626; padding: 15px; border-radius: 6px; margin: 20px 0; }
+        .note { background: #fef9c3; border: 1px solid #ca8a04; padding: 12px 15px; border-radius: 6px; margin: 20px 0; font-size: 13px; }
+        .footer { text-align: center; color: #666; font-size: 12px; margin-top: 20px; }
+      </style>
+    </head>
+    <body>
+      <div class="container">
+        <div class="header">
+          <h1>منصة الوسم</h1>
+          <p>إشعار بشأن طلب السحب</p>
+        </div>
+        <div class="content">
+          <h2>مرحباً ${data.userName}،</h2>
+          <div class="reject">
+            <strong>تعذر تنفيذ طلب السحب الخاص بك من منصة الوسم.</strong>
+          </div>
+          <div class="field"><span class="label">المبلغ المطلوب: </span><span class="amount">${amountFormatted} ريال سعودي</span></div>
+          <div class="field"><span class="label">رقم الطلب: </span><span class="value">${data.requestId}</span></div>
+          <div class="field"><span class="label">تاريخ المراجعة: </span><span class="value">${formattedDate}</span></div>
+          <div class="field"><span class="label">سبب الرفض: </span><span class="value">${noteText}</span></div>
+          <div class="note">
+            لم يتم خصم أي مبلغ من محفظتك. يمكنك إعادة تقديم طلب سحب جديد أو التواصل مع فريق الدعم مع الإشارة إلى رقم الطلب.
+          </div>
+        </div>
+        <div class="footer">
+          <p>© 2025 الوسم. هذا إيميل تلقائي، لا ترد عليه.</p>
+        </div>
+      </div>
+    </body>
+    </html>
+  `
+
+  const text = [
+    'تعذر تنفيذ طلب السحب - الوسم',
+    '',
+    `مرحباً ${data.userName}،`,
+    'تعذر تنفيذ طلب السحب الخاص بك من منصة الوسم.',
+    '',
+    `المبلغ المطلوب: ${amountFormatted} ريال سعودي`,
+    `رقم الطلب: ${data.requestId}`,
+    `تاريخ المراجعة: ${formattedDate}`,
+    `سبب الرفض: ${noteText}`,
+    '',
+    'لم يتم خصم أي مبلغ من محفظتك.',
+  ].join('\n')
+
+  return { subject, html, text }
+}
+
 export function buildNewUserAdminEmail(data: {
   userName: string
   userEmail: string

@@ -42,16 +42,30 @@ const upload = multer({
   }
 })
 
-// GET /api/properties?status=APPROVED (optional filter)
+// GET /api/properties?status=APPROVED&page=1&limit=20&sort=id_desc
+// Backward-compatible: no page/limit params → returns plain array (old behavior)
+// With page/limit params → returns { success, data, pagination }
 propertyRouter.get('/', async (req: Request, res: Response) => {
   try {
     const { status } = req.query
     const where = status ? { status: status as any } : {}
-    
-    const list = await prisma.property.findMany({ 
-      where,
-      orderBy: { id: 'desc' } 
-    })
+
+    const hasPagination = req.query.page !== undefined || req.query.limit !== undefined
+    const page  = Math.max(1, Number(req.query.page)  || 1)
+    const limit = Math.min(50, Math.max(1, Number(req.query.limit) || 20))
+    const skip  = (page - 1) * limit
+
+    const sortParam = String(req.query.sort || 'id_desc')
+    const orderBy: any = sortParam === 'createdAt_asc'  ? { createdAt: 'asc' }
+      : sortParam === 'createdAt_desc' ? { createdAt: 'desc' }
+      : { id: 'desc' }
+
+    const [total, list] = hasPagination
+      ? await Promise.all([
+          prisma.property.count({ where }),
+          prisma.property.findMany({ where, orderBy, skip, take: limit }),
+        ])
+      : [0, await prisma.property.findMany({ where, orderBy: { id: 'desc' } })]
     
     const mapped = list.map((p: any) => ({
       // Basic fields
@@ -124,10 +138,23 @@ propertyRouter.get('/', async (req: Request, res: Response) => {
       isDraft: p.isDraft,
       submissionCompletedAt: p.submissionCompletedAt
     }))
-    res.json(mapped)
+
+    if (hasPagination) {
+      return res.json({
+        success: true,
+        data: mapped,
+        pagination: {
+          page,
+          limit,
+          total,
+          pages: Math.ceil(total / limit) || 1,
+        },
+      })
+    }
+    return res.json(mapped)
   } catch (e) {
-        console.error('List properties error:', e)
-    res.status(500).json({ error: 'failed_to_list_properties' })
+    console.error('List properties error:', e)
+    return res.status(500).json({ error: 'failed_to_list_properties' })
   }
 })
 
