@@ -127,8 +127,9 @@ model User {
   wallet          Wallet?
   transactions    Transaction[]
   bankLinks       BankLink[]
-  depositRequests DepositRequest[]
-  deeds         DigitalDeed[]
+  depositRequests    DepositRequest[]
+  withdrawalRequests WithdrawalRequest[]
+  deeds              DigitalDeed[]
   
   // Saudi KYC fields - now with unique constraints
   nationalId   String?        @unique // Saudi National ID or Iqama - UNIQUE
@@ -477,6 +478,31 @@ model DepositRequest {
   @@index([status])
 }
 
+enum WithdrawalStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
+model WithdrawalRequest {
+  id          String           @id @default(cuid())
+  userId      String
+  amount      Float
+  bankName    String?
+  iban        String?
+  status      WithdrawalStatus @default(PENDING)
+  adminNote   String?
+  reviewedBy  String?
+  reviewedAt  DateTime?
+  createdAt   DateTime         @default(now())
+  updatedAt   DateTime         @updatedAt
+
+  user        User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([status])
+}
+
 // Platform Settings Model
 model Settings {
   id                    String   @id @default(cuid())
@@ -489,6 +515,62 @@ model Settings {
 
   @@index([category])
   @@index([key])
+}
+
+// ─── Platform P&L Models ──────────────────────────────────────────────────────
+
+enum PlatformRevenueType {
+  INVESTMENT_FEE    // Derived from token purchase orders
+  OWNER_FEE         // Property listing / tokenization / setup fees
+  MANAGEMENT_FEE    // Annual / asset management fees
+  SUBSCRIPTION      // Premium accounts, enterprise plans
+  OTHER             // Penalties, service charges, miscellaneous
+}
+
+enum PlatformExpenseCategory {
+  TECHNOLOGY          // AWS, hosting, domains, monitoring, security
+  OPERATIONS          // Office, bank charges, payment gateway, admin
+  MARKETING           // Advertising, influencers, content, events
+  PAYROLL             // Founders, employees, contractors
+  PROFESSIONAL_SERVICES // Accounting, legal, audit, compliance
+  OTHER               // Miscellaneous
+}
+
+model PlatformRevenue {
+  id          String              @id @default(cuid())
+  type        PlatformRevenueType
+  description String
+  amount      Float
+  propertyId  String?
+  userId      String?
+  date        DateTime
+  createdAt   DateTime            @default(now())
+  updatedAt   DateTime            @updatedAt
+  createdBy   String?
+  notes       String?
+
+  @@index([type])
+  @@index([date])
+  @@index([propertyId])
+  @@map("platform_revenues")
+}
+
+model PlatformExpense {
+  id          String                  @id @default(cuid())
+  category    PlatformExpenseCategory
+  description String
+  amount      Float
+  vendor      String?
+  date        DateTime
+  createdAt   DateTime                @default(now())
+  updatedAt   DateTime                @updatedAt
+  createdBy   String?
+  notes       String?
+  invoiceRef  String?
+
+  @@index([category])
+  @@index([date])
+  @@map("platform_expenses")
 }
 
 model WaitlistLead {
