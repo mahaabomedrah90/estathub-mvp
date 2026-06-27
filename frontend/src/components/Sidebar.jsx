@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react'
 import { NavLink } from 'react-router-dom'
 import {
   Home, Building2, Wallet, Link2, BarChart3, Users,
-  FileText, Settings, PieChart, Plus, TrendingUp, Shield, Pin, PinOff, ChevronLeft, ChevronRight, Banknote, ScrollText
+  FileText, Settings, PieChart, Plus, TrendingUp, Shield, Pin, PinOff, ChevronLeft, ChevronRight, Banknote, ScrollText, BookMarked, ArrowDownCircle
 } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 
@@ -17,17 +17,6 @@ const roleMenus = {
     { path: '/owner/properties', label: (t) => t('owner.properties'), icon: Building2 },
     { path: '/owner/properties/new', label: (t) => t('owner.submitProperty'), icon: Plus },
   ],
-  admin: [
-    { path: '/admin/overview', label: (t) => t('admin.overview'), icon: BarChart3 },
-    { path: '/admin/opportunities', label: (t) => t('admin.reviewProperties'), icon: Building2 },
-    { path: '/admin/users', label: (t) => t('admin.users'), icon: Users },
-    { path: '/admin/investors', label: (t) => t('admin.investors'), icon: Users },
-    { path: '/admin/issue-deeds', label: (t) => t('admin.issueDeeds'), icon: FileText },
-    { path: '/admin/deposits', label: (t) => t('admin.deposits'), icon: Banknote },
-    { path: '/admin/audit', label: (t) => t('admin.auditLogs'), icon: ScrollText },
-    { path: '/admin/reports', label: (t) => t('admin.reports'), icon: FileText },
-    { path: '/admin/settings', label: (t) => t('admin.settings'), icon: Settings },
-  ],
   regulator: [
     { path: '/regulator/dashboard', label: (t) => t('regulator.dashboard'), icon: Shield },
     { path: '/regulator/overview', label: (t) => t('regulator.overview'), icon: BarChart3 },
@@ -38,6 +27,39 @@ const roleMenus = {
     { path: '/regulator/events', label: (t) => t('regulator.events'), icon: FileText },
   ],
 }
+
+// Admin sidebar grouped structure
+const adminGroups = (t, isAr) => [
+  {
+    header: isAr ? 'الحسابات والامتثال' : 'Accounts & Compliance',
+    items: [
+      { path: '/admin/overview',  label: t('admin.overview'),  icon: BarChart3 },
+      { path: '/admin/users',     label: t('admin.users'),     icon: Users },
+      { path: '/admin/investors', label: t('admin.investors'), icon: Users },
+      { path: '/admin/audit',     label: t('admin.auditLogs'), icon: ScrollText },
+      { path: '/admin/settings',  label: t('admin.settings'),  icon: Settings },
+    ],
+  },
+  {
+    header: isAr ? 'إدارة العقارات والملكية' : 'Properties & Ownership',
+    items: [
+      { path: '/admin/opportunities', label: t('admin.reviewProperties'), icon: Building2 },
+      { path: '/admin/issue-deeds',   label: t('admin.issueDeeds'),       icon: FileText },
+    ],
+  },
+  {
+    header: isAr ? 'الإدارة المالية' : 'Financial Management',
+    items: [
+      { path: '/admin/deposits',            label: t('admin.deposits'),           icon: Banknote },
+      { path: '/admin/withdrawals',         label: t('admin.withdrawals'),        icon: ArrowDownCircle },
+      { path: '/admin/investor-statement',  label: t('admin.investorStatement'),  icon: ScrollText },
+      { path: '/admin/owner-statement',     label: t('admin.ownerStatement'),     icon: Home },
+      { path: '/admin/platform-pnl',        label: t('admin.platformPnl'),        icon: TrendingUp },
+      { path: '/admin/financial-reports',   label: t('admin.financialReports'),   icon: BookMarked },
+      { path: '/admin/reports',             label: t('admin.reports'),            icon: FileText },
+    ],
+  },
+]
 
 const roleThemes = {
   investor: {
@@ -73,12 +95,15 @@ const roleThemes = {
 export default function Sidebar({ role, isOpen, onClose }) {
   const { t, i18n } = useTranslation('sidebar')
   const isRtl = i18n.dir() === 'rtl'
-  const rawMenu = roleMenus[role] || roleMenus.investor
+  const isAr = i18n.language === 'ar'
+  const isAdmin = role === 'admin'
+  const groups = isAdmin ? adminGroups(t, isAr) : null
+  const rawMenu = isAdmin ? [] : (roleMenus[role] || roleMenus.investor)
   const menuItems = rawMenu.map(item => ({
     ...item,
     label: typeof item.label === 'function' ? item.label(t) : item.label,
   }))
-  const theme = roleThemes[role] || roleThemes.investor  
+  const theme = roleThemes[role] || roleThemes.investor
 
   // Load collapsed state from localStorage
   const [isCollapsed, setIsCollapsed] = useState(() => {
@@ -178,22 +203,59 @@ export default function Sidebar({ role, isOpen, onClose }) {
           </div>
 
           {/* Navigation */}
-          <nav className="flex-1 p-4 space-y-2 overflow-y-auto">
-            {menuItems.map((item) => {
-              const Icon = item.icon
-              return (
-                <NavLink
-                  key={item.path}
-                  to={item.path}
-                  className={linkClass}
-                  onClick={() => window.innerWidth < 1024 && onClose()}
-                  title={isCollapsed ? item.label : ''}
-                >
-                  <Icon size={20} />
-                  {!isCollapsed && <span className="font-medium">{item.label}</span>}
-                </NavLink>
-              )
-            })}
+          <nav className="flex-1 p-4 overflow-y-auto">
+            {groups ? (
+              // Admin: grouped sections
+              <div className="space-y-1">
+                {groups.map((group, gi) => (
+                  <div key={group.header} className={gi > 0 ? 'mt-5' : ''}>
+                    {!isCollapsed && (
+                      <div className="px-2 pb-1.5 pt-0.5">
+                        <span className="text-[10px] font-semibold uppercase tracking-widest text-white/30 select-none">
+                          {group.header}
+                        </span>
+                      </div>
+                    )}
+                    <div className="space-y-0.5">
+                      {group.items.map((item) => {
+                        const Icon = item.icon
+                        return (
+                          <NavLink
+                            key={item.path}
+                            to={item.path}
+                            className={linkClass}
+                            onClick={() => window.innerWidth < 1024 && onClose()}
+                            title={isCollapsed ? item.label : ''}
+                          >
+                            <Icon size={20} />
+                            {!isCollapsed && <span className="font-medium">{item.label}</span>}
+                          </NavLink>
+                        )
+                      })}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              // Other roles: flat list
+              <div className="space-y-1">
+                {menuItems.map((item) => {
+                  const Icon = item.icon
+                  return (
+                    <NavLink
+                      key={item.path}
+                      to={item.path}
+                      className={linkClass}
+                      onClick={() => window.innerWidth < 1024 && onClose()}
+                      title={isCollapsed ? item.label : ''}
+                    >
+                      <Icon size={20} />
+                      {!isCollapsed && <span className="font-medium">{item.label}</span>}
+                    </NavLink>
+                  )
+                })}
+              </div>
+            )}
           </nav>
 
           {/* Role Badge & Pin Button */}

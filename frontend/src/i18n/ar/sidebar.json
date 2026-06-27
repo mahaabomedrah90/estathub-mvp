@@ -18,7 +18,12 @@
     "settings": "الإعدادات",
     "investors": "إدارة المستثمرين",
     "deposits": "طلبات الإيداع",
-    "auditLogs": "سجل التدقيق"
+    "auditLogs": "سجل التدقيق",
+    "financialReports": "التقارير المالية",
+    "withdrawals": "طلبات السحب",
+    "investorStatement": "كشف حساب المستثمر",
+    "ownerStatement": "كشف حساب المالك",
+    "platformPnl": "قائمة الإيرادات والمصاريف"
   },
   "regulator": {
     "dashboard": "لوحة الجهة الرقابية",

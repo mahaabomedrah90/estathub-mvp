@@ -47,6 +47,11 @@ import AdminSettings from './pages/admin/AdminSettings.jsx'
 import AdminInvestors from './pages/admin/AdminInvestors.jsx'
 import AdminDepositRequests from './pages/admin/AdminDepositRequests.jsx'
 import AdminAuditLog from './pages/admin/AdminAuditLog.jsx'
+import AdminFinancialReports from './pages/admin/AdminFinancialReports.jsx'
+import AdminWithdrawalRequests from './pages/admin/AdminWithdrawalRequests.jsx'
+import AdminInvestorStatement from './pages/admin/AdminInvestorStatement.jsx'
+import AdminOwnerStatement from './pages/admin/AdminOwnerStatement.jsx'
+import AdminPlatformPnL from './pages/admin/AdminPlatformPnL.jsx'
 // Regulator Pages
 import RegOverview from './pages/regulator/RegOverview.jsx'
 import RegProperties from './pages/regulator/RegProperties.jsx'
@@ -158,6 +163,11 @@ const router = createBrowserRouter([
   { path: 'investors', element: <AdminInvestors /> },
   { path: 'deposits', element: <AdminDepositRequests /> },
   { path: 'audit', element: <AdminAuditLog /> },
+  { path: 'financial-reports', element: <AdminFinancialReports /> },
+  { path: 'withdrawals', element: <AdminWithdrawalRequests /> },
+  { path: 'investor-statement', element: <AdminInvestorStatement /> },
+  { path: 'owner-statement', element: <AdminOwnerStatement /> },
+  { path: 'platform-pnl', element: <AdminPlatformPnL /> },
 ],
 },
 // Regulator Routes

@@ -18,7 +18,12 @@
     "settings": "Settings",
     "investors": "Investor Management",
     "deposits": "Deposit Requests",
-    "auditLogs": "Audit Logs"
+    "auditLogs": "Audit Logs",
+    "financialReports": "Financial Reports",
+    "withdrawals": "Withdrawal Requests",
+    "investorStatement": "Investor Statement",
+    "ownerStatement": "Owner Statement",
+    "platformPnl": "Platform P&L"
   },
   "regulator": {
     "dashboard": "Dashboard",
