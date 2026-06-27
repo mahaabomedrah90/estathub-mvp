@@ -15,11 +15,19 @@ import { isFabricEnabled, testFabricConnection } from './lib/fabric'
 import { errorHandler } from './middleware/roles'
 import { ownerRouter } from './controllers/owner.controller'
 import { depositRequestAdminRouter } from './controllers/depositRequest.controller'
+import { withdrawalRequestRouter, withdrawalRequestAdminRouter } from './controllers/withdrawalRequest.controller'
 import { auditLogRouter } from './controllers/auditLog.controller'
 import { regulatorRouter } from './controllers/regulator.controller'
 import { waitlistRouter } from './controllers/waitlist.controller'
 import { requestIdMiddleware } from './middleware/requestId'
 import { checkGatewayHealth } from './lib/gatewayHealth'
+import { mobileRouter } from './controllers/mobile.controller'
+import { deviceRouter } from './controllers/device.controller'
+import { notificationsRouter } from './controllers/notifications.controller'
+import { holdingsRouter } from './controllers/holdings.controller'
+import { investorStatementRouter } from './controllers/investorStatement.controller'
+import { ownerStatementRouter } from './controllers/ownerStatement.controller'
+import { platformPnlRouter } from './controllers/platformPnl.controller'
 
 dotenv.config()
 
@@ -331,8 +339,38 @@ app.use('/api/owners', ownerRouter)
 app.use('/api/settings', settingsRouter)
 app.use('/api/regulator', regulatorRouter)
 app.use('/api/admin/deposit-requests', depositRequestAdminRouter)
+app.use('/api/wallet/withdrawal-request', withdrawalRequestRouter)
+app.use('/api/admin/withdrawal-requests', withdrawalRequestAdminRouter)
 app.use('/api/admin', auditLogRouter)
 app.use('/api/waitlist', waitlistRouter)
+
+// Mobile-specific endpoints
+app.use('/api/mobile', mobileRouter)
+app.use('/api/device', deviceRouter)
+app.use('/api/notifications', notificationsRouter)
+app.use('/api/holdings', holdingsRouter)
+app.use('/api', investorStatementRouter)
+app.use('/api', ownerStatementRouter)
+app.use('/api', platformPnlRouter)
+
+/**
+ * ================================
+ * /api/v1 aliases — same routers, Flutter-preferred prefix
+ * Old /api/* routes remain unchanged for web frontend.
+ * ================================
+ */
+app.use('/api/v1/auth', authRouter)
+app.use('/api/v1/users', usersRouter)
+app.use('/api/v1/wallet', walletRouter)
+app.use('/api/v1/wallet/withdrawal-request', withdrawalRequestRouter)
+app.use('/api/v1/properties', propertyRouter)
+app.use('/api/v1/orders', ordersRouter)
+app.use('/api/v1/deeds', deedRouter)
+app.use('/api/v1/settings', settingsRouter)
+app.use('/api/v1/mobile', mobileRouter)
+app.use('/api/v1/device', deviceRouter)
+app.use('/api/v1/notifications', notificationsRouter)
+app.use('/api/v1/holdings', holdingsRouter)
 
 /**
  * ================================
