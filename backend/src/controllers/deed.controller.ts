@@ -20,10 +20,17 @@ export const deedRouter = Router()
 // ============================================================================
 deedRouter.get('/', auth(true), async (req: Request & { user?: any }, res: Response) => {
   try {
-    const { userId, propertyId, status } = req.query
-    
+    const { propertyId, status } = req.query
+    const requestingRole = req.user?.role
+    const isPrivileged = requestingRole === 'ADMIN' || requestingRole === 'REGULATOR'
+
     const where: any = {}
-    if (userId) where.userId = String(userId)
+    // Non-privileged users may only see their own deeds
+    if (!isPrivileged) {
+      where.userId = req.user!.userId
+    } else if (req.query.userId) {
+      where.userId = String(req.query.userId)
+    }
     if (propertyId) where.propertyId = String(propertyId)
     if (status) where.status = status
     
@@ -72,7 +79,13 @@ deedRouter.get('/:deedNumber', auth(true), async (req: Request & { user?: any },
     if (!deed) {
       return res.status(404).json({ error: 'deed_not_found' })
     }
-    
+
+    const requestingRole = req.user?.role
+    const isPrivileged = requestingRole === 'ADMIN' || requestingRole === 'REGULATOR'
+    if (!isPrivileged && deed.userId !== req.user!.userId) {
+      return res.status(403).json({ error: 'forbidden' })
+    }
+
     res.json(deed)
   } catch (error) {
     console.error('Error fetching deed:', error)
