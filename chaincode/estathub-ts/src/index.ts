@@ -155,7 +155,7 @@ export class SaudiDeedContract extends Contract {
       location,
       totalTokens: parseInt(tokens),
       remainingTokens: parseInt(tokens),
-      status: 'APPROVED' as const,
+      status: 'PENDING' as const,
       createdAt: new Date().toISOString()
     }
     
