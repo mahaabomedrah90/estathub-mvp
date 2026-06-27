@@ -1,0 +1,344 @@
+{
+  "info": {
+    "name": "ALWSM Mobile API",
+    "description": "API collection for ALWSM Flutter mobile app integration.\n\nBase URL: {{baseUrl}} (e.g. http://localhost:5001)\nAll protected endpoints require: Authorization: Bearer {{token}}\n\nFLUTTER NOTE: Prefer /api/v1/... endpoints. Old /api/... routes remain for web frontend backward compatibility.",
+    "_postman_id": "alwsm-mobile-api-v1",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    { "key": "baseUrl", "value": "http://localhost:5001", "type": "string" },
+    { "key": "token",   "value": "",                      "type": "string" }
+  ],
+  "item": [
+    {
+      "name": "Auth",
+      "item": [
+        {
+          "name": "Register",
+          "request": {
+            "method": "POST",
+            "url": "{{baseUrl}}/api/v1/auth/register",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"fullName\": \"محمد عبدالله\",\n  \"email\": \"user@example.com\",\n  \"phoneNumber\": \"0501234567\",\n  \"nationalId\": \"1234567890\",\n  \"password\": \"SecurePass123!\",\n  \"confirmPassword\": \"SecurePass123!\",\n  \"termsAccepted\": true\n}"
+            }
+          }
+        },
+        {
+          "name": "Login",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "var json = pm.response.json();",
+                  "if (json.token) { pm.collectionVariables.set('token', json.token); }"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "url": "{{baseUrl}}/api/v1/auth/login",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"user@example.com\",\n  \"password\": \"SecurePass123!\"\n}"
+            }
+          },
+          "response_notes": "Returns { token, user }. Test script auto-saves token to collection variable."
+        },
+        {
+          "name": "Get Current User (me)",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/v1/auth/me",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }]
+          },
+          "response_notes": "Returns { success: true, data: { id, fullName, email, phoneNumber, role, status, emailVerified, kycVerified, wallet: { walletId, cashBalance } } }"
+        },
+        {
+          "name": "Update Profile",
+          "request": {
+            "method": "PUT",
+            "url": "{{baseUrl}}/api/v1/auth/profile",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}" },
+              { "key": "Content-Type",   "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"fullName\": \"محمد عبدالله الجديد\",\n  \"address\": \"الرياض، حي النزهة\"\n}"
+            }
+          },
+          "response_notes": "Allowed fields: fullName, phoneNumber, address. Returns { success: true, message, data }."
+        },
+        {
+          "name": "Forgot Password",
+          "request": {
+            "method": "POST",
+            "url": "{{baseUrl}}/api/v1/auth/forgot-password",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"user@example.com\"\n}"
+            }
+          }
+        },
+        {
+          "name": "Reset Password",
+          "request": {
+            "method": "POST",
+            "url": "{{baseUrl}}/api/v1/auth/reset-password",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"token\": \"<reset-token-from-email>\",\n  \"password\": \"NewSecurePass123!\",\n  \"confirmPassword\": \"NewSecurePass123!\"\n}"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Mobile",
+      "item": [
+        {
+          "name": "Dashboard (home screen, single request)",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/v1/mobile/dashboard",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }]
+          },
+          "response_notes": "Returns { success: true, data: { user, wallet: { walletId, cashBalance, investedValue, totalValue }, portfolio: { holdingsCount, totalInvested }, pending: { deposits, withdrawals }, latestTransactions: [5 items], featuredProperties: [5 items] } }"
+        }
+      ]
+    },
+    {
+      "name": "Settings",
+      "item": [
+        {
+          "name": "Public Settings (no auth)",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/v1/settings/public"
+          },
+          "response_notes": "No auth required. Returns { success: true, data: { platformName, maintenanceMode, allowNewRegistrations, requireEmailVerification, minInvestmentAmount, maxInvestmentAmount } }. Use on app startup to check maintenance mode."
+        }
+      ]
+    },
+    {
+      "name": "Properties",
+      "item": [
+        {
+          "name": "List Properties (paginated)",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/properties?status=APPROVED&page=1&limit=20",
+              "query": [
+                { "key": "status", "value": "APPROVED" },
+                { "key": "page",   "value": "1" },
+                { "key": "limit",  "value": "20" },
+                { "key": "sort",   "value": "id_desc" }
+              ]
+            }
+          },
+          "response_notes": "With page/limit returns { success: true, data: [...], pagination: { page, limit, total, pages } }."
+        },
+        {
+          "name": "Get Property Detail",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/v1/properties/:id",
+            "variable": [{ "key": "id", "value": "<property-id>" }]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Wallet",
+      "item": [
+        {
+          "name": "Get Wallet Summary",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/v1/wallet",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }]
+          },
+          "response_notes": "Returns { walletId, cashBalance, investedValue, totalValue, holdings, transactions, pendingDeposits, pendingWithdrawals, depositHistory, withdrawalHistory, savedWithdrawalAccount }."
+        },
+        {
+          "name": "Transactions (paginated)",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/wallet/transactions?page=1&limit=20",
+              "query": [
+                { "key": "page",  "value": "1" },
+                { "key": "limit", "value": "20" }
+              ]
+            },
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }]
+          },
+          "response_notes": "Unified timeline: confirmed transactions + deposit requests + withdrawal requests. Arabic titles included."
+        },
+        {
+          "name": "Submit Deposit Request",
+          "request": {
+            "method": "POST",
+            "url": "{{baseUrl}}/api/v1/wallet/deposit-request",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}" },
+              { "key": "Content-Type",  "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"amount\": 1000,\n  \"bankName\": \"البنك الأهلي\",\n  \"bankReference\": \"TXN123456\"\n}"
+            }
+          },
+          "response_notes": "Min 100 SAR, Max 100,000 SAR. Returns { id, status: 'PENDING', amount, message, messageAr }."
+        },
+        {
+          "name": "Submit Withdrawal Request",
+          "request": {
+            "method": "POST",
+            "url": "{{baseUrl}}/api/v1/wallet/withdrawal-request",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}" },
+              { "key": "Content-Type",  "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"amount\": 500,\n  \"iban\": \"SA1234567890123456789012\",\n  \"bankName\": \"البنك الأهلي\",\n  \"ibanConfirmed\": false\n}"
+            }
+          },
+          "response_notes": "IBAN must start with SA and be 24 chars. ibanConfirmed=true reuses last saved IBAN."
+        }
+      ]
+    },
+    {
+      "name": "Orders (Investments)",
+      "item": [
+        {
+          "name": "Create Order (Buy Tokens)",
+          "request": {
+            "method": "POST",
+            "url": "{{baseUrl}}/api/v1/orders",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}" },
+              { "key": "Content-Type",  "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"propertyId\": \"<property-id>\",\n  \"tokens\": 10\n}"
+            }
+          },
+          "response_notes": "INVESTOR role only. One pending order per property."
+        }
+      ]
+    },
+    {
+      "name": "Deeds",
+      "item": [
+        {
+          "name": "List My Deeds",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/v1/deeds",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }]
+          },
+          "response_notes": "Returns array of deeds including property and events."
+        }
+      ]
+    },
+    {
+      "name": "Devices (Push Tokens)",
+      "item": [
+        {
+          "name": "Register Device Token",
+          "request": {
+            "method": "POST",
+            "url": "{{baseUrl}}/api/v1/device/register",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}" },
+              { "key": "Content-Type",  "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"token\": \"<fcm-or-apns-device-token>\",\n  \"platform\": \"android\",\n  \"deviceId\": \"device-uuid\",\n  \"appVersion\": \"1.0.0\"\n}"
+            }
+          },
+          "response_notes": "Currently returns { success: false, code: 'push_notifications_not_configured' } until Firebase is integrated. Flutter should handle this gracefully."
+        },
+        {
+          "name": "Unregister Device Token",
+          "request": {
+            "method": "POST",
+            "url": "{{baseUrl}}/api/v1/device/unregister",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}" },
+              { "key": "Content-Type",  "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"token\": \"<fcm-or-apns-device-token>\"\n}"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Notifications",
+      "item": [
+        {
+          "name": "List Notifications",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/notifications?page=1&limit=20",
+              "query": [
+                { "key": "page",  "value": "1" },
+                { "key": "limit", "value": "20" }
+              ]
+            },
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }]
+          },
+          "response_notes": "Returns { success: true, data: [], pagination: { page, limit, total: 0, pages: 0 } }. Empty until Notification model is implemented."
+        },
+        {
+          "name": "Mark Notification Read",
+          "request": {
+            "method": "PATCH",
+            "url": "{{baseUrl}}/api/v1/notifications/:id/read",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "variable": [{ "key": "id", "value": "<notification-id>" }]
+          },
+          "response_notes": "Returns { success: false, code: 'notifications_not_configured' } until Notification model is implemented."
+        }
+      ]
+    },
+    {
+      "name": "Investment / Orders",
+      "item": [
+        {
+          "name": "Purchase — Create Investment Order",
+          "request": {
+            "method": "POST",
+            "url": "{{baseUrl}}/api/orders",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}" },
+              { "key": "Content-Type",  "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"propertyId\": \"{{propertyId}}\",\n  \"tokens\": 1\n}"
+            }
+          },
+          "response_notes": "Requires INVESTOR role + emailVerified=true. Env: ENABLE_PURCHASE=true must be set. Returns 201 on success:\n{\n  \"success\": true,\n  \"message\": \"تم تنفيذ الاستثمار بنجاح\",\n  \"data\": {\n    \"orderId\": \"...\",\n    \"propertyId\": \"...\",\n    \"tokens\": 1,\n    \"tokenPrice\": 500,\n    \"totalAmount\": 500,\n    \"walletBefore\": 10000,\n    \"walletAfter\": 9500,\n    \"remainingTokens\": 999,\n    \"holding\": { \"propertyId\": \"...\", \"tokens\": 1 },\n    \"deedId\": null\n  }\n}\nErrors: 410 PURCHASE_DISABLED | 401 unauthorized | 403 forbidden/email_not_verified/account_inactive | 404 property_not_found | 400 property_not_available/sold_out/insufficient_balance/invalid_token_quantity/minimum_investment_not_met/maximum_investment_exceeded | 500 order_create_failed"
+        }
+      ]
+    }
+  ]
+}
