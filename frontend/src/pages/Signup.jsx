@@ -410,8 +410,8 @@ const SignupForm = React.memo(() => {
                   placeholder={lang === 'ar' ? '10 أحرف على الأقل' : 'Min. 10 characters'}
                   required
                 />
-                <button type="button" onClick={() => setShowPassword(!showPassword)} className={`absolute inset-y-0 ${isRtl ? 'left-0 pl-3' : 'right-0 pr-3'} flex items-center`}>
-                  {showPassword ? <Eye className="text-text-muted" size={20} /> : <EyeOff className="text-text-muted" size={20} />}
+                <button type="button" onClick={() => setShowPassword(!showPassword)} aria-label={showPassword ? 'إخفاء كلمة المرور' : 'إظهار كلمة المرور'} className={`absolute inset-y-0 ${isRtl ? 'left-0 pl-3' : 'right-0 pr-3'} flex items-center`}>
+                  {showPassword ? <EyeOff className="text-text-muted" size={20} /> : <Eye className="text-text-muted" size={20} />}
                 </button>
               </div>
               {fieldErrors.password && <p className="mt-2 text-sm text-red-600">{fieldErrors.password}</p>}
@@ -442,8 +442,8 @@ const SignupForm = React.memo(() => {
                   placeholder={lang === 'ar' ? 'أعد كتابة كلمة المرور' : 'Re-enter password'}
                   required
                 />
-                <button type="button" onClick={() => setShowConfirmPassword(!showConfirmPassword)} className={`absolute inset-y-0 ${isRtl ? 'left-0 pl-3' : 'right-0 pr-3'} flex items-center`}>
-                  {showConfirmPassword ? <Eye className="text-text-muted" size={20} /> : <EyeOff className="text-text-muted" size={20} />}
+                <button type="button" onClick={() => setShowConfirmPassword(!showConfirmPassword)} aria-label={showConfirmPassword ? 'إخفاء كلمة المرور' : 'إظهار كلمة المرور'} className={`absolute inset-y-0 ${isRtl ? 'left-0 pl-3' : 'right-0 pr-3'} flex items-center`}>
+                  {showConfirmPassword ? <EyeOff className="text-text-muted" size={20} /> : <Eye className="text-text-muted" size={20} />}
                 </button>
               </div>
               {fieldErrors.confirmPassword && <p className="mt-2 text-sm text-red-600">{fieldErrors.confirmPassword}</p>}
