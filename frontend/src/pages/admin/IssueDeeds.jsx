@@ -70,9 +70,8 @@ export default function IssueDeeds() {
         'Expires': '0'
       }
 
-      const apiBase = import.meta.env.VITE_API_BASE || 'http://localhost:5001'
-      console.log(' Making API call to:', `${apiBase}/api/properties`)
-      const response = await fetch(`${apiBase}/api/properties?t=${Date.now()}`, { headers })
+      console.log(' Making API call to: /api/properties')
+      const response = await fetch(`/api/properties?t=${Date.now()}`, { headers })
       console.log(' Response status:', response.status)
 
       if (!response.ok) {
@@ -87,7 +86,7 @@ export default function IssueDeeds() {
       setProperties(data || [])
 
       try {
-        const deedsResponse = await fetch(`${apiBase}/api/deeds?t=${Date.now()}`, { headers })
+        const deedsResponse = await fetch(`/api/deeds?t=${Date.now()}`, { headers })
         if (deedsResponse.ok) {
           const deedsData = await deedsResponse.json()
           setIssuedDeeds(deedsData || [])
