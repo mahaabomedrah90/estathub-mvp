@@ -34,6 +34,7 @@ import MyDeeds from './pages/Investor/MyDeeds.jsx'
 import OwnerDashboard from './pages/owner/OwnerDashboard.jsx'
 import OwnerProperties from './pages/owner/OwnerProperties.jsx'
 import PropertySubmissionWizard from './pages/owner/PropertySubmissionWizard.jsx'
+import OwnerOpportunityLeadForm from './pages/owner/OwnerOpportunityLeadForm.jsx'
 import OwnerInvestors from './pages/admin/AdminInvestors.jsx'
 // Admin Pages
 import AdminOverview from './pages/admin/AdminOverview.jsx'
@@ -139,6 +140,8 @@ const router = createBrowserRouter([
  { path: 'dashboard', element: <OwnerDashboard /> },
  { path: 'properties', element: <OwnerProperties /> },
  { path: 'properties/new', element: <PropertySubmissionWizard /> },
+ { path: 'properties/new-legacy', element: <PropertySubmissionWizard /> },
+ { path: 'opportunities/new', element: <OwnerOpportunityLeadForm /> },
  { path: 'investors', element: <OwnerInvestors /> },
 
 ],  
