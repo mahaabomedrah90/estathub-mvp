@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react'
 import { NavLink } from 'react-router-dom'
 import {
   Home, Building2, Wallet, Link2, BarChart3, Users,
-  FileText, Settings, PieChart, Plus, TrendingUp, Shield, Pin, PinOff, ChevronLeft, ChevronRight, Banknote, ScrollText, BookMarked, ArrowDownCircle
+  FileText, Settings, PieChart, Plus, TrendingUp, Shield, Pin, PinOff, ChevronLeft, ChevronRight, Banknote, ScrollText, BookMarked, ArrowDownCircle, ClipboardList
 } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 
@@ -45,6 +45,7 @@ const adminGroups = (t, isAr) => [
     header: isAr ? 'إدارة العقارات والملكية' : 'Properties & Ownership',
     items: [
       { path: '/admin/opportunities', label: t('admin.reviewProperties'), icon: Building2 },
+      { path: '/admin/property-leads', label: t('admin.propertyLeads', 'طلبات الفرص المبدئية'), icon: ClipboardList },
       { path: '/admin/issue-deeds',   label: t('admin.issueDeeds'),       icon: FileText },
     ],
   },
