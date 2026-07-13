@@ -1,0 +1,308 @@
+import { Router, Request, Response } from 'express'
+import { prisma } from '../lib/prisma'
+import { auth } from '../middleware/auth'
+import { scoreLead } from '../lib/propertyLeadScoring'
+
+// ============================================================================
+// PropertyLead API — preliminary owner opportunity submissions
+// ----------------------------------------------------------------------------
+// Two routers:
+//   propertyLeadRouter       →  /api/property-leads         (OWNER)
+//   propertyLeadAdminRouter  →  /api/admin/property-leads   (ADMIN)
+//
+// A lead is intentionally decoupled from the Property model / tokenization.
+// This controller never creates a Property and never calls property submit
+// logic. Internal scores are ADMIN-only and are never returned to owners.
+// ============================================================================
+
+const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+const ALLOWED_STATUS_UPDATES = ['UNDER_REVIEW', 'NEEDS_INFO', 'ACCEPTED', 'REJECTED'] as const
+
+// Owner-facing projection — deliberately EXCLUDES internal fields
+// (qualificationScore, tokenizationSuitabilityScore, internalRecommendation,
+//  adminStatus, reviewedBy, reviewNotes, ownerId, tenantId).
+const OWNER_SAFE_SELECT = {
+  id: true,
+  applicantType: true, fullName: true, companyName: true, phone: true, email: true,
+  propertyName: true, propertyType: true, city: true, district: true, googleMapsUrl: true,
+  landArea: true, buildingArea: true, buildingYear: true, requestedPrice: true, isPriceNegotiable: true,
+  isLeased: true, annualRent: true, leaseExpiryDate: true,
+  hasMortgage: true, hasOwnershipPartner: true, hasLegalDispute: true, noLegalIssues: true,
+  shortDescription: true, imageUrls: true, deedImageUrl: true,
+  dataAccuracyConfirmed: true, reviewConsentConfirmed: true, noAcceptanceGuaranteeConfirmed: true,
+  status: true, createdAt: true, updatedAt: true, reviewedAt: true,
+} as const
+
+// Admin list projection — includes internal scores.
+const ADMIN_LIST_SELECT = {
+  id: true,
+  applicantType: true, fullName: true, companyName: true, phone: true, email: true,
+  propertyName: true, propertyType: true, city: true, district: true,
+  requestedPrice: true, isLeased: true,
+  hasMortgage: true, hasOwnershipPartner: true, hasLegalDispute: true, noLegalIssues: true,
+  qualificationScore: true, tokenizationSuitabilityScore: true, internalRecommendation: true,
+  status: true, adminStatus: true, createdAt: true,
+} as const
+
+// ─── coercion helpers ───────────────────────────────────────────────────────
+function toBool(v: unknown): boolean | undefined {
+  if (v === true || v === 'true' || v === 1 || v === '1') return true
+  if (v === false || v === 'false' || v === 0 || v === '0') return false
+  return undefined
+}
+function toNum(v: unknown): number | undefined {
+  if (v === '' || v === null || v === undefined) return undefined
+  const n = Number(v)
+  return Number.isFinite(n) ? n : NaN // NaN signals "provided but invalid"
+}
+function toStr(v: unknown): string | undefined {
+  if (v === null || v === undefined) return undefined
+  const s = String(v).trim()
+  return s === '' ? undefined : s
+}
+
+// ─── role guards (roles are UPPERCASE in the JWT) ───────────────────────────
+function requireOwner(req: Request & { user?: any }, res: Response): boolean {
+  if (req.user?.role !== 'OWNER') {
+    res.status(403).json({ error: 'owner_access_required' })
+    return false
+  }
+  return true
+}
+function requireAdmin(req: Request & { user?: any }, res: Response): boolean {
+  if (req.user?.role !== 'ADMIN') {
+    res.status(403).json({ error: 'admin_access_required' })
+    return false
+  }
+  return true
+}
+
+// ════════════════════════════════════════════════════════════════════════════
+// OWNER ROUTER  →  /api/property-leads
+// ════════════════════════════════════════════════════════════════════════════
+export const propertyLeadRouter = Router()
+
+// POST /api/property-leads — owner submits a preliminary opportunity
+propertyLeadRouter.post('/', auth(true), async (req: Request & { user?: any }, res: Response) => {
+  if (!requireOwner(req, res)) return
+  try {
+    const b = req.body || {}
+
+    // --- required string fields ---
+    const requiredStr = [
+      'applicantType', 'fullName', 'phone',
+      'propertyName', 'propertyType', 'city', 'district',
+      'googleMapsUrl', 'shortDescription',
+    ]
+    const missing = requiredStr.filter(k => !toStr(b[k]))
+
+    // --- requestedPrice (required, positive) ---
+    const requestedPrice = toNum(b.requestedPrice)
+    if (requestedPrice === undefined) missing.push('requestedPrice')
+
+    if (missing.length > 0) {
+      return res.status(400).json({
+        error: 'missing_required_fields',
+        message: 'يرجى تعبئة جميع الحقول المطلوبة.',
+        fields: missing,
+      })
+    }
+    if (!Number.isFinite(requestedPrice as number) || (requestedPrice as number) <= 0) {
+      return res.status(400).json({ error: 'invalid_requested_price', message: 'السعر المطلوب يجب أن يكون رقماً موجباً.', field: 'requestedPrice' })
+    }
+
+    // --- declarations (all three must be true) ---
+    if (toBool(b.dataAccuracyConfirmed) !== true ||
+        toBool(b.reviewConsentConfirmed) !== true ||
+        toBool(b.noAcceptanceGuaranteeConfirmed) !== true) {
+      return res.status(400).json({
+        error: 'declarations_required',
+        message: 'يجب الموافقة على جميع الإقرارات قبل الإرسال.',
+      })
+    }
+
+    // --- optional field validation ---
+    const email = toStr(b.email)
+    if (email && !EMAIL_RE.test(email)) {
+      return res.status(400).json({ error: 'invalid_email', message: 'صيغة البريد الإلكتروني غير صحيحة.', field: 'email' })
+    }
+
+    const annualRent = toNum(b.annualRent)
+    if (annualRent !== undefined && (!Number.isFinite(annualRent) || annualRent <= 0)) {
+      return res.status(400).json({ error: 'invalid_annual_rent', message: 'قيمة الإيجار السنوي يجب أن تكون رقماً موجباً.', field: 'annualRent' })
+    }
+
+    let imageUrls: string[] | undefined
+    if (b.imageUrls !== undefined && b.imageUrls !== null) {
+      if (!Array.isArray(b.imageUrls)) {
+        return res.status(400).json({ error: 'invalid_images', message: 'صيغة الصور غير صحيحة.', field: 'imageUrls' })
+      }
+      if (b.imageUrls.length > 5) {
+        return res.status(400).json({ error: 'too_many_images', message: 'الحد الأقصى 5 صور.', field: 'imageUrls' })
+      }
+      imageUrls = b.imageUrls.map((u: unknown) => String(u)).filter(Boolean)
+    }
+
+    const landArea     = toNum(b.landArea)
+    const buildingArea = toNum(b.buildingArea)
+    const buildingYear = toNum(b.buildingYear)
+
+    // Reject numeric fields that were provided but unparseable
+    for (const [k, v] of Object.entries({ landArea, buildingArea, buildingYear })) {
+      if (typeof v === 'number' && Number.isNaN(v)) {
+        return res.status(400).json({ error: 'invalid_number', message: `قيمة غير صحيحة للحقل ${k}.`, field: k })
+      }
+    }
+
+    let leaseExpiryDate: Date | undefined
+    if (toStr(b.leaseExpiryDate)) {
+      const d = new Date(b.leaseExpiryDate)
+      if (!Number.isNaN(d.getTime())) leaseExpiryDate = d
+    }
+
+    // --- assemble normalized lead data ---
+    const leadInput = {
+      applicantType: toStr(b.applicantType),
+      fullName:      toStr(b.fullName),
+      companyName:   toStr(b.companyName),
+      phone:         toStr(b.phone),
+      email,
+      propertyName:  toStr(b.propertyName),
+      propertyType:  toStr(b.propertyType),
+      city:          toStr(b.city),
+      district:      toStr(b.district),
+      googleMapsUrl: toStr(b.googleMapsUrl),
+      landArea:      landArea ?? null,
+      buildingArea:  buildingArea ?? null,
+      buildingYear:  buildingYear != null ? Math.trunc(buildingYear as number) : null,
+      requestedPrice: requestedPrice as number,
+      isPriceNegotiable:   toBool(b.isPriceNegotiable) ?? null,
+      isLeased:            toBool(b.isLeased) ?? null,
+      annualRent:          annualRent ?? null,
+      leaseExpiryDate:     leaseExpiryDate ?? null,
+      hasMortgage:         toBool(b.hasMortgage) ?? null,
+      hasOwnershipPartner: toBool(b.hasOwnershipPartner) ?? null,
+      hasLegalDispute:     toBool(b.hasLegalDispute) ?? null,
+      noLegalIssues:       toBool(b.noLegalIssues) ?? null,
+      shortDescription:    toStr(b.shortDescription),
+      imageUrls:           imageUrls ?? undefined,
+      deedImageUrl:        toStr(b.deedImageUrl) ?? null,
+    }
+
+    // --- internal scoring (admin-only) ---
+    const scores = scoreLead(leadInput)
+
+    const lead = await prisma.propertyLead.create({
+      data: {
+        ...leadInput,
+        dataAccuracyConfirmed: true,
+        reviewConsentConfirmed: true,
+        noAcceptanceGuaranteeConfirmed: true,
+        qualificationScore: scores.qualificationScore,
+        tokenizationSuitabilityScore: scores.tokenizationSuitabilityScore,
+        internalRecommendation: scores.internalRecommendation,
+        status: 'NEW',
+        adminStatus: 'NEW',
+        ownerId: req.user!.userId,
+        tenantId: req.user!.tenantId,
+      },
+      select: { id: true, status: true, createdAt: true },
+    })
+
+    // Owner-safe response — no scores.
+    return res.status(201).json({
+      id: lead.id,
+      status: lead.status,
+      createdAt: lead.createdAt,
+      message: 'تم استلام طلب التقديم المبدئي للفرصة العقارية. سيراجعه فريق الوسم ويتواصل معك.',
+    })
+  } catch (e: any) {
+    console.error('❌ PropertyLead create error:', e)
+    return res.status(500).json({ error: 'property_lead_create_failed' })
+  }
+})
+
+// GET /api/property-leads/mine — owner sees ONLY their own leads
+propertyLeadRouter.get('/mine', auth(true), async (req: Request & { user?: any }, res: Response) => {
+  if (!requireOwner(req, res)) return
+  try {
+    const leads = await prisma.propertyLead.findMany({
+      where: { ownerId: req.user!.userId, tenantId: req.user!.tenantId },
+      orderBy: { createdAt: 'desc' },
+      select: OWNER_SAFE_SELECT,
+    })
+    return res.json(leads)
+  } catch (e: any) {
+    console.error('❌ PropertyLead list (mine) error:', e)
+    return res.status(500).json({ error: 'property_lead_list_failed' })
+  }
+})
+
+// ════════════════════════════════════════════════════════════════════════════
+// ADMIN ROUTER  →  /api/admin/property-leads
+// ════════════════════════════════════════════════════════════════════════════
+export const propertyLeadAdminRouter = Router()
+
+// GET /api/admin/property-leads — admin lists all leads
+propertyLeadAdminRouter.get('/', auth(true), async (req: Request & { user?: any }, res: Response) => {
+  if (!requireAdmin(req, res)) return
+  try {
+    const status = typeof req.query.status === 'string' ? req.query.status : undefined
+    const where = status ? { status: status as any } : {}
+    const leads = await prisma.propertyLead.findMany({
+      where,
+      orderBy: { createdAt: 'desc' },
+      select: ADMIN_LIST_SELECT,
+    })
+    return res.json(leads)
+  } catch (e: any) {
+    console.error('❌ PropertyLead admin list error:', e)
+    return res.status(500).json({ error: 'property_lead_admin_list_failed' })
+  }
+})
+
+// GET /api/admin/property-leads/:id — admin views full lead
+propertyLeadAdminRouter.get('/:id', auth(true), async (req: Request & { user?: any }, res: Response) => {
+  if (!requireAdmin(req, res)) return
+  try {
+    const lead = await prisma.propertyLead.findUnique({ where: { id: req.params.id } })
+    if (!lead) return res.status(404).json({ error: 'property_lead_not_found' })
+    return res.json(lead)
+  } catch (e: any) {
+    console.error('❌ PropertyLead admin detail error:', e)
+    return res.status(500).json({ error: 'property_lead_detail_failed' })
+  }
+})
+
+// PATCH /api/admin/property-leads/:id/status — admin updates review status
+propertyLeadAdminRouter.patch('/:id/status', auth(true), async (req: Request & { user?: any }, res: Response) => {
+  if (!requireAdmin(req, res)) return
+  try {
+    const { status, reviewNotes } = req.body || {}
+    if (!ALLOWED_STATUS_UPDATES.includes(status)) {
+      return res.status(400).json({
+        error: 'invalid_status',
+        message: `الحالة غير مسموحة. المسموح: ${ALLOWED_STATUS_UPDATES.join(', ')}`,
+        allowed: ALLOWED_STATUS_UPDATES,
+      })
+    }
+
+    const existing = await prisma.propertyLead.findUnique({ where: { id: req.params.id }, select: { id: true } })
+    if (!existing) return res.status(404).json({ error: 'property_lead_not_found' })
+
+    const updated = await prisma.propertyLead.update({
+      where: { id: req.params.id },
+      data: {
+        status: status as any,
+        adminStatus: status,
+        reviewNotes: typeof reviewNotes === 'string' ? reviewNotes : undefined,
+        reviewedAt: new Date(),
+        reviewedBy: req.user!.userId,
+      },
+    })
+    return res.json({ success: true, lead: updated })
+  } catch (e: any) {
+    console.error('❌ PropertyLead status update error:', e)
+    return res.status(500).json({ error: 'property_lead_status_update_failed' })
+  }
+})
