@@ -53,6 +53,7 @@ import AdminWithdrawalRequests from './pages/admin/AdminWithdrawalRequests.jsx'
 import AdminInvestorStatement from './pages/admin/AdminInvestorStatement.jsx'
 import AdminOwnerStatement from './pages/admin/AdminOwnerStatement.jsx'
 import AdminPlatformPnL from './pages/admin/AdminPlatformPnL.jsx'
+import AdminPropertyLeads from './pages/admin/AdminPropertyLeads.jsx'
 // Regulator Pages
 import RegOverview from './pages/regulator/RegOverview.jsx'
 import RegProperties from './pages/regulator/RegProperties.jsx'
@@ -159,6 +160,7 @@ const router = createBrowserRouter([
   { path: 'overview', element: <AdminOverview /> },
   { path: 'properties/:id', element: <AdminPropertyDetail /> },
   { path: 'opportunities', element: <AdminOpportunities /> },
+  { path: 'property-leads', element: <AdminPropertyLeads /> },
   { path: 'users', element: <AdminUsers /> },
   { path: 'issue-deeds', element: <IssueDeeds /> },
   { path: 'reports', element: <AdminReports /> },
