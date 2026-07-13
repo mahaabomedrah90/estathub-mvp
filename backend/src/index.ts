@@ -28,6 +28,7 @@ import { holdingsRouter } from './controllers/holdings.controller'
 import { investorStatementRouter } from './controllers/investorStatement.controller'
 import { ownerStatementRouter } from './controllers/ownerStatement.controller'
 import { platformPnlRouter } from './controllers/platformPnl.controller'
+import { propertyLeadRouter, propertyLeadAdminRouter } from './controllers/propertyLead.controller'
 
 dotenv.config()
 
@@ -329,6 +330,8 @@ if (!hasAuthRouter) {
 }
 app.use('/api/users', usersRouter)
 app.use('/api/properties', propertyRouter)
+app.use('/api/property-leads', propertyLeadRouter)
+app.use('/api/admin/property-leads', propertyLeadAdminRouter)
 app.use('/api/tokens', tokenRouter)
 app.use('/api/wallet', walletRouter)
 app.use('/api/orders', ordersRouter)
