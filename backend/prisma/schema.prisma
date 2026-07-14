@@ -613,3 +613,92 @@ model AdminAuditLog {
   @@index([investorId])
   @@index([createdAt])
 }
+
+// ============================================================================
+// PropertyLead — preliminary owner opportunity submission ("طلب التقديم المبدئي")
+// ----------------------------------------------------------------------------
+// A lightweight lead captured BEFORE full due diligence / tokenization.
+// This is intentionally SEPARATE from the Property model: a lead is not a
+// tokenized property and not an approved opportunity. An accepted lead may
+// later be converted into the full Property workflow by an admin.
+// Most fields are nullable; the API layer enforces which are required at
+// first submission. See owner_onboarding_final.html (approved design).
+// ============================================================================
+
+enum PropertyLeadStatus {
+  NEW
+  UNDER_REVIEW
+  NEEDS_INFO
+  ACCEPTED
+  REJECTED
+  CONVERTED_TO_PROPERTY
+}
+
+model PropertyLead {
+  id                             String   @id @default(cuid())
+
+  // Applicant
+  applicantType                  String?  // 'owner' | 'developer'
+  fullName                       String?
+  companyName                    String?
+  phone                          String?
+  email                          String?
+
+  // Property
+  propertyName                   String?
+  propertyType                   String?  // land | apartment | building | warehouse | farm | other
+  city                           String?
+  district                       String?
+  googleMapsUrl                  String?
+  landArea                       Float?
+  buildingArea                   Float?
+  buildingYear                   Int?     // property age in years (design field: "عمر العقار")
+  requestedPrice                 Float?
+  isPriceNegotiable              Boolean?
+
+  // Investment status
+  isLeased                       Boolean?
+  annualRent                     Float?
+  leaseExpiryDate                DateTime?
+
+  // Legal status
+  hasMortgage                    Boolean?
+  hasOwnershipPartner            Boolean?
+  hasLegalDispute                Boolean?
+  noLegalIssues                  Boolean?
+
+  // Description
+  shortDescription               String?
+
+  // Images / documents (URLs from /api/properties/upload-document)
+  imageUrls                      Json?
+  deedImageUrl                   String?
+
+  // Declarations
+  dataAccuracyConfirmed          Boolean  @default(false)
+  reviewConsentConfirmed         Boolean  @default(false)
+  noAcceptanceGuaranteeConfirmed Boolean  @default(false)
+
+  // Internal scoring (owner must NOT see these — admin only)
+  qualificationScore             Int?
+  tokenizationSuitabilityScore   Int?
+  internalRecommendation         String?
+  adminStatus                    String?
+
+  // Lifecycle status
+  status                         PropertyLeadStatus @default(NEW)
+
+  // Metadata
+  ownerId                        String?  // submitting user id (loose, mirrors Property.ownerId)
+  tenantId                       String   // Multi-tenant support
+  createdAt                      DateTime @default(now())
+  updatedAt                      DateTime @updatedAt
+  reviewedAt                     DateTime?
+  reviewedBy                     String?
+  reviewNotes                    String?
+
+  @@index([tenantId])
+  @@index([ownerId])
+  @@index([status])
+  @@index([createdAt])
+}

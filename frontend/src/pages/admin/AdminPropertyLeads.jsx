@@ -1,0 +1,409 @@
+import React, { useState, useEffect, useCallback } from 'react'
+import {
+  Building2, User, MapPin, Coins, Loader2, AlertCircle, CheckCircle2,
+  XCircle, RefreshCw, X, Calendar, Eye, ClipboardList, Info, FileText, Gavel
+} from 'lucide-react'
+import { authHeader, fetchJson } from '../../lib/api'
+
+// ============================================================================
+// AdminPropertyLeads — review queue for preliminary opportunity submissions.
+// Separate from the Property workflow. Review-only: change status + notes.
+// No convert-to-property, no editing of lead data.
+// ============================================================================
+
+const API_BASE = import.meta.env.VITE_API_BASE || ''
+
+const STATUS = {
+  NEW:                   { label: 'جديد',            cls: 'bg-blue-100 text-blue-800 border-blue-200',       dot: 'bg-blue-500' },
+  UNDER_REVIEW:          { label: 'قيد المراجعة',    cls: 'bg-amber-100 text-amber-800 border-amber-200',    dot: 'bg-amber-500' },
+  NEEDS_INFO:            { label: 'بحاجة لمعلومات',  cls: 'bg-orange-100 text-orange-800 border-orange-200', dot: 'bg-orange-500' },
+  ACCEPTED:              { label: 'مقبول مبدئيًا',   cls: 'bg-green-100 text-green-800 border-green-200',     dot: 'bg-green-500' },
+  REJECTED:              { label: 'مرفوض',           cls: 'bg-red-100 text-red-800 border-red-200',          dot: 'bg-red-500' },
+  CONVERTED_TO_PROPERTY: { label: 'مُحوّل إلى عقار', cls: 'bg-indigo-100 text-indigo-800 border-indigo-200', dot: 'bg-indigo-500' },
+}
+const REC = {
+  PROCEED:               { label: 'المضي قدمًا',      cls: 'bg-green-50 text-green-700 border-green-200' },
+  NEED_MORE_INFORMATION: { label: 'معلومات إضافية',   cls: 'bg-amber-50 text-amber-700 border-amber-200' },
+  REJECT:                { label: 'غير مناسب',        cls: 'bg-red-50 text-red-700 border-red-200' },
+}
+const PROPERTY_TYPES = { land: 'أرض', apartment: 'شقة', building: 'عمارة', warehouse: 'مستودع', farm: 'مزرعة', other: 'أخرى' }
+const CITIES = { riyadh: 'الرياض', jeddah: 'جدة', dammam: 'الدمام', khobar: 'الخبر' }
+const APPLICANT = { owner: 'مالك', developer: 'مطوّر عقاري' }
+
+const FILTERS = [
+  { value: 'all',          label: 'الكل' },
+  { value: 'NEW',          label: 'جديد' },
+  { value: 'UNDER_REVIEW', label: 'قيد المراجعة' },
+  { value: 'NEEDS_INFO',   label: 'بحاجة لمعلومات' },
+  { value: 'ACCEPTED',     label: 'مقبول مبدئيًا' },
+  { value: 'REJECTED',     label: 'مرفوض' },
+]
+
+// Owner-facing meaning of each admin action (product copy)
+const ACTIONS = [
+  { status: 'UNDER_REVIEW', label: 'بدء المراجعة',       icon: ClipboardList, cls: 'bg-amber-500 hover:bg-amber-600',  hint: 'الطلب قيد المراجعة من فريق الوسم' },
+  { status: 'NEEDS_INFO',   label: 'طلب معلومات إضافية', icon: Info,          cls: 'bg-orange-500 hover:bg-orange-600', hint: 'نحتاج معلومات إضافية قبل اتخاذ القرار' },
+  { status: 'ACCEPTED',     label: 'قبول مبدئي',         icon: CheckCircle2,  cls: 'bg-green-600 hover:bg-green-700',   hint: 'تم قبول الطلب مبدئيًا للانتقال إلى الدراسة التفصيلية' },
+  { status: 'REJECTED',     label: 'رفض',                icon: XCircle,       cls: 'bg-red-600 hover:bg-red-700',       hint: 'الفرصة غير مناسبة حاليًا وفق معايير الوسم' },
+]
+
+const fmtSar = (n) => (n || n === 0) ? Number(n).toLocaleString('en-US') + ' ر.س' : '—'
+const fmtDate = (d) => d ? new Date(d).toLocaleDateString('ar-SA', { year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' }) : '—'
+
+function StatusBadge({ status }) {
+  const c = STATUS[status] || STATUS.NEW
+  return (
+    <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold border ${c.cls}`}>
+      <span className={`w-1.5 h-1.5 rounded-full ${c.dot}`} />{c.label}
+    </span>
+  )
+}
+function RecBadge({ rec }) {
+  if (!rec) return <span className="text-xs text-gray-300">—</span>
+  const c = REC[rec] || { label: rec, cls: 'bg-gray-50 text-gray-600 border-gray-200' }
+  return <span className={`inline-flex items-center px-2 py-0.5 rounded-md text-xs font-semibold border ${c.cls}`}>{c.label}</span>
+}
+function ScorePill({ value, label }) {
+  const v = Number(value) || 0
+  const color = v >= 70 ? 'text-green-600' : v >= 40 ? 'text-amber-600' : 'text-red-600'
+  const bar = v >= 70 ? 'bg-green-500' : v >= 40 ? 'bg-amber-500' : 'bg-red-500'
+  return (
+    <div className="min-w-[64px]">
+      <div className="flex items-center justify-between">
+        <span className="text-[10px] text-gray-400">{label}</span>
+        <span className={`text-xs font-bold ${color}`}>{v}</span>
+      </div>
+      <div className="h-1.5 rounded-full bg-gray-100 overflow-hidden mt-0.5">
+        <div className={`h-full ${bar}`} style={{ width: `${v}%` }} />
+      </div>
+    </div>
+  )
+}
+function LegalChips({ lead }) {
+  const chips = []
+  if (lead.hasMortgage) chips.push({ t: 'مرهون', c: 'bg-red-50 text-red-600' })
+  if (lead.hasOwnershipPartner) chips.push({ t: 'شريك', c: 'bg-amber-50 text-amber-700' })
+  if (lead.hasLegalDispute) chips.push({ t: 'نزاع', c: 'bg-red-50 text-red-600' })
+  if (lead.noLegalIssues) chips.push({ t: 'سليم', c: 'bg-green-50 text-green-700' })
+  if (!chips.length) return <span className="text-xs text-gray-300">—</span>
+  return (
+    <div className="flex flex-wrap gap-1">
+      {chips.map(ch => <span key={ch.t} className={`px-1.5 py-0.5 rounded text-[10px] font-medium ${ch.c}`}>{ch.t}</span>)}
+    </div>
+  )
+}
+
+// ── Detail slide-over ─────────────────────────────────────────────────────────
+function DetailPanel({ id, onClose, onUpdated, showToast }) {
+  const [lead, setLead] = useState(null)
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState('')
+  const [notes, setNotes] = useState('')
+  const [saving, setSaving] = useState(null)
+
+  useEffect(() => {
+    let alive = true
+    ;(async () => {
+      setLoading(true); setError('')
+      try {
+        const data = await fetchJson(`/api/admin/property-leads/${id}`, { headers: authHeader() })
+        if (!alive) return
+        setLead(data); setNotes(data.reviewNotes || '')
+      } catch {
+        if (alive) setError('تعذّر تحميل تفاصيل الطلب.')
+      } finally {
+        if (alive) setLoading(false)
+      }
+    })()
+    return () => { alive = false }
+  }, [id])
+
+  const updateStatus = async (status) => {
+    setSaving(status)
+    try {
+      const res = await fetchJson(`/api/admin/property-leads/${id}/status`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json', ...authHeader() },
+        body: JSON.stringify({ status, reviewNotes: notes }),
+      })
+      setLead(res.lead)
+      showToast('success', 'تم تحديث حالة الطلب بنجاح')
+      onUpdated()
+    } catch {
+      showToast('error', 'تعذّر تحديث حالة الطلب. حاول مرة أخرى.')
+    } finally {
+      setSaving(null)
+    }
+  }
+
+  const imageUrls = Array.isArray(lead?.imageUrls) ? lead.imageUrls : []
+
+  return (
+    <div className="fixed inset-0 z-50 flex justify-start" dir="rtl">
+      <div className="absolute inset-0 bg-black/50" onClick={onClose} />
+      <div className="relative ml-auto w-full max-w-2xl h-full bg-surface-base shadow-2xl overflow-y-auto">
+        {/* header */}
+        <div className="sticky top-0 z-10 bg-brand-primary text-white px-6 py-4 flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <Building2 size={20} className="text-brand-accent" />
+            <h2 className="text-lg font-bold">تفاصيل طلب الفرصة</h2>
+          </div>
+          <button onClick={onClose} className="w-9 h-9 rounded-lg hover:bg-white/10 flex items-center justify-center"><X size={18} /></button>
+        </div>
+
+        {loading ? (
+          <div className="flex items-center justify-center py-24 gap-3"><Loader2 className="animate-spin text-brand-accent" size={26} /><span className="text-gray-500 text-sm">جارٍ التحميل...</span></div>
+        ) : error ? (
+          <div className="flex flex-col items-center py-24 gap-3"><AlertCircle className="text-red-400" size={30} /><p className="text-red-600 text-sm">{error}</p></div>
+        ) : lead && (
+          <div className="p-6 space-y-6">
+            {/* status + scores */}
+            <div className="flex flex-wrap items-center gap-3">
+              <StatusBadge status={lead.status} />
+              <RecBadge rec={lead.internalRecommendation} />
+              <div className="flex gap-4 mr-auto">
+                <ScorePill value={lead.qualificationScore} label="التأهيل" />
+                <ScorePill value={lead.tokenizationSuitabilityScore} label="ملاءمة الترميز" />
+              </div>
+            </div>
+
+            <Section icon={User} title="بيانات مقدّم الطلب">
+              <Row label="الصفة" value={APPLICANT[lead.applicantType] || lead.applicantType} />
+              <Row label="الاسم الكامل" value={lead.fullName} />
+              <Row label="اسم الشركة" value={lead.companyName} />
+              <Row label="الجوال" value={lead.phone} />
+              <Row label="البريد الإلكتروني" value={lead.email} />
+            </Section>
+
+            <Section icon={MapPin} title="بيانات العقار">
+              <Row label="اسم/عنوان العقار" value={lead.propertyName} />
+              <Row label="نوع العقار" value={PROPERTY_TYPES[lead.propertyType] || lead.propertyType} />
+              <Row label="المدينة" value={CITIES[lead.city] || lead.city} />
+              <Row label="الحي" value={lead.district} />
+              <Row label="المساحة (م²)" value={lead.landArea} />
+              <Row label="عمر العقار (سنوات)" value={lead.buildingYear} />
+              <Row label="الموقع على الخريطة" value={lead.googleMapsUrl} link />
+            </Section>
+
+            <Section icon={Coins} title="المعلومات المالية والقانونية">
+              <Row label="السعر المطلوب" value={fmtSar(lead.requestedPrice)} />
+              <Row label="قابل للتفاوض" value={lead.isPriceNegotiable == null ? '—' : (lead.isPriceNegotiable ? 'نعم' : 'لا')} />
+              <Row label="مؤجَّر حالياً" value={lead.isLeased == null ? '—' : (lead.isLeased ? 'نعم' : 'لا')} />
+              <Row label="الإيجار السنوي" value={lead.annualRent ? fmtSar(lead.annualRent) : '—'} />
+              <Row label="مرهون" value={lead.hasMortgage == null ? '—' : (lead.hasMortgage ? 'نعم' : 'لا')} />
+              <Row label="شريك في الملكية" value={lead.hasOwnershipPartner == null ? '—' : (lead.hasOwnershipPartner ? 'نعم' : 'لا')} />
+              <Row label="نزاع قانوني" value={lead.hasLegalDispute == null ? '—' : (lead.hasLegalDispute ? 'نعم' : 'لا')} />
+              <Row label="إقرار بعدم وجود مشاكل قانونية" value={lead.noLegalIssues ? 'نعم' : '—'} />
+            </Section>
+
+            <Section icon={FileText} title="الوصف">
+              <p className="text-sm text-text-body leading-relaxed">{lead.shortDescription || '—'}</p>
+            </Section>
+
+            {(imageUrls.length > 0 || lead.deedImageUrl) && (
+              <Section icon={Building2} title="الصور والمستندات">
+                {imageUrls.length > 0 && (
+                  <div className="grid grid-cols-3 sm:grid-cols-4 gap-2 mb-3">
+                    {imageUrls.map((u, i) => (
+                      <a key={i} href={`${API_BASE}${u}`} target="_blank" rel="noreferrer">
+                        <img src={`${API_BASE}${u}`} alt={`صورة ${i + 1}`} className="w-full h-24 object-cover rounded-lg border border-border-soft hover:opacity-90" />
+                      </a>
+                    ))}
+                  </div>
+                )}
+                {lead.deedImageUrl && (
+                  <a href={`${API_BASE}${lead.deedImageUrl}`} target="_blank" rel="noreferrer"
+                    className="inline-flex items-center gap-2 text-sm text-brand-accent hover:underline font-medium">
+                    <FileText size={16} /> عرض صورة الصك
+                  </a>
+                )}
+              </Section>
+            )}
+
+            {/* review meta */}
+            <div className="text-xs text-text-muted flex flex-wrap gap-x-6 gap-y-1">
+              <span className="flex items-center gap-1"><Calendar size={12} /> أُرسل: {fmtDate(lead.createdAt)}</span>
+              {lead.reviewedAt && <span className="flex items-center gap-1"><CheckCircle2 size={12} /> روجع: {fmtDate(lead.reviewedAt)}</span>}
+              {lead.reviewedBy && <span>بواسطة: {lead.reviewedBy}</span>}
+            </div>
+
+            {/* actions */}
+            <div className="rounded-2xl border border-border-soft bg-surface-card p-5">
+              <h3 className="text-sm font-bold text-brand-primary flex items-center gap-2 mb-3"><Gavel size={16} /> إجراء المراجعة</h3>
+              <label className="block text-xs font-semibold text-text-muted mb-1">ملاحظات المراجعة</label>
+              <textarea value={notes} onChange={e => setNotes(e.target.value)} rows={3}
+                placeholder="اكتب ملاحظاتك للمالك أو للأرشيف الداخلي..."
+                className="w-full border border-border-soft rounded-xl px-3 py-2 text-sm focus:ring-2 focus:ring-brand-accent focus:border-brand-accent resize-none mb-4" />
+              <div className="grid grid-cols-2 gap-2">
+                {ACTIONS.map(a => {
+                  const Icon = a.icon
+                  const active = lead.status === a.status
+                  return (
+                    <button key={a.status} onClick={() => updateStatus(a.status)} disabled={!!saving || active} title={a.hint}
+                      className={`flex items-center justify-center gap-2 px-3 py-2.5 rounded-xl text-white text-sm font-semibold transition-colors disabled:opacity-50 disabled:cursor-not-allowed ${a.cls}`}>
+                      {saving === a.status ? <Loader2 size={14} className="animate-spin" /> : <Icon size={14} />}
+                      {active ? 'الحالة الحالية' : a.label}
+                    </button>
+                  )
+                })}
+              </div>
+              <p className="text-[11px] text-text-muted mt-3 leading-relaxed">
+                القبول المبدئي يعني الانتقال إلى الدراسة التفصيلية فقط — ولا يعني إدراج العقار أو ترميزه أو اعتماده للمستثمرين.
+              </p>
+            </div>
+          </div>
+        )}
+      </div>
+    </div>
+  )
+}
+
+function Section({ icon: Icon, title, children }) {
+  return (
+    <div className="rounded-2xl border border-border-soft bg-surface-card p-5">
+      <h3 className="text-sm font-bold text-brand-primary flex items-center gap-2 mb-3"><Icon size={16} className="text-brand-accent" /> {title}</h3>
+      <div className="space-y-0">{children}</div>
+    </div>
+  )
+}
+function Row({ label, value, link }) {
+  if (value === null || value === undefined || value === '') value = '—'
+  return (
+    <div className="flex gap-3 py-1.5 border-b border-gray-50 last:border-0">
+      <span className="text-xs font-semibold text-text-muted w-40 flex-shrink-0">{label}</span>
+      {link && value !== '—'
+        ? <a href={value} target="_blank" rel="noreferrer" className="text-xs text-brand-accent hover:underline break-all">{value}</a>
+        : <span className="text-xs text-text-body break-all">{String(value)}</span>}
+    </div>
+  )
+}
+
+// ── Main page ─────────────────────────────────────────────────────────────────
+export default function AdminPropertyLeads() {
+  const [leads, setLeads] = useState([])
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState('')
+  const [filter, setFilter] = useState('all')
+  const [detailId, setDetailId] = useState(null)
+  const [toast, setToast] = useState(null)
+
+  const load = useCallback(async () => {
+    setLoading(true); setError('')
+    try {
+      const url = filter === 'all' ? '/api/admin/property-leads' : `/api/admin/property-leads?status=${filter}`
+      const data = await fetchJson(url, { headers: authHeader() })
+      setLeads(Array.isArray(data) ? data : [])
+    } catch {
+      setError('تعذّر تحميل طلبات الفرص المبدئية.')
+    } finally {
+      setLoading(false)
+    }
+  }, [filter])
+
+  useEffect(() => { load() }, [load])
+
+  const showToast = (type, msg) => { setToast({ type, msg }); setTimeout(() => setToast(null), 3500) }
+
+  return (
+    <div className="space-y-6" dir="rtl">
+      {toast && (
+        <div className={`fixed top-4 left-4 z-[60] flex items-center gap-2 px-5 py-3 rounded-xl shadow-lg text-sm font-semibold text-white ${toast.type === 'success' ? 'bg-green-600' : 'bg-red-600'}`}>
+          {toast.type === 'success' ? <CheckCircle2 size={16} /> : <AlertCircle size={16} />}{toast.msg}
+        </div>
+      )}
+
+      {/* header */}
+      <div className="bg-brand-primary text-white rounded-2xl p-8 flex items-center justify-between flex-wrap gap-4">
+        <div className="flex items-center gap-4">
+          <div className="w-12 h-12 bg-white/10 rounded-xl flex items-center justify-center"><ClipboardList size={24} className="text-brand-accent" /></div>
+          <div>
+            <h1 className="text-2xl font-bold">طلبات الفرص المبدئية</h1>
+            <p className="text-white/70 text-sm mt-1">مراجعة طلبات التقديم المبدئي للعقارات قبل الدراسة التفصيلية</p>
+          </div>
+        </div>
+        <button onClick={load} disabled={loading} className="flex items-center gap-2 bg-white/10 hover:bg-white/20 px-4 py-2 rounded-xl text-sm font-medium transition-colors">
+          <RefreshCw size={14} className={loading ? 'animate-spin' : ''} /> تحديث
+        </button>
+      </div>
+
+      {/* filters */}
+      <div className="flex gap-2 flex-wrap">
+        {FILTERS.map(f => (
+          <button key={f.value} onClick={() => setFilter(f.value)}
+            className={`px-4 py-2 rounded-xl text-sm font-semibold border transition-colors ${filter === f.value ? 'bg-brand-primary text-white border-brand-primary' : 'bg-white text-gray-600 border-gray-200 hover:border-brand-primary hover:text-brand-primary'}`}>
+            {f.label}
+          </button>
+        ))}
+      </div>
+
+      {/* table */}
+      <div className="bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden">
+        {loading ? (
+          <div className="flex items-center justify-center py-20 gap-3"><Loader2 className="animate-spin text-brand-accent" size={28} /><span className="text-gray-500 text-sm">جارٍ التحميل...</span></div>
+        ) : error ? (
+          <div className="flex flex-col items-center justify-center py-20 gap-3">
+            <AlertCircle className="text-red-400" size={32} /><p className="text-red-600 text-sm font-medium">{error}</p>
+            <button onClick={load} className="text-sm text-brand-accent hover:underline font-medium">إعادة المحاولة</button>
+          </div>
+        ) : leads.length === 0 ? (
+          <div className="flex flex-col items-center justify-center py-20 gap-4">
+            <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center"><ClipboardList size={28} className="text-gray-400" /></div>
+            <p className="text-gray-500 text-sm font-medium">لا توجد طلبات فرص مبدئية حتى الآن</p>
+          </div>
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="bg-gray-50 border-b border-gray-200">
+                  {['مقدّم الطلب', 'العقار', 'الموقع', 'السعر', 'مؤجّر', 'الوضع القانوني', 'الدرجات', 'التوصية', 'الحالة', 'التاريخ', 'إجراء'].map(h => (
+                    <th key={h} className="px-4 py-3 text-start text-xs font-semibold text-gray-500 uppercase tracking-wide whitespace-nowrap">{h}</th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {leads.map(l => (
+                  <tr key={l.id} className="border-b border-gray-100 hover:bg-gray-50 transition-colors">
+                    <td className="px-4 py-4">
+                      <p className="text-sm font-semibold text-gray-900">{l.fullName || '—'}</p>
+                      <p className="text-xs text-gray-500">{APPLICANT[l.applicantType] || l.applicantType || '—'}</p>
+                    </td>
+                    <td className="px-4 py-4">
+                      <p className="text-sm text-gray-800">{l.propertyName || '—'}</p>
+                      <p className="text-xs text-gray-500">{PROPERTY_TYPES[l.propertyType] || l.propertyType || '—'}</p>
+                    </td>
+                    <td className="px-4 py-4 whitespace-nowrap">
+                      <p className="text-xs text-gray-700">{CITIES[l.city] || l.city || '—'}</p>
+                      <p className="text-xs text-gray-400">{l.district || ''}</p>
+                    </td>
+                    <td className="px-4 py-4 whitespace-nowrap"><p className="text-sm font-bold text-gray-900">{fmtSar(l.requestedPrice)}</p></td>
+                    <td className="px-4 py-4 text-xs text-gray-700">{l.isLeased == null ? '—' : (l.isLeased ? 'نعم' : 'لا')}</td>
+                    <td className="px-4 py-4"><LegalChips lead={l} /></td>
+                    <td className="px-4 py-4">
+                      <div className="flex gap-3">
+                        <ScorePill value={l.qualificationScore} label="تأهيل" />
+                        <ScorePill value={l.tokenizationSuitabilityScore} label="ترميز" />
+                      </div>
+                    </td>
+                    <td className="px-4 py-4"><RecBadge rec={l.internalRecommendation} /></td>
+                    <td className="px-4 py-4"><StatusBadge status={l.status} /></td>
+                    <td className="px-4 py-4 whitespace-nowrap text-xs text-gray-500">{fmtDate(l.createdAt)}</td>
+                    <td className="px-4 py-4">
+                      <button onClick={() => setDetailId(l.id)}
+                        className="inline-flex items-center gap-1 px-3 py-1.5 bg-brand-primary/10 hover:bg-brand-primary/20 text-brand-primary text-xs font-semibold rounded-lg transition-colors">
+                        <Eye size={13} /> التفاصيل
+                      </button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </div>
+
+      {detailId && (
+        <DetailPanel id={detailId} onClose={() => setDetailId(null)} onUpdated={load} showToast={showToast} />
+      )}
+    </div>
+  )
+}
