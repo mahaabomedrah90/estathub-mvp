@@ -1,6 +1,10 @@
-import { Router, Request, Response } from 'express'
+import { Router, Request, Response, NextFunction } from 'express'
+import multer from 'multer'
+import path from 'path'
+import crypto from 'crypto'
 import { prisma } from '../lib/prisma'
 import { auth } from '../middleware/auth'
+import { getFileUrl } from '../middleware/roles'
 import { scoreLead } from '../lib/propertyLeadScoring'
 
 // ============================================================================
@@ -76,6 +80,26 @@ function requireAdmin(req: Request & { user?: any }, res: Response): boolean {
   }
   return true
 }
+
+// ─── file upload (lead property images + deed) ──────────────────────────────
+// LOCAL to this controller so the legacy /api/properties/upload-document is not
+// modified. Accepts image or PDF (deed), 10 MB max, stored in the same
+// uploads/properties dir served via getFileUrl().
+const LEAD_UPLOAD_MIMES = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp', 'application/pdf']
+const leadUpload = multer({
+  storage: multer.diskStorage({
+    destination: (_req, _file, cb) => cb(null, 'uploads/properties/'),
+    filename: (_req, file, cb) => {
+      const suffix = `${Date.now()}-${crypto.randomBytes(6).toString('hex')}`
+      cb(null, `lead-${suffix}${path.extname(file.originalname)}`)
+    },
+  }),
+  limits: { fileSize: 10 * 1024 * 1024 }, // 10 MB
+  fileFilter: (_req, file, cb) => {
+    if (LEAD_UPLOAD_MIMES.includes(file.mimetype)) cb(null, true)
+    else cb(new Error('Invalid file type'))
+  },
+})
 
 // ════════════════════════════════════════════════════════════════════════════
 // OWNER ROUTER  →  /api/property-leads
@@ -223,6 +247,42 @@ propertyLeadRouter.post('/', auth(true), async (req: Request & { user?: any }, r
 })
 
 // GET /api/property-leads/mine — owner sees ONLY their own leads
+// POST /api/property-leads/upload — OWNER/ADMIN upload one lead image or deed file.
+// Returns { fileUrl }. Decoupled from the legacy /api/properties/upload-document
+// (which sits behind a different edge path). Never creates a Property.
+propertyLeadRouter.post(
+  '/upload',
+  auth(true),
+  (req: Request & { user?: any }, res: Response, next: NextFunction) => {
+    const role = req.user?.role
+    if (role !== 'OWNER' && role !== 'ADMIN') {
+      return res.status(403).json({
+        error: 'upload_forbidden',
+        message: 'ليست لديك صلاحية رفع هذا الملف. يرجى تسجيل الدخول كمالك أو التواصل مع الدعم.',
+      })
+    }
+    next()
+  },
+  (req: Request, res: Response, next: NextFunction) => {
+    leadUpload.single('file')(req, res, (err: any) => {
+      if (!err) return next()
+      if (err.code === 'LIMIT_FILE_SIZE') {
+        return res.status(413).json({ error: 'file_too_large', message: 'حجم الملف يتجاوز 10 ميجابايت.' })
+      }
+      if (String(err.message || '').includes('Invalid file type')) {
+        return res.status(415).json({ error: 'unsupported_file_type', message: 'صيغة الملف غير مدعومة. المسموح: JPG أو PNG أو WEBP أو PDF.' })
+      }
+      return res.status(400).json({ error: 'upload_error', message: 'تعذّر رفع الملف. حاول مرة أخرى.' })
+    })
+  },
+  (req: Request & { file?: any }, res: Response) => {
+    if (!req.file) {
+      return res.status(400).json({ error: 'no_file', message: 'لم يتم استلام أي ملف.' })
+    }
+    return res.json({ fileUrl: getFileUrl(req.file.filename), fileName: req.file.originalname })
+  }
+)
+
 propertyLeadRouter.get('/mine', auth(true), async (req: Request & { user?: any }, res: Response) => {
   if (!requireOwner(req, res)) return
   try {
