@@ -65,16 +65,28 @@ function toStr(v: unknown): string | undefined {
   return s === '' ? undefined : s
 }
 
-// ─── role guards (roles are UPPERCASE in the JWT) ───────────────────────────
+// ─── role guards (CASE-INSENSITIVE — real JWTs may carry OWNER/owner/etc.) ────
+function normalizedRole(req: Request & { user?: any }): string {
+  return String(req.user?.role || '').toUpperCase()
+}
+// Safe production-debug log: endpoint + userId + normalized role + decision only.
+// Never logs tokens or secrets. Emitted on DENY to surface unexpected role values.
+function logDeny(req: Request & { user?: any }, role: string, need: string): void {
+  console.warn(`[propertyLead] DENY ${req.method} ${req.originalUrl} user=${req.user?.userId || '-'} role=${role || '-'} need=${need}`)
+}
 function requireOwner(req: Request & { user?: any }, res: Response): boolean {
-  if (req.user?.role !== 'OWNER') {
+  const role = normalizedRole(req)
+  if (role !== 'OWNER') {
+    logDeny(req, role, 'OWNER')
     res.status(403).json({ error: 'owner_access_required' })
     return false
   }
   return true
 }
 function requireAdmin(req: Request & { user?: any }, res: Response): boolean {
-  if (req.user?.role !== 'ADMIN') {
+  const role = normalizedRole(req)
+  if (role !== 'ADMIN') {
+    logDeny(req, role, 'ADMIN')
     res.status(403).json({ error: 'admin_access_required' })
     return false
   }
@@ -254,8 +266,9 @@ propertyLeadRouter.post(
   '/upload',
   auth(true),
   (req: Request & { user?: any }, res: Response, next: NextFunction) => {
-    const role = req.user?.role
+    const role = normalizedRole(req)
     if (role !== 'OWNER' && role !== 'ADMIN') {
+      logDeny(req, role, 'OWNER|ADMIN')
       return res.status(403).json({
         error: 'upload_forbidden',
         message: 'ليست لديك صلاحية رفع هذا الملف. يرجى تسجيل الدخول كمالك أو التواصل مع الدعم.',
