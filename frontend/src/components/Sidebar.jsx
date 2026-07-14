@@ -15,8 +15,7 @@ const roleMenus = {
   owner: [
     { path: '/owner/dashboard', label: (t) => t('owner.dashboard'), icon: BarChart3 },
     { path: '/owner/properties', label: (t) => t('owner.properties'), icon: Building2 },
-    { path: '/owner/properties/new', label: (t) => t('owner.submitProperty'), icon: Plus },
-    { path: '/owner/opportunities/new', label: (t) => t('owner.submitOpportunity', 'طلب تقديم فرصة'), icon: Building2 },
+    { path: '/owner/opportunities/new', label: (t) => t('owner.submitProperty'), icon: Plus },
   ],
   regulator: [
     { path: '/regulator/dashboard', label: (t) => t('regulator.dashboard'), icon: Shield },
