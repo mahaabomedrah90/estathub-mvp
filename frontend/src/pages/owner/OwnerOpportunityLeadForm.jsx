@@ -120,17 +120,30 @@ export default function OwnerOpportunityLeadForm() {
     topRef.current?.scrollIntoView({ behavior: 'smooth' })
   }
 
-  // ── uploads (reuse existing endpoint; store returned URLs only) ─────────────
+  // ── uploads (dedicated lead endpoint; store returned URLs only) ─────────────
+  const UPLOAD_ERROR_BY_STATUS = {
+    401: 'انتهت جلستك أو لم تسجّل الدخول. سجّل الدخول كمالك ثم حاول مجدداً.',
+    403: 'ليست لديك صلاحية رفع هذا الملف. يرجى تسجيل الدخول كمالك أو التواصل مع الدعم.',
+    413: `حجم الملف يتجاوز ${MAX_FILE_MB} ميجابايت.`,
+    415: 'صيغة الملف غير مدعومة. المسموح: JPG أو PNG أو WEBP أو PDF.',
+  }
   const uploadOne = async (file, documentType) => {
     const fd = new FormData()
     fd.append('file', file)
     fd.append('documentType', documentType)
-    const res = await fetch(`${API_BASE}/api/properties/upload-document`, {
-      method: 'POST', headers: authHeader(), body: fd,
-    })
-    if (!res.ok) throw new Error('upload_failed')
-    const json = await res.json()
-    if (!json.fileUrl) throw new Error('upload_failed')
+    let res
+    try {
+      res = await fetch(`${API_BASE}/api/property-leads/upload`, {
+        method: 'POST', headers: authHeader(), body: fd,
+      })
+    } catch {
+      throw new Error('تعذّر الاتصال بالخادم. تحقق من اتصالك بالإنترنت وحاول مجدداً.')
+    }
+    if (!res.ok) {
+      throw new Error(UPLOAD_ERROR_BY_STATUS[res.status] || 'تعذّر رفع الملف. حاول مرة أخرى.')
+    }
+    const json = await res.json().catch(() => ({}))
+    if (!json.fileUrl) throw new Error('تعذّر رفع الملف. حاول مرة أخرى.')
     return { url: json.fileUrl, name: file.name }
   }
 
@@ -156,8 +169,8 @@ export default function OwnerOpportunityLeadForm() {
         uploaded.push(await uploadOne(f, 'leadPropertyImage'))
       }
       setImages(prev => [...prev, ...uploaded])
-    } catch {
-      setUploadError('تعذّر رفع الصور. تأكد من الاتصال وحاول مرة أخرى.')
+    } catch (err) {
+      setUploadError(err?.message || 'تعذّر رفع الصور. حاول مرة أخرى.')
     } finally {
       setUploading(false)
     }
@@ -177,8 +190,8 @@ export default function OwnerOpportunityLeadForm() {
     setUploading(true)
     try {
       setDeed(await uploadOne(file, 'leadDeed'))
-    } catch {
-      setUploadError('تعذّر رفع صورة الصك. حاول مرة أخرى.')
+    } catch (err) {
+      setUploadError(err?.message || 'تعذّر رفع صورة الصك. حاول مرة أخرى.')
     } finally {
       setUploading(false)
     }
