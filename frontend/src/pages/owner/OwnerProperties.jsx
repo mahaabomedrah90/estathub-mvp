@@ -118,7 +118,7 @@ export default function OwnerProperties() {
           <p className="text-text-muted mt-1">{t('owner.properties.subtitle')}</p>
         </div>
         <button
-          onClick={() => navigate('/owner/properties/new')}
+          onClick={() => navigate('/owner/opportunities/new')}
           className="flex items-center gap-2 px-6 py-3 bg-brand-accent text-white rounded-xl font-semibold hover:bg-brand-accent/90 transition-all hover:scale-[1.02] active:scale-95 shadow-lg hover:shadow-xl"
         >
           <Building2 size={20} />
@@ -306,7 +306,7 @@ export default function OwnerProperties() {
                 })}
           </p>
           <button
-            onClick={() => navigate('/owner/properties/new')}
+            onClick={() => navigate('/owner/opportunities/new')}
             className="inline-flex items-center gap-3 px-8 py-4 bg-brand-accent text-white rounded-xl font-semibold hover:bg-brand-accent/90 transition-all hover:scale-[1.02] active:scale-95 shadow-lg hover:shadow-xl"
           >
             <Building2 size={20} />

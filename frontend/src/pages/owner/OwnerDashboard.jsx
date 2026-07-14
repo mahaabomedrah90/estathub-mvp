@@ -178,7 +178,7 @@ export default function OwnerDashboard() {
             </p>
           </div>
           <button
-            onClick={() => navigate('/owner/properties/new')}
+            onClick={() => navigate('/owner/opportunities/new')}
             className="flex items-center gap-2 px-6 py-3 bg-brand-accent text-white rounded-xl font-semibold hover:bg-brand-accent/90 transition-all hover:scale-[1.02] active:scale-95 shadow-lg"
           >
             <Plus size={20} />
@@ -229,7 +229,7 @@ export default function OwnerDashboard() {
               <h3 className="text-xl font-semibold text-brand-primary mb-3">{t('owner.dashboard.propertiesSection.emptyTitle')}</h3>
               <p className="text-text-muted mb-8 max-w-md mx-auto">{t('owner.dashboard.propertiesSection.emptySubtitle')}</p>
               <button
-                onClick={() => navigate('/owner/properties/new')}
+                onClick={() => navigate('/owner/opportunities/new')}
                 className="inline-flex items-center gap-3 px-8 py-4 bg-brand-accent text-white rounded-xl font-semibold hover:bg-brand-accent/90 transition-all hover:scale-[1.02] active:scale-95 shadow-lg hover:shadow-xl"
               >
                 <Plus size={20} />
