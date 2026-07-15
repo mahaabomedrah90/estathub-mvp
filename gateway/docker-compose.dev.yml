@@ -1,0 +1,22 @@
+version: '3.8'
+
+services:
+  fabric-gateway:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: estathub-fabric-gateway:dev
+    container_name: fabric-gateway-dev
+    environment:
+      - NODE_ENV=development
+      - ALLOW_INSECURE_GATEWAY=true
+    env_file:
+      - .env.development
+    ports:
+      - "4000:4000"
+    volumes:
+      - ./src:/app/src
+      - ./fabric:/app/fabric
+    command: npx tsx watch src/index.ts
+
+# DEV ONLY. Do not use this compose file in production.

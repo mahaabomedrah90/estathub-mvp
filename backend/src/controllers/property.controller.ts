@@ -1,12 +1,11 @@
 import { Router, Request, Response, NextFunction } from 'express'
 import { prisma } from '../lib/prisma'
 import { submitInitProperty, submitTxn, isFabricEnabled } from '../lib/fabric'
-import { uploadMultiplePropertyImages, getFileUrl, errorHandler, validateRequired, throwApiError } from '../middleware/roles'
+import { uploadMultiplePropertyImages, getFileUrl, errorHandler, validateRequired, throwApiError, requireRole } from '../middleware/roles'
 import { auth } from '../middleware/auth'
 import multer from 'multer'
 import path from 'path'
 import crypto from 'crypto'
-import { $Enums } from '@prisma/client'
 
 export const propertyRouter = Router()
 
@@ -43,18 +42,32 @@ const upload = multer({
   }
 })
 
-// GET /api/properties?status=APPROVED (optional filter)
+// GET /api/properties?status=APPROVED&page=1&limit=20&sort=id_desc
+// Backward-compatible: no page/limit params → returns plain array (old behavior)
+// With page/limit params → returns { success, data, pagination }
 propertyRouter.get('/', async (req: Request, res: Response) => {
   try {
     const { status } = req.query
-    const where = status ? { status: status as $Enums.PropertyStatus } : {}
+    const where = status ? { status: status as any } : {}
+
+    const hasPagination = req.query.page !== undefined || req.query.limit !== undefined
+    const page  = Math.max(1, Number(req.query.page)  || 1)
+    const limit = Math.min(50, Math.max(1, Number(req.query.limit) || 20))
+    const skip  = (page - 1) * limit
+
+    const sortParam = String(req.query.sort || 'id_desc')
+    const orderBy: any = sortParam === 'createdAt_asc'  ? { createdAt: 'asc' }
+      : sortParam === 'createdAt_desc' ? { createdAt: 'desc' }
+      : { id: 'desc' }
+
+    const [total, list] = hasPagination
+      ? await Promise.all([
+          prisma.property.count({ where }),
+          prisma.property.findMany({ where, orderBy, skip, take: limit }),
+        ])
+      : [0, await prisma.property.findMany({ where, orderBy: { id: 'desc' } })]
     
-    const list = await prisma.property.findMany({ 
-      where,
-      orderBy: { id: 'desc' } 
-    })
-    
-    const mapped = list.map(p => ({
+    const mapped = list.map((p: any) => ({
       // Basic fields
       id: p.id,
       name: p.title,
@@ -87,8 +100,8 @@ propertyRouter.get('/', async (req: Request, res: Response) => {
       buildingPermitUrl: p.buildingPermitUrl,
       electricityBillUrl: p.electricityBillUrl,
       waterBillUrl: p.waterBillUrl,
-      ownerIdDocumentUrl: p.ownerIdDocumentUrl,
-      
+      // ownerIdDocumentUrl omitted — PII (national ID scan)
+
       // Step 2: Technical Specification
       propertyTypeDetailed: p.propertyTypeDetailed,
       landArea: p.landArea,
@@ -111,30 +124,37 @@ propertyRouter.get('/', async (req: Request, res: Response) => {
       ownerRetainedPercentage: p.ownerRetainedPercentage,
       payoutSchedule: p.payoutSchedule,
       
-      // Step 4: Owner Information
+      // Step 4: Owner Information (PII fields excluded from public response)
       ownerType: p.ownerType,
-      nationalIdOrCR: p.nationalIdOrCR,
-      ownerPhone: p.ownerPhone,
-      ownerEmail: p.ownerEmail,
-      ownerIban: p.ownerIban,
       authorizedPersonName: p.authorizedPersonName,
-      authorizedPersonId: p.authorizedPersonId,
-      commercialRegistration: p.commercialRegistration,
-      
+
       // Step 5: Compliance
       declarationPropertyAccuracy: p.declarationPropertyAccuracy,
       declarationLegalResponsibility: p.declarationLegalResponsibility,
       declarationTokenizationApproval: p.declarationTokenizationApproval,
       declarationDocumentSharingApproval: p.declarationDocumentSharingApproval,
-      
+
       // Metadata
       isDraft: p.isDraft,
       submissionCompletedAt: p.submissionCompletedAt
     }))
-    res.json(mapped)
+
+    if (hasPagination) {
+      return res.json({
+        success: true,
+        data: mapped,
+        pagination: {
+          page,
+          limit,
+          total,
+          pages: Math.ceil(total / limit) || 1,
+        },
+      })
+    }
+    return res.json(mapped)
   } catch (e) {
-        console.error('List properties error:', e)
-    res.status(500).json({ error: 'failed_to_list_properties' })
+    console.error('List properties error:', e)
+    return res.status(500).json({ error: 'failed_to_list_properties' })
   }
 })
 
@@ -185,8 +205,8 @@ propertyRouter.get('/:id', async (req: Request, res: Response) => {
       buildingPermitUrl: property.buildingPermitUrl,
       electricityBillUrl: property.electricityBillUrl,
       waterBillUrl: property.waterBillUrl,
-      ownerIdDocumentUrl: property.ownerIdDocumentUrl,
-      
+      // ownerIdDocumentUrl omitted — PII (national ID scan)
+
       // Step 2: Technical Specification
       propertyTypeDetailed: property.propertyTypeDetailed,
       landArea: property.landArea,
@@ -209,22 +229,16 @@ propertyRouter.get('/:id', async (req: Request, res: Response) => {
       ownerRetainedPercentage: property.ownerRetainedPercentage,
       payoutSchedule: property.payoutSchedule,
       
-      // Step 4: Owner Information
+      // Step 4: Owner Information (PII fields excluded from public response)
       ownerType: property.ownerType,
-      nationalIdOrCR: property.nationalIdOrCR,
-      ownerPhone: property.ownerPhone,
-      ownerEmail: property.ownerEmail,
-      ownerIban: property.ownerIban,
       authorizedPersonName: property.authorizedPersonName,
-      authorizedPersonId: property.authorizedPersonId,
-      commercialRegistration: property.commercialRegistration,
-      
+
       // Step 5: Compliance
       declarationPropertyAccuracy: property.declarationPropertyAccuracy,
       declarationLegalResponsibility: property.declarationLegalResponsibility,
       declarationTokenizationApproval: property.declarationTokenizationApproval,
       declarationDocumentSharingApproval: property.declarationDocumentSharingApproval,
-      
+
       // Metadata
       isDraft: property.isDraft,
       submissionCompletedAt: property.submissionCompletedAt
@@ -388,7 +402,7 @@ propertyRouter.post('/submit', auth(true), async (req: Request & { user?: any },
         tenantId,
 
         // STEP 1: Legal Verification
-        ownershipType: ownershipType as $Enums.OwnershipType | undefined,
+        ownershipType: ownershipType as any,
         deedNumber,
         deedDate: deedDate ? new Date(deedDate) : null,
         deedAuthority,
@@ -406,7 +420,7 @@ propertyRouter.post('/submit', auth(true), async (req: Request & { user?: any },
         buildingAge: Number(buildingAge || 0),
         floorsCount: Number(floorsCount || 1),
         unitsCount: Number(unitsCount || 1),
-        propertyCondition: propertyCondition as $Enums.PropertyCondition | undefined,
+        propertyCondition: propertyCondition as any,
         gpsLatitude: Number(gpsLatitude),
         gpsLongitude: Number(gpsLongitude),
         city,
@@ -419,10 +433,10 @@ propertyRouter.post('/submit', auth(true), async (req: Request & { user?: any },
         marketValue: Number(marketValue),
         valuationReportUrl,
         ownerRetainedPercentage: ownerRetainedPct,
-        payoutSchedule: payoutSchedule as $Enums.PayoutSchedule | undefined,
+        payoutSchedule: payoutSchedule as any,
 
         // STEP 4: Owner Information
-        ownerType: ownerType as $Enums.OwnerType | undefined,
+        ownerType: ownerType as any,
         nationalIdOrCR,
         ownerPhone,
         ownerEmail,
@@ -532,7 +546,7 @@ propertyRouter.post('/', auth(true), uploadMultiplePropertyImages, async (req: R
 */
 
 // PATCH /api/properties/:id - Update property (generic update for admin)
-propertyRouter.patch('/:id', async (req: Request, res: Response) => {
+propertyRouter.patch('/:id', auth(true), requireRole(['ADMIN']), async (req: Request, res: Response) => {
   try {
     const { id } = req.params
     const { status } = req.body
@@ -540,14 +554,14 @@ propertyRouter.patch('/:id', async (req: Request, res: Response) => {
     if (!status) {
       return res.status(400).json({ error: 'status is required' })
     }
-    const allowedStatuses: $Enums.PropertyStatus[] = ['PENDING', 'APPROVED', 'REJECTED']
+    const allowedStatuses = ['PENDING', 'APPROVED', 'REJECTED'] as const
 
 if (!allowedStatuses.includes(status)) {
   return res.status(400).json({ error: 'invalid_status' })
 }
 
   const updateData: {
-  status: $Enums.PropertyStatus
+  status: (typeof allowedStatuses)[number]
   approvedAt?: Date
   rejectedAt?: Date
   rejectionReason?: string
@@ -610,19 +624,19 @@ if (!allowedStatuses.includes(status)) {
           const events = [
             {
               txId: registerTxId,
-              type: $Enums.OnChainEventType.TOKEN_MINT,
+              type: 'TOKEN_MINT' as any,
               propertyId: updated.id,
               payload: JSON.stringify({ action: 'RegisterPropertySimple', propertyId: updated.id, title: updated.title })
             },
             {
               txId: approveTxId,
-              type: $Enums.OnChainEventType.TOKEN_MINT,
+              type: 'TOKEN_MINT' as any,
               propertyId: updated.id,
               payload: JSON.stringify({ action: 'ApproveProperty', propertyId: updated.id })
             },
             {
               txId: tokenizeTxId,
-              type: $Enums.OnChainEventType.TOKEN_MINT,
+              type: 'TOKEN_MINT' as any,
               propertyId: updated.id,
               payload: JSON.stringify({ action: 'TokenizeProperty', propertyId: updated.id, totalTokens: updated.totalTokens })
             }
@@ -657,7 +671,7 @@ if (!allowedStatuses.includes(status)) {
 })
 
 // PUT /api/properties/:id/approve - Admin approves property
-propertyRouter.put('/:id/approve', async (req: Request, res: Response) => {
+propertyRouter.put('/:id/approve', auth(true), requireRole(['ADMIN']), async (req: Request, res: Response) => {
   try {
     const { id } = req.params
     
@@ -714,19 +728,19 @@ propertyRouter.put('/:id/approve', async (req: Request, res: Response) => {
           const events = [
             {
               txId: registerTxId,
-              type: $Enums.OnChainEventType.TOKEN_MINT,
+              type: 'TOKEN_MINT' as any,
               propertyId: updated.id,
               payload: JSON.stringify({ action: 'RegisterPropertySimple', propertyId: updated.id, title: updated.title })
             },
             {
               txId: approveTxId,
-              type: $Enums.OnChainEventType.TOKEN_MINT,
+              type: 'TOKEN_MINT' as any,
               propertyId: updated.id,
               payload: JSON.stringify({ action: 'ApproveProperty', propertyId: updated.id })
             },
             {
               txId: tokenizeTxId,
-              type: $Enums.OnChainEventType.TOKEN_MINT,
+              type: 'TOKEN_MINT' as any,
               propertyId: updated.id,
               payload: JSON.stringify({ action: 'TokenizeProperty', propertyId: updated.id, totalTokens: updated.totalTokens })
             }
@@ -760,7 +774,7 @@ propertyRouter.put('/:id/approve', async (req: Request, res: Response) => {
 })
 
 // PUT /api/properties/:id/reject - Admin rejects property
-propertyRouter.put('/:id/reject', async (req: Request, res: Response) => {
+propertyRouter.put('/:id/reject', auth(true), requireRole(['ADMIN']), async (req: Request, res: Response) => {
   try {
     const { id } = req.params
     const { reason } = req.body || {}
@@ -785,7 +799,7 @@ propertyRouter.put('/:id/reject', async (req: Request, res: Response) => {
 })
 
 // GET /api/properties/:id/holdings - Get all investors/holdings for a property
-propertyRouter.get('/:id/holdings', async (req: Request, res: Response) => {
+propertyRouter.get('/:id/holdings', auth(true), requireRole(['ADMIN', 'REGULATOR']), async (req: Request, res: Response) => {
   try {
   const { id } = req.params
 
@@ -801,7 +815,7 @@ if (!id) {
           select: {
             id: true,
             email: true,
-            name: true,
+            fullName: true,
             role: true
           }
         }
@@ -820,11 +834,12 @@ if (!id) {
     }
     
     // Map holdings with ownership percentage
-    const mapped = holdings.map(h => ({
+    const mapped = holdings.map((h: any) => ({
+
       id: h.id,
       userId: h.userId,
       userEmail: h.user.email,
-      userName: h.user.name || h.user.email,
+      userName: h.user.fullName || h.user.email,
       tokens: h.tokens,
       ownershipPercentage: ((h.tokens / property.totalTokens) * 100).toFixed(2)
     }))

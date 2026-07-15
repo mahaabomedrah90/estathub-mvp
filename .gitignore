@@ -23,3 +23,32 @@ backend/.env
 # Prisma
 backend/prisma/*.db-journal
 backend/prisma/dev.db-journal
+
+# Fabric certificates and private keys (never commit)
+backend/fabric/certs/
+fabric/certs/
+*.pem
+*.key
+
+# Logs
+backend/backend.log
+*.log
+
+# Uploaded user files
+backend/uploads/
+
+# AWS ECS task definitions (contain account IDs and ARNs)
+backend/td*.json
+
+# Frontend build archives
+frontend/*.zip
+
+# Claude AI working directory
+.claude/
+
+# Test and temporary DB scripts
+backend/prisma/add-test-property.js
+backend/prisma/test-property.sql
+
+# Backup files
+*.backup

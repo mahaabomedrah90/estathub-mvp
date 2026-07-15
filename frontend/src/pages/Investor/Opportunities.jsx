@@ -1,234 +1,290 @@
-import React, { useEffect, useState } from 'react'
-import { Link, useNavigate } from 'react-router-dom'
-import { Building2, TrendingUp, Coins, MapPin, ArrowRight, Loader2, Plus, Edit2, Eye, Shield } from 'lucide-react'
-import { getToken } from '../../lib/api'
-import { useTranslation } from 'react-i18next'
-
-// Mask property ID for public view
-const maskPropertyId = (id) => {
-  if (!id || typeof id !== 'string') return id
-  if (id.length <= 8) return id
-  return id.substring(0, 8) + '**********' + id.substring(id.length - 8)
-}
+import React, { useEffect, useState } from 'react';
+import { Link, useNavigate } from 'react-router-dom';
+import { MapPin, ArrowRight, Loader2, Edit2, Eye, Building2 } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
+import { fetchJson } from '../../lib/api';
+import WaitlistSection from '../../components/WaitlistSection';
 
 export default function Opportunities() {
-  const { t, i18n } = useTranslation('property')
-const isRtl = i18n.dir() === 'rtl'
-  const navigate = useNavigate()
-  const [properties, setProperties] = useState([])
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState('')
-  const [userRole, setUserRole] = useState(null)
+  const { t, i18n } = useTranslation('property');
+  const isRtl = i18n.language === 'ar';
+  const navigate = useNavigate();
+
+  const [properties, setProperties] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
+  const [userRole, setUserRole] = useState(null);
 
   useEffect(() => {
-    // Check user role
-    const role = localStorage.getItem('role')
-    setUserRole(role)
-    
-    setLoading(true)
-    setError('')
-    
-    // Fetch properties based on role
-    // Owners see ALL their properties, Investors see only APPROVED
-    const url = role === 'owner' 
-      ? import.meta.env.VITE_API_BASE + '/api/properties'
-      : import.meta.env.VITE_API_BASE + '/api/properties?status=APPROVED'
-    
-    fetch(url)
-      .then(async r => {
-        if (!r.ok) throw new Error('failed_to_load')
-        return r.json()
+    const role = localStorage.getItem('role');
+    setUserRole(role);
+
+    setLoading(true);
+    setError('');
+
+    fetchJson('/api/properties?status=APPROVED')
+      .then(data => {
+        setProperties(Array.isArray(data) ? data : []);
+        setLoading(false);
       })
-      .then(data => setProperties(Array.isArray(data) ? data : []))
-      .catch((err) => {
-        console.error('Error loading properties:', err)
-        setError(t('list.loadError'))
-        console.error('Detailed error:', err);
-      })
-      .finally(() => setLoading(false))
-  }, [])
+      .catch(() => {
+        setError(t('list.loadError'));
+        setLoading(false);
+      });
+  }, []);
+
+  const getPropertyTypeLabel = (type) => {
+    if (!type) return 'Residential';
+
+    const typeMap = {
+      residential: 'Residential',
+      commercial: 'Commercial',
+      logistics: 'Logistics',
+    };
+
+    return typeMap[type.toLowerCase()] || 'Residential';
+  };
+
+  const getAnnualYield = (monthlyYield) => {
+    return Number((monthlyYield || 0) * 12).toFixed(1);
+  };
 
   const getStatusBadge = (status) => {
     const styles = {
-      PENDING: 'bg-yellow-100 text-yellow-700',
-      APPROVED: 'bg-green-100 text-green-700',
-      REJECTED: 'bg-red-100 text-red-700'
-    }
-    return styles[status] || 'bg-gray-100 text-gray-700'
-  }
+      PENDING: 'bg-amber-100 text-amber-700',
+      APPROVED: 'bg-brand-accent/10 text-brand-accent',
+      REJECTED: 'bg-red-100 text-red-700',
+    };
+
+    return styles[status] || 'bg-surface-muted text-gray-700';
+  };
 
   return (
-    <div className="space-y-6">
-      {/* Header */}
-      <div className="flex items-center justify-between">
-        <div className="space-y-2">
-         <h1 className="text-3xl font-bold text-gray-900">
-  {userRole === 'owner'
-    ? t('list.titleOwner')
-    : t('list.titleInvestor')}
-</h1>
-<p className="text-gray-600">
-  {userRole === 'owner'
-    ? t('list.subtitleOwner')
-    : t('list.subtitleInvestor')}
-</p>
-        </div>
-        {userRole === 'owner' && (
-          <button
-            onClick={() => navigate('/owner/new')}
-            className="flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-amber-500 to-orange-600 text-white rounded-xl font-semibold hover:shadow-lg transition-all hover:scale-105"
-          >
-           <Plus size={20} />
-<span>{t('list.addNewProperty')}</span>
-          </button>
-        )}
-      </div>
-
-      {/* Content */}
-      {loading ? (
-        <div className="flex items-center justify-center py-12">
-          <div className="text-center space-y-3">
-            <Loader2 className="animate-spin text-emerald-600 mx-auto" size={40} />
-            <div className="text-gray-600">{t('list.loading')}</div>
+    <div className="min-h-screen bg-surface-base">
+      <div className="bg-surface-muted py-16">
+        <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+          <div className="space-y-4 text-center">
+            <h1 className="text-4xl font-bold text-brand-primary">
+              {userRole === 'owner'
+                ? t('list.heroTitleOwner')
+                : t('list.heroTitleInvestor')}
+            </h1>
+            <p className="mx-auto max-w-3xl text-xl text-gray-600">
+              {userRole === 'owner'
+                ? t('list.heroSubtitleOwner')
+                : t('list.heroSubtitleInvestor')}
+            </p>
           </div>
         </div>
-      ) : error ? (
-        <div className="bg-red-50 border border-red-200 rounded-lg p-4 text-red-700" role="alert">
-          {error}
-        </div>
-      ) : properties.length === 0 ? (
-        <div className="text-center py-12 bg-gray-50 rounded-lg">
-          <Building2 className="mx-auto text-gray-400 mb-3" size={48} />
-          <div className="text-gray-600">{t('list.empty')}</div>
-        </div>
-      ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {properties.map(p => {
-            const status = p.status || 'APPROVED'
-            const tokenPrice = Number(p.tokenPrice ?? 0)
-            const monthlyYield = p.monthlyYield ?? 0
-            const remainingTokens = p.remainingTokens ?? p.tokensAvailable ?? 0
-            const totalTokens = p.totalTokens ?? remainingTokens
-            const percentageSold = totalTokens > 0 ? ((totalTokens - remainingTokens) / totalTokens * 100).toFixed(0) : 0
+      </div>
 
-            return (
-              <div key={p.id} className="bg-white border border-gray-200 rounded-xl overflow-hidden hover:shadow-lg transition-shadow relative">
-                {/* Image */}
-                <div className="relative h-48 bg-gradient-to-br from-emerald-500 to-teal-600">
-                  {/* Status Badge for Owners */}
-                  {userRole === 'owner' && (
-                    <div className="absolute top-4 right-4 z-10">
-                      <span className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold ${getStatusBadge(status)}`}>
-                        {status}
+      {/* Temporary pre-launch mode: hide demo listings and collect waitlist leads. */}
+      <div className="mx-auto max-w-2xl px-4 py-12 text-center">
+        <img
+          src="/Full Logo 1.png"
+          alt="الوسم"
+          className="mx-auto mb-6 h-16 w-auto opacity-40"
+        />
+        <h2 className="text-2xl font-bold text-brand-primary mb-3">
+          {isRtl
+            ? 'قريبًا — أول فرصة استثمار عقاري جزئي'
+            : 'Coming soon — the first fractional real estate opportunity'}
+        </h2>
+        <p className="text-gray-500 text-base mb-2">
+          {isRtl
+            ? 'سجّلي اهتمامك الآن وكوني من أوائل المستثمرين عند الإطلاق.'
+            : 'Register your interest now and be among the first investors at launch.'}
+        </p>
+      </div>
+      <WaitlistSection source="opportunities" />
+
+      {/* Property grid — suppressed until launch. Remove false && to restore. */}
+      {false && <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
+        {loading ? (
+          <div className="flex items-center justify-center py-12">
+            <div className="space-y-3 text-center">
+              <Loader2 className="mx-auto animate-spin text-brand-accent" size={40} />
+              <div className="text-gray-600">{t('list.loading')}</div>
+            </div>
+          </div>
+        ) : error ? (
+          <div
+            className="rounded-lg border border-red-200 bg-red-50 p-4 text-red-700"
+            role="alert"
+          >
+            {error}
+          </div>
+        ) : properties.length === 0 ? (
+          <div className="rounded-lg bg-surface-muted py-12 text-center">
+            <img
+              src="/Full Logo 1.png"
+              alt="الوسم"
+              className="mx-auto mb-3 h-16 w-auto opacity-50"
+            />
+            <div className="text-gray-600">{t('list.empty')}</div>
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
+            {properties.map((p) => {
+              const status = p.status || 'APPROVED';
+              const tokenPrice = Number(p.tokenPrice ?? 0);
+              const monthlyYield = p.monthlyYield ?? 0;
+              const remainingTokens = p.remainingTokens ?? p.tokensAvailable ?? 0;
+              const totalTokens = p.totalTokens ?? remainingTokens;
+
+              const soldTokensCount = totalTokens - remainingTokens;
+              const fundingProgress =
+                totalTokens > 0
+                  ? Math.round((soldTokensCount / totalTokens) * 100)
+                  : 0;
+
+              const annualYield = getAnnualYield(monthlyYield);
+
+              return (
+                <div
+                  key={p.id}
+                  className="group relative overflow-hidden rounded-xl border border-gray-200 bg-surface-card transition-all duration-300 hover:shadow-lg"
+                >
+                  <div className="relative h-48 overflow-hidden bg-gray-100">
+                    <div className="absolute left-3 top-3 z-10">
+                      <span className="inline-flex items-center rounded-full bg-white/95 px-2 py-1 text-xs font-semibold text-gray-800 shadow-sm">
+                        {getPropertyTypeLabel(p.propertyType)}
                       </span>
                     </div>
-                  )}
-                  {p.imageUrl ? (
-                    <img 
-                      src={p.imageUrl} 
-                      alt={p.name ?? p.title}
-                      className="w-full h-full object-cover"
-                      onError={(e) => {
-                        e.target.style.display = 'none'
-                        e.target.nextSibling.style.display = 'flex'
-                      }}
-                    />
-                  ) : null}
-                  <div className={`absolute inset-0 bg-gradient-to-br from-emerald-400 to-emerald-600 ${p.imageUrl ? 'hidden' : 'flex'} items-center justify-center`}>
-                    <Building2 className="text-white opacity-50" size={64} />
-                  </div>
-                </div>
 
-                {/* Property Details */}
-                <div className="p-5 space-y-4">
-                  <div>
-                    <h3 className="font-semibold text-xl text-gray-900 mb-1">{p.name ?? p.title}</h3>
-                    <div className="flex items-center gap-1 text-sm text-gray-500">
-                      <MapPin size={14} />
-                      <span>{t('list.locationFallback')}</span>
-                    </div>
-                    <div className="flex items-center gap-1 text-xs text-gray-400 mt-1">
-                      <Shield size={12} />
-                      <span>{t('list.idLabel')}: {maskPropertyId(p.id)}</span>
-                    </div>
-                  </div>
-
-                  {/* Stats Grid */}
-                  <div className="grid grid-cols-2 gap-3">
-                    <div className="bg-gray-50 rounded-lg p-3">
-                      <div className="flex items-center gap-1 text-gray-500 text-xs mb-1">
-                        <Coins size={14} />
-                        <span>{t('list.tokenPrice')}</span>
-                      </div>
-                      <div className="font-semibold text-gray-900">{tokenPrice.toLocaleString()} SAR</div>
-                    </div>
-
-                    <div className="bg-emerald-50 rounded-lg p-3">
-                      <div className="flex items-center gap-1 text-emerald-600 text-xs mb-1">
-                        <TrendingUp size={14} />
-                        <span>{t('list.monthlyYield')}</span>
-                      </div>
-                      <div className="font-semibold text-emerald-700">{monthlyYield}%</div>
-                    </div>
-                  </div>
-
-                  {/* Availability Bar */}
-                  <div>
-                    <div className="flex justify-between text-sm mb-2">
-                      <span className="text-gray-600">{t('list.tokensAvailable')}</span>
-                      <span className="font-medium text-gray-900">{remainingTokens.toLocaleString()}</span>
-                    </div>
-                    <div className="w-full bg-gray-200 rounded-full h-2">
-                      <div 
-                        className="bg-emerald-600 h-2 rounded-full transition-all" 
-                        style={{ width: `${100 - percentageSold}%` }}
-                      />
-                    </div>
-                    <div className="text-xs text-gray-500 mt-1">
-  {t('list.percentSold', { value: percentageSold })}
-</div>
-                  </div>
-
-                  {/* Action Buttons */}
-                  <div className="p-4 bg-gray-50 border-t border-gray-200">
-                    {userRole === 'owner' ? (
-                      <div className="flex gap-2">
-                        <button
-                          onClick={() => navigate(`/properties/${p.id}`)}
-                          className="flex-1 flex items-center justify-center gap-2 px-4 py-2 bg-gray-600 hover:bg-gray-700 text-white rounded-lg font-medium transition-colors"
+                    {userRole === 'owner' && (
+                      <div className="absolute right-3 top-3 z-10">
+                        <span
+                          className={`inline-flex items-center rounded-full px-2 py-1 text-xs font-semibold ${getStatusBadge(
+                            status
+                          )}`}
                         >
-                          <Eye size={18} />
-                          <span>{t('list.view')}</span>
-                        </button>
-                        {(status === 'PENDING' || status === 'REJECTED') && (
-                          <button
-                            onClick={() => navigate(`/owner/properties`)}
-                            className="flex-1 flex items-center justify-center gap-2 px-4 py-2 bg-amber-600 hover:bg-amber-700 text-white rounded-lg font-medium transition-colors"
-                          >
-                            <Edit2 size={18} />
-                            <span>{t('list.edit')}</span>
-                          </button>
-                        )}
+                          {status}
+                        </span>
                       </div>
+                    )}
+
+                    {p.imageUrl ? (
+                      <>
+                        <img
+                          src={p.imageUrl}
+                          alt={p.name ?? p.title}
+                          className="h-full w-full object-cover"
+                          onError={(e) => {
+                            e.currentTarget.style.display = 'none';
+                            const fallback = e.currentTarget.nextElementSibling;
+                            if (fallback) fallback.classList.remove('hidden');
+                            if (fallback) fallback.classList.add('flex');
+                          }}
+                        />
+                        <div className="absolute inset-0 hidden items-center justify-center bg-gradient-to-br from-surface-muted to-surface-border">
+                          <Building2 className="text-gray-400" size={48} />
+                        </div>
+                      </>
                     ) : (
-                      <Link
-                      to={`/investor/properties/${p.id}`}
-                      className="flex items-center justify-center gap-2 w-full px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg font-medium transition-colors"
-                    >
-                      <span>{t('list.viewDetails')}</span>
-                     <ArrowRight
-  size={18}
-  className={isRtl ? 'rotate-180' : ''}
-/>
-                    </Link>
+                      <div className="absolute inset-0 flex items-center justify-center bg-gradient-to-br from-surface-muted to-surface-border">
+                        <Building2 className="text-gray-400" size={48} />
+                      </div>
                     )}
                   </div>
+
+                  <div className="space-y-4 p-6">
+                    <div>
+                      <h3 className="mb-2 text-xl font-semibold text-brand-primary">
+                        {p.name ?? p.title}
+                      </h3>
+
+                      <div className="flex items-center gap-1 text-sm text-gray-500">
+                        <MapPin size={14} />
+                        <span>{p.city || t('list.locationFallback')}</span>
+                      </div>
+                    </div>
+
+                    <div className="space-y-3">
+                      <div className="flex items-center justify-between">
+                        <span className="text-sm text-gray-600">
+                          {t('list.card.startsFrom')}
+                        </span>
+                        <span className="font-semibold text-gray-900">
+                          {tokenPrice.toLocaleString()} SAR
+                        </span>
+                      </div>
+
+                      <div className="flex items-center justify-between">
+                        <span className="text-sm text-gray-600">
+                          {t('list.card.annualYield')}
+                        </span>
+                        <span className="font-semibold text-brand-accent">
+                          {annualYield}%
+                        </span>
+                      </div>
+
+                      <div className="flex items-center justify-between">
+                        <span className="text-sm text-gray-600">
+                          {t('list.card.fundingProgress')}
+                        </span>
+                        <span className="font-medium text-gray-900">
+                          {fundingProgress}%
+                        </span>
+                      </div>
+                    </div>
+
+                    <div>
+  <div className="w-full h-2 rounded-full bg-surface-border overflow-hidden">
+    <div
+      className="h-full rounded-full transition-all duration-500"
+      style={{
+        width: `${fundingProgress}%`,
+        backgroundColor: '#48D1C5',
+      }}
+    />
+  </div>
+  <div className="text-xs text-gray-500 mt-1">
+    {t('list.percentSold', { value: fundingProgress })}
+  </div>
+</div>
+
+                    <div className="pt-2">
+                      {userRole === 'owner' ? (
+                        <div className="flex gap-2">
+                          <button
+                            onClick={() => navigate(`/properties/${p.id}`)}
+                            className="flex flex-1 items-center justify-center gap-2 rounded-lg bg-brand-primary px-4 py-2 font-medium text-white transition-colors hover:bg-brand-primary/90"
+                          >
+                            <Eye size={18} />
+                            <span>{t('list.view')}</span>
+                          </button>
+
+                          {(status === 'PENDING' || status === 'REJECTED') && (
+                            <button
+                              onClick={() => navigate('/owner/properties')}
+                              className="flex flex-1 items-center justify-center gap-2 rounded-lg bg-brand-accent px-4 py-2 font-medium text-white transition-colors hover:bg-brand-accent/90"
+                            >
+                              <Edit2 size={18} />
+                              <span>{t('list.edit')}</span>
+                            </button>
+                          )}
+                        </div>
+                      ) : (
+                        <Link
+                          to={`/investor/properties/${p.id}`}
+                          className="flex w-full items-center justify-center gap-2 rounded-lg bg-brand-primary px-4 py-3 font-semibold text-white shadow-sm transition-all duration-200 hover:bg-brand-primary/90 hover:scale-[1.02] hover:shadow-md"
+                        >
+                          <span>{t('list.viewDetails')}</span>
+                          <ArrowRight
+                            size={18}
+                            className={isRtl ? 'rotate-180' : ''}
+                          />
+                        </Link>
+                      )}
+                    </div>
+                  </div>
                 </div>
-              </div>
-            )
-          })}
-        </div>
-      )}
+              );
+            })}
+          </div>
+        )}
+      </div>}
     </div>
-  )
+  );
 }

@@ -6,17 +6,26 @@
   },
   "owner": {
     "dashboard": "لوحة المالك",
+    "requests": "طلباتي",
     "properties": "عقاراتي",
     "submitProperty": "إضافة عقار"
   },
   "admin": {
     "overview": "نظرة عامة",
-    "reviewProperties": "مراجعة العقارات",
+    "propertyLeads": "طلبات التقديم المبدئي",
+    "reviewProperties": "فرص الإدراج العقاري",
     "users": "إدارة المستخدمين",
     "issueDeeds": "إصدار الصكوك",
     "reports": "التقارير",
     "settings": "الإعدادات",
-    "investors": "إدارة المستثمرين"
+    "investors": "إدارة المستثمرين",
+    "deposits": "طلبات الإيداع",
+    "auditLogs": "سجل التدقيق",
+    "financialReports": "التقارير المالية",
+    "withdrawals": "طلبات السحب",
+    "investorStatement": "كشف حساب المستثمر",
+    "ownerStatement": "كشف حساب المالك",
+    "platformPnl": "قائمة الإيرادات والمصاريف"
   },
   "regulator": {
     "dashboard": "لوحة الجهة الرقابية",

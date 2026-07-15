@@ -9,6 +9,10 @@ export const ownerRouter = Router()
 ownerRouter.get('/:ownerId/investors', auth(true), async (req: Request, res: Response) => {
   try {
     const { ownerId } = req.params
+    const requestingUser = (req as any).user
+    if (requestingUser?.role !== 'ADMIN' && requestingUser?.userId !== ownerId) {
+      return res.status(403).json({ error: 'forbidden', message: 'Access denied.' })
+    }
 
     if (!ownerId) {
       return res.status(400).json({ error: 'ownerId_required' })
@@ -24,13 +28,13 @@ ownerRouter.get('/:ownerId/investors', auth(true), async (req: Request, res: Res
       return res.json({ investors: [], totalInvestment: 0 })
     }
 
-    const propertyIds = properties.map(p => p.id)
+    const propertyIds = properties.map((p: any) => p.id)
 
     // Holdings across those properties, include user + property
     const holdings = await prisma.holding.findMany({
       where: { propertyId: { in: propertyIds } },
       include: {
-        user: { select: { id: true, name: true, email: true } },
+        user: { select: { id: true, fullName: true, email: true } },
         property: { select: { id: true, title: true, tokenPrice: true } }
       }
     })
@@ -46,7 +50,7 @@ ownerRouter.get('/:ownerId/investors', auth(true), async (req: Request, res: Res
       if (!investorMap.has(key)) {
         investorMap.set(key, {
           userId: h.userId,
-          name: h.user.name || h.user.email,
+          name: h.user.fullName || h.user.email,
           email: h.user.email,
           totalTokens: 0,
           totalInvestment: 0,
@@ -66,7 +70,7 @@ ownerRouter.get('/:ownerId/investors', auth(true), async (req: Request, res: Res
     }
 
     const investors = Array.from(investorMap.values())
-    const totalInvestment = investors.reduce((sum, i) => sum + i.totalInvestment, 0)
+    const totalInvestment = investors.reduce((sum: number, i: any) => sum + i.totalInvestment, 0)
 
     res.json({
       ownerId,

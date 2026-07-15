@@ -11,15 +11,42 @@ export function clearToken() {
   localStorage.removeItem('estathub_token')
 }
 
+function normalizeBaseUrl(raw) {
+  const s = String(raw || '').trim()
+  if (!s) return ''
+  return s.endsWith('/') ? s.slice(0, -1) : s
+}
+
+function joinApiUrl(base, path) {
+  const b = normalizeBaseUrl(base)
+  const p = String(path || '')
+
+  if (!b) return p
+
+  if (b.endsWith('/api') && p.startsWith('/api/')) {
+    return `${b}${p.slice(4)}`
+  }
+
+  return `${b}${p}`
+}
+
+function getApiBase() {
+  return (
+    normalizeBaseUrl(import.meta.env.VITE_API_BASE) ||
+    normalizeBaseUrl(import.meta.env.VITE_API_URL) ||
+    ''
+  )
+}
+
 // ===== ENHANCED API CLIENT =====
 export class ApiClient {
   constructor() {
-    this.apiBase = import.meta.env.VITE_API_BASE || ''
+    this.apiBase = getApiBase()
   }
   
   // Generic request method
   async request(path, options = {}) {
-    const url = `${this.apiBase}${path}`
+    const url = joinApiUrl(this.apiBase, path)
     
     console.log('📡 API Request:', {
       method: options.method || 'GET',
@@ -46,10 +73,11 @@ export class ApiClient {
         url
       })
       
-      // Try to parse JSON response
-      let data
-      const contentType = response.headers.get('content-type')
-      if (contentType && contentType.includes('application/json')) {
+      const contentType = response.headers.get('content-type') || ''
+      const isJson = contentType.includes('application/json')
+      let data = null
+
+      if (isJson) {
         try {
           data = await response.json()
         } catch (e) {
@@ -59,8 +87,20 @@ export class ApiClient {
       }
       
       if (!response.ok) {
+        let bodyText = ''
+        if (!isJson) {
+          try {
+            bodyText = await response.text()
+          } catch {
+            bodyText = ''
+          }
+        }
+
         const error = new ApiError(
-          data?.error || data?.details || response.statusText || 'Request failed',
+          data?.error ||
+            data?.details ||
+            (bodyText ? `Non-JSON response: ${bodyText.slice(0, 120)}` : response.statusText) ||
+            'Request failed',
           response.status,
           data?.code || 'request_failed',
           data?.details
@@ -68,6 +108,22 @@ export class ApiClient {
         error.response = response
         error.data = data
         throw error
+      }
+
+      if (!isJson) {
+        let bodyText = ''
+        try {
+          bodyText = await response.text()
+        } catch {
+          bodyText = ''
+        }
+        throw new ApiError(
+          bodyText
+            ? `Expected JSON but got non-JSON response: ${bodyText.slice(0, 120)}`
+            : 'Expected JSON but got empty non-JSON response',
+          response.status,
+          'non_json_response'
+        )
       }
       
       return data
@@ -165,20 +221,56 @@ export async function fetchJson(url, options = {}) {
     ...options.headers
   };
 
+  const base = getApiBase()
+  const finalUrl = url.startsWith('http://') || url.startsWith('https://')
+    ? url
+    : joinApiUrl(base, url)
+
   try {
-    const response = await fetch(url, {
+    const response = await fetch(finalUrl, {
       ...options,
       headers
     });
 
+    const contentType = response.headers.get('content-type') || ''
+    const isJson = contentType.includes('application/json')
+
     if (!response.ok) {
-      const error = new Error(`HTTP error! status: ${response.status}`);
-      error.status = response.status;
-      throw error;
+      let bodyText = ''
+      let parsedData = null
+      try {
+        bodyText = await response.text()
+        parsedData = JSON.parse(bodyText)
+      } catch {
+        parsedData = null
+      }
+      const error = new Error(
+        bodyText
+          ? `HTTP ${response.status}. Non-JSON body: ${bodyText.slice(0, 120)}`
+          : `HTTP error! status: ${response.status}`
+      )
+      error.status = response.status
+      if (parsedData) error.data = parsedData
+      throw error
     }
 
-    const data = await response.json();
-    return data;
+    if (!isJson) {
+      let bodyText = ''
+      try {
+        bodyText = await response.text()
+      } catch {
+        bodyText = ''
+      }
+      const error = new Error(
+        bodyText
+          ? `Expected JSON but got non-JSON response: ${bodyText.slice(0, 120)}`
+          : 'Expected JSON but got empty non-JSON response'
+      )
+      error.status = response.status
+      throw error
+    }
+
+    return await response.json()
   } catch (error) {
     console.error(`Fetch error for ${url}:`, error);
     throw error;

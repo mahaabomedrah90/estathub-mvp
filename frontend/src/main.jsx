@@ -13,10 +13,19 @@ import './index.css'
 import Home from './pages/Home.jsx'
 import Login from './pages/Login.jsx'
 import Signup from './pages/Signup.jsx'
+import RoleSelection from './pages/RoleSelection.jsx'
 import BlockchainExplorer from './pages/BlockchainExplorer.jsx'
 import Opportunities from './pages/investor/Opportunities.jsx'
-import PropertyDetail from './pages/investor/PropertyDetail.jsx'
+import PropertyDetail from './pages/PropertyDetail.jsx'
 import VerifyDeed from './pages/VerifyDeed.jsx'
+import About from './pages/About.jsx'
+import HowItWorks from './pages/HowItWorks.jsx'
+import FAQ from './pages/FAQ.jsx'
+import Terms from './pages/Terms.jsx'
+import Privacy from './pages/Privacy.jsx'
+import ForgotPassword from './pages/ForgotPassword.jsx'
+import ResetPassword from './pages/ResetPassword.jsx'
+import VerifyEmail from './pages/VerifyEmail.jsx'
 // Investor Pages
 import InvestorDashboard from './pages/investor/InvestorDashboard.jsx'
 import Portfolio from './pages/Investor/Portfolio.jsx'
@@ -25,6 +34,8 @@ import MyDeeds from './pages/Investor/MyDeeds.jsx'
 import OwnerDashboard from './pages/owner/OwnerDashboard.jsx'
 import OwnerProperties from './pages/owner/OwnerProperties.jsx'
 import PropertySubmissionWizard from './pages/owner/PropertySubmissionWizard.jsx'
+import OwnerOpportunityLeadForm from './pages/owner/OwnerOpportunityLeadForm.jsx'
+import OwnerRequests from './pages/owner/OwnerRequests.jsx'
 import OwnerInvestors from './pages/admin/AdminInvestors.jsx'
 // Admin Pages
 import AdminOverview from './pages/admin/AdminOverview.jsx'
@@ -36,6 +47,14 @@ import './index.css'
 import AdminReports from './pages/admin/AdminReports.jsx'
 import AdminSettings from './pages/admin/AdminSettings.jsx'
 import AdminInvestors from './pages/admin/AdminInvestors.jsx'
+import AdminDepositRequests from './pages/admin/AdminDepositRequests.jsx'
+import AdminAuditLog from './pages/admin/AdminAuditLog.jsx'
+import AdminFinancialReports from './pages/admin/AdminFinancialReports.jsx'
+import AdminWithdrawalRequests from './pages/admin/AdminWithdrawalRequests.jsx'
+import AdminInvestorStatement from './pages/admin/AdminInvestorStatement.jsx'
+import AdminOwnerStatement from './pages/admin/AdminOwnerStatement.jsx'
+import AdminPlatformPnL from './pages/admin/AdminPlatformPnL.jsx'
+import AdminPropertyLeads from './pages/admin/AdminPropertyLeads.jsx'
 // Regulator Pages
 import RegOverview from './pages/regulator/RegOverview.jsx'
 import RegProperties from './pages/regulator/RegProperties.jsx'
@@ -71,6 +90,15 @@ const router = createBrowserRouter([
       { path: 'verify-deed', element: <VerifyDeed /> },
       { path: 'login', element: <Login /> },
       { path: 'signup', element: <Signup /> },
+      { path: 'role-selection', element: <RoleSelection /> },
+      { path: 'about', element: <About /> },
+      { path: 'how-it-works', element: <HowItWorks /> },
+      { path: 'faq', element: <FAQ /> },
+      { path: 'terms', element: <Terms /> },
+      { path: 'privacy', element: <Privacy /> },
+      { path: 'forgot-password', element: <ForgotPassword /> },
+      { path: 'reset-password', element: <ResetPassword /> },
+      { path: 'verify-email', element: <VerifyEmail /> },
       {
         path: 'wallet',
         element: (() => {
@@ -112,8 +140,11 @@ const router = createBrowserRouter([
  children: [
  { index: true, element: <Navigate to="/owner/dashboard" replace /> },
  { path: 'dashboard', element: <OwnerDashboard /> },
+ { path: 'requests', element: <OwnerRequests /> },
  { path: 'properties', element: <OwnerProperties /> },
  { path: 'properties/new', element: <PropertySubmissionWizard /> },
+ { path: 'properties/new-legacy', element: <PropertySubmissionWizard /> },
+ { path: 'opportunities/new', element: <OwnerOpportunityLeadForm /> },
  { path: 'investors', element: <OwnerInvestors /> },
 
 ],  
@@ -131,11 +162,19 @@ const router = createBrowserRouter([
   { path: 'overview', element: <AdminOverview /> },
   { path: 'properties/:id', element: <AdminPropertyDetail /> },
   { path: 'opportunities', element: <AdminOpportunities /> },
+  { path: 'property-leads', element: <AdminPropertyLeads /> },
   { path: 'users', element: <AdminUsers /> },
   { path: 'issue-deeds', element: <IssueDeeds /> },
   { path: 'reports', element: <AdminReports /> },
   { path: 'settings', element: <AdminSettings /> },
   { path: 'investors', element: <AdminInvestors /> },
+  { path: 'deposits', element: <AdminDepositRequests /> },
+  { path: 'audit', element: <AdminAuditLog /> },
+  { path: 'financial-reports', element: <AdminFinancialReports /> },
+  { path: 'withdrawals', element: <AdminWithdrawalRequests /> },
+  { path: 'investor-statement', element: <AdminInvestorStatement /> },
+  { path: 'owner-statement', element: <AdminOwnerStatement /> },
+  { path: 'platform-pnl', element: <AdminPlatformPnL /> },
 ],
 },
 // Regulator Routes

@@ -1,28 +1,86 @@
 import { Router, Request, Response } from 'express'
 import jwt from 'jsonwebtoken'
 import bcrypt from 'bcryptjs'
-import { Role } from '@prisma/client'
+import rateLimit from 'express-rate-limit'
+import crypto from 'crypto'
 import { prisma } from '../lib/prisma'
 import { auth } from '../middleware/auth'
+import { logAdminAction, AuditAction } from '../lib/auditService'
+import { maintenanceGuard, registrationGuard } from '../middleware/platform'
+import { getSetting } from './settings.controller'
+import { sendEmail, buildPasswordResetEmail, buildVerificationEmail, buildNewUserAdminEmail, getAdminEmail } from '../lib/emailService'
+import {
+  validateEmail,
+  normalizeEmail,
+  validatePhone,
+  validateNationalId,
+  validatePassword,
+  validateFullName,
+  validateTermsAccepted,
+  maskNationalId,
+  sanitizeForLog,
+  validationErrorMessages
+} from '../lib/validators'
+
 export const authRouter = Router()
 export const usersRouter = Router()
+
+type Role = 'INVESTOR' | 'OWNER' | 'ADMIN' | 'REGULATOR'
 
 // ============================================================================
 // Configuration
 // ============================================================================
 
 const JWT_SECRET = process.env.JWT_SECRET || 'dev-secret-change-in-production'
-const JWT_EXPIRES_IN = process.env.JWT_EXPIRES_IN || '1d'
+const JWT_EXPIRES_IN = process.env.JWT_EXPIRES_IN || '7d'
 const BCRYPT_SALT_ROUNDS = parseInt(process.env.BCRYPT_SALT_ROUNDS || '12')
+
+// ============================================================================
+// Rate Limiting Configuration
+// ============================================================================
+
+// Register rate limiter: relaxed in dev, enforced in production
+const registerLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: process.env.NODE_ENV === 'production' ? 20 : 50,
+  message: {
+    error: 'rate_limit_exceeded',
+    message: 'عدد المحاولات كبير، يرجى المحاولة لاحقًا.'
+  },
+  standardHeaders: true,
+  legacyHeaders: false,
+  skipSuccessfulRequests: true
+})
+
+// Forgot password rate limiter: 3 attempts per hour per IP
+const forgotPasswordLimiter = rateLimit({
+  windowMs: 60 * 60 * 1000, // 1 hour
+  max: 3,
+  message: {
+    error: 'rate_limit_exceeded',
+    message: 'Too many password reset attempts. Please try again later.'
+  },
+  standardHeaders: true,
+  legacyHeaders: false
+})
+
+// Login rate limiter: 10 attempts per 15 minutes per IP
+const loginLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 10,
+  message: {
+    error: 'rate_limit_exceeded',
+    message: 'Too many login attempts. Please try again after 15 minutes.'
+  },
+  standardHeaders: true,
+  legacyHeaders: false
+})
 
 // ============================================================================
 // Helper Functions
 // ============================================================================
 
 async function hashPassword(plain: string): Promise<string> {
-  if (!plain || plain.length < 6) {
-    throw new Error('Password must be at least 6 characters long')
-  }
   return await bcrypt.hash(plain, BCRYPT_SALT_ROUNDS)
 }
 
@@ -31,242 +89,1030 @@ async function comparePassword(plain: string, hash: string): Promise<boolean> {
   return await bcrypt.compare(plain, hash)
 }
 
-function generateJwt(payload: {
-  userId: string
+async function generateResetToken(): Promise<string> {
+  return crypto.randomBytes(32).toString('hex')
+}
+
+async function hashResetToken(token: string): Promise<string> {
+  return await bcrypt.hash(token, BCRYPT_SALT_ROUNDS)
+}
+
+async function verifyResetToken(token: string, hashedToken: string): Promise<boolean> {
+  return await bcrypt.compare(token, hashedToken)
+}
+
+function buildResetLink(token: string): string {
+  const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:5173'
+  return `${frontendUrl}/reset-password?token=${token}`
+}
+
+function buildVerifyLink(token: string): string {
+  const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:5173'
+  return `${frontendUrl}/verify-email?token=${token}`
+}
+
+function generateVerificationToken(userId: string, email: string): string {
+  return jwt.sign(
+    { userId, email, purpose: 'email-verify' },
+    JWT_SECRET,
+    { expiresIn: '24h', issuer: 'estathub-mvp', audience: 'estathub-users' } as any
+  )
+}
+
+function signToken(user: {
+  id: string
+  email: string
+  role: Role
   tenantId: string
-  role: string
-}): string {
-  return jwt.sign(payload, JWT_SECRET, {
-    expiresIn: JWT_EXPIRES_IN,
-    issuer: 'estathub-mvp',
-    audience: 'estathub-users'
-  } as jwt.SignOptions)
-}
-
-function validateEmail(email: string): boolean {
-  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
-  return emailRegex.test(email)
-}
-
-function validatePassword(password: string): {
-  valid: boolean
-  errors: string[]
-} {
-  const errors: string[] = []
-  if (!password) {
-    errors.push('Password is required')
-  } else {
-    if (password.length < 6) {
-      errors.push('Password must be at least 6 characters long')
-    }
-    if (password.length > 128) {
-      errors.push('Password must be less than 128 characters')
-    }
-  }
-  return { valid: errors.length === 0, errors }
-}
-
-function generateDisplayName(email: string): string {
-  const parts = email.split('@')
-  const name = parts[0]
-    .replace(/[._-]/g, ' ')
-    .replace(/\b\w/g, l => l.toUpperCase())
-  return name
-}
-
-function signToken(user: { id: string; email: string; role: Role; tenantId?: string }) {
-  const secret = process.env.JWT_SECRET || 'devsecret'
-  return jwt.sign({ 
-  userId: user.id, 
-  email: user.email, 
-  role: user.role,
-  tenantId: user.tenantId || '1'
-}, secret, { 
-    issuer: 'estathub-mvp',
-    audience: 'estathub-users',
-    expiresIn: '7d' 
-  })
-}
-
-// POST /api/auth/login
-authRouter.post('/login', async (req: Request, res: Response) => {
-  console.log('🔐 Login request received:', { body: req.body })
-  
-  try {
-    const email = String(req.body?.email || '').toLowerCase().trim()
-    if (!email) {
-      console.log('❌ Email missing')
-      return res.status(400).json({ error: 'email_required' })
-    }
-
-  
-
- 
-
-  // Look up existing user first
-let user = await prisma.user.findUnique({ 
-    where: { email } 
-  })
-  // Auto-detect role for NEW users
-let userRole: Role = Role.INVESTOR // default
-
-if (req.body?.role) {
-  const requestedRole = String(req.body.role).toUpperCase()
-  if (['INVESTOR', 'OWNER', 'ADMIN', 'REGULATOR'].includes(requestedRole)) {
-    userRole = requestedRole as Role
-  }
-} else {
-  if (email.includes('owner')) {
-    userRole = Role.OWNER
-  } else if (email.includes('admin')) {
-    userRole = Role.ADMIN
-  } else if (email.includes('investor')) {
-    userRole = Role.INVESTOR
-  } else if (email.includes('regulator')) {
-    userRole = Role.REGULATOR
-  }
-}
-
-// After the first user lookup and role detection:
-
-if (!user) {
-  // 🔹 Ensure there is a default tenant and use its real id
-  const defaultTenant = await prisma.tenant.findFirst({
-    where: { name: 'Default Tenant' }
-  })
-
-  if (!defaultTenant) {
-    return res.status(500).json({ error: 'default_tenant_not_found' })
-  }
-
-    console.log('👤 Creating new user with role:', userRole)
-  user = await prisma.user.create({
-    data: {
-      email,
-      role: userRole,
-      tenantId: defaultTenant.id,
-      passwordHash: 'oauth_placeholder'
+  fullName: string | null
+}) {
+  return jwt.sign(
+    {
+      userId: user.id,
+      email: user.email,
+      role: user.role,
+      tenantId: user.tenantId,
+      fullName: user.fullName
     },
-    include: { tenant: true }
-  })
-} else {
-  console.log('👤 Existing user found with role:', user.role)
+    JWT_SECRET,
+    {
+      expiresIn: JWT_EXPIRES_IN,
+      issuer: 'estathub-mvp',
+      audience: 'estathub-users'
+    } as any
+  )
 }
 
-    if (!user) {
-      return res.status(401).json({ error: 'user_authentication_failed' });
+function getErrorMessage(errorCode: string, lang: 'en' | 'ar' = 'en'): string {
+  const message = validationErrorMessages[errorCode]
+  return message ? message[lang] : errorCode
+}
+
+function sanitizeUserForResponse(user: any) {
+  if (!user) return null
+
+  return {
+    id: user.id,
+    email: user.email,
+    fullName: user.fullName,
+    role: user.role,
+    tenantId: user.tenantId,
+    createdAt: user.createdAt,
+    updatedAt: user.updatedAt,
+    emailVerified: user.emailVerified,
+    phoneVerified: user.phoneVerified,
+    kycVerified: user.kycVerified,
+    nationalId: user.nationalId ? maskNationalId(user.nationalId) : null,
+    phoneNumber: user.phoneNumber
+      ? user.phoneNumber.slice(0, -6) + '***' + user.phoneNumber.slice(-3)
+      : null,
+    address: user.address
+  }
+}
+
+// ============================================================================
+// POST /api/auth/register - User Registration
+// ============================================================================
+
+authRouter.post('/register', registerLimiter, maintenanceGuard, registrationGuard, async (req: Request, res: Response) => {
+  console.log('🔐 Registration request received:', sanitizeForLog(req.body))
+
+  try {
+    const {
+      fullName,
+      email,
+      phoneNumber,
+      nationalId,
+      password,
+      confirmPassword,
+      role,
+      termsAccepted
+    } = req.body
+
+    const lang = (req.headers['accept-language']?.includes('ar') ? 'ar' : 'en') as 'en' | 'ar'
+
+    // Validate Terms Acceptance
+    const termsValidation = validateTermsAccepted(termsAccepted === true)
+    if (!termsValidation.valid) {
+      return res.status(400).json({
+        error: termsValidation.error,
+        field: 'termsAccepted',
+        message: getErrorMessage(termsValidation.error!, lang)
+      })
     }
 
-    console.log('✅ User authenticated:', { id: user.id, email: user.email, role: user.role })
-    
-    // Include tenant information in token
-    const userWithTenant = {
-      ...user,
-      tenantId: user.tenantId || '1' // Default tenant if no tenant association
+    // Validate Full Name
+    const nameValidation = validateFullName(fullName)
+    if (!nameValidation.valid) {
+      return res.status(400).json({
+        error: nameValidation.error,
+        message: getErrorMessage(nameValidation.error!, lang),
+        field: 'fullName'
+      })
     }
-    const token = signToken(userWithTenant)
-    const response = { 
-      token, 
-      user: { id: user.id, email: user.email, role: user.role } 
+    const normalizedFullName = nameValidation.normalized!
+
+    // Validate Email
+    const emailValidation = validateEmail(email)
+    if (!emailValidation.valid) {
+      return res.status(400).json({
+        error: emailValidation.error,
+        message: getErrorMessage(emailValidation.error!, lang),
+        field: 'email'
+      })
     }
-    
-    console.log('📤 Sending response:', response)
-    return res.status(200).json(response)
-    
-  } catch (e: any) {  
-    console.error('❌ Login error:', e)
-    console.error('Error details:', { message: e.message, stack: e.stack })
-    return res.status(500).json({ error: 'login_failed', details: e.message })
+    const normalizedEmail = normalizeEmail(email)
+
+    // Validate Phone
+    const phoneValidation = validatePhone(phoneNumber)
+    if (!phoneValidation.valid) {
+      return res.status(400).json({
+        error: phoneValidation.error,
+        message: getErrorMessage(phoneValidation.error!, lang),
+        field: 'phoneNumber'
+      })
+    }
+    const normalizedPhone = phoneValidation.normalized!
+
+    // Validate National ID
+    const nationalIdValidation = validateNationalId(nationalId)
+    if (!nationalIdValidation.valid) {
+      return res.status(400).json({
+        error: nationalIdValidation.error,
+        message: getErrorMessage(nationalIdValidation.error!, lang),
+        field: 'nationalId'
+      })
+    }
+
+    // Validate Password
+    const passwordValidation = validatePassword(password)
+    if (!passwordValidation.valid) {
+      const passwordMessages = passwordValidation.errors.map(e => getErrorMessage(e, lang))
+      return res.status(400).json({
+        error: 'password_validation_failed',
+        field: 'password',
+        message: passwordMessages[0],
+        messages: passwordMessages,
+        strength: passwordValidation.strength
+      })
+    }
+
+    if (password !== confirmPassword) {
+      return res.status(400).json({
+        error: 'password_mismatch',
+        message: getErrorMessage('password_mismatch', lang),
+        field: 'confirmPassword'
+      })
+    }
+
+    // Check existing users
+    const existingUserByEmail = await prisma.user.findUnique({
+      where: { email: normalizedEmail }
+    })
+    if (existingUserByEmail) {
+      return res.status(409).json({
+        error: 'email_already_exists',
+        message: getErrorMessage('email_already_exists', lang),
+        field: 'email'
+      })
+    }
+
+    const existingUserByPhone = await prisma.user.findFirst({
+      where: { phoneNumber: normalizedPhone }
+    })
+    if (existingUserByPhone) {
+      return res.status(409).json({
+        error: 'phone_already_exists',
+        message: getErrorMessage('phone_already_exists', lang),
+        field: 'phoneNumber'
+      })
+    }
+
+    const existingUserByNationalId = await prisma.user.findFirst({
+      where: { nationalId: nationalId.trim() }
+    })
+    if (existingUserByNationalId) {
+      return res.status(409).json({
+        error: 'national_id_already_exists',
+        message: getErrorMessage('national_id_already_exists', lang),
+        field: 'nationalId'
+      })
+    }
+
+    // Get or create default tenant
+    let tenant = await prisma.tenant.findFirst({
+      where: { name: 'Default Tenant' }
+    })
+
+    if (!tenant) {
+      tenant = await prisma.tenant.create({
+        data: { name: 'Default Tenant' }
+      })
+    }
+
+    // Hash Password
+    const passwordHash = await hashPassword(password)
+
+    // Create User
+    const userRole = role && ['INVESTOR', 'OWNER', 'ADMIN', 'REGULATOR'].includes(role.toUpperCase())
+      ? role.toUpperCase() as Role
+      : 'INVESTOR'
+
+    const user = await prisma.user.create({
+      data: {
+        fullName: normalizedFullName,
+        email: normalizedEmail,
+        phoneNumber: normalizedPhone,
+        nationalId: nationalId.trim(),
+        passwordHash,
+        role: userRole,
+        tenantId: tenant.id,
+        emailVerified: false,
+        phoneVerified: false,
+        kycVerified: false
+      },
+      include: { tenant: true }
+    })
+
+    console.log('✅ User registered successfully:', { userId: user.id, email: user.email })
+
+    // Fire-and-forget admin notification — must not block response
+    ;(async () => {
+      try {
+        const adminEmail = await getAdminEmail(prisma as any)
+        const content = buildNewUserAdminEmail({
+          userName: user.fullName || user.email,
+          userEmail: user.email,
+          role: user.role,
+          createdAt: user.createdAt,
+        })
+        await sendEmail({ to: adminEmail, ...content })
+      } catch (emailErr: any) {
+        console.error('❌ Failed to send new-user admin email:', emailErr.message)
+      }
+    })()
+
+    // Email verification gating
+    const requireVerification = await getSetting('requireEmailVerification', 'true')
+    if (requireVerification === 'true') {
+      const verifyToken = generateVerificationToken(user.id, user.email)
+      const verifyLink = buildVerifyLink(verifyToken)
+      if (process.env.NODE_ENV === 'production') {
+        const emailContent = buildVerificationEmail(verifyLink, lang === 'ar')
+        sendEmail({ to: user.email, ...emailContent })
+          .catch(err => console.error('❌ Failed to send verification email:', err.message))
+      } else {
+        console.log('🔗 [DEV] Email verification link:', verifyLink)
+        console.log('📧 [DEV] Would send verification email to:', user.email)
+      }
+      return res.status(201).json({
+        requiresVerification: true,
+        message: lang === 'ar'
+          ? 'تم إنشاء الحساب. يرجى تأكيد بريدك الإلكتروني قبل تسجيل الدخول.'
+          : 'Account created. Please verify your email address before signing in.',
+        user: sanitizeUserForResponse(user)
+      })
+    }
+
+    const token = signToken({
+      id: user.id,
+      email: user.email,
+      role: user.role as Role,
+      tenantId: user.tenantId,
+      fullName: user.fullName
+    })
+
+    return res.status(201).json({
+      message: 'registration_success',
+      token,
+      user: sanitizeUserForResponse(user)
+    })
+
+  } catch (error: any) {
+    console.error('❌ Registration error:', error.message)
+    return res.status(500).json({
+      error: 'registration_failed',
+      message: 'An unexpected error occurred. Please try again later.'
+    })
   }
 })
 
-// POST /api/auth/signup
-authRouter.post('/signup', async (req: Request, res: Response) => {
-  console.log('🔐 Signup request received:', { body: req.body })
-  
+// ============================================================================
+// POST /api/auth/login - User Login (Email or Phone + Password)
+// ============================================================================
+
+authRouter.post('/login', loginLimiter, async (req: Request, res: Response) => {
+  const logBody = { ...req.body }
+  if (logBody.password) logBody.password = '[REDACTED]'
+  console.log('🔐 Login request received:', logBody)
+
   try {
-    const { name, email, password, tenantName, role } = req.body
-    
-    // Validate required fields
-    if (!name || !email || !password) {
-      return res.status(400).json({ error: 'missing_required_fields' })
-    }
-    
-    // Validate email format
-    if (!email.includes('@')) {
-      return res.status(400).json({ error: 'invalid_email' })
-    }
-    
-    // Validate password length
-    if (password.length < 8) {
-      return res.status(400).json({ error: 'password_too_short' })
-    }
-    
-    // Check if user already exists
-    const existingUser = await prisma.user.findUnique({
-      where: { email: email.toLowerCase() }
-    })
-    
-    if (existingUser) {
-      return res.status(400).json({ error: 'user_already_exists' })
-    }
-    
-    // Create tenant if provided
-    let tenant = null
-    if (tenantName) {
-      tenant = await prisma.tenant.findFirst({
-        where: { name: tenantName }
+    const { email, phoneNumber, emailOrPhone, password } = req.body
+    const lang = (req.headers['accept-language']?.includes('ar') ? 'ar' : 'en') as 'en' | 'ar'
+
+    if (!password) {
+      return res.status(400).json({
+        error: 'password_required',
+        message: getErrorMessage('password_required', lang)
       })
-      
-      if (!tenant) {
-        tenant = await prisma.tenant.create({
-          data: { name: tenantName }
+    }
+
+    // Support multiple formats: separate email/phone, combined emailOrPhone, or phone field
+    let finalEmail = email
+    let finalPhoneNumber = phoneNumber
+    
+    if (emailOrPhone && !email && !phoneNumber) {
+      // Check if emailOrPhone looks like email or phone
+      if (emailOrPhone.includes('@')) {
+        finalEmail = emailOrPhone
+      } else {
+        finalPhoneNumber = emailOrPhone
+      }
+    }
+    
+    // Also support legacy 'phone' field
+    if (!finalPhoneNumber && req.body.phone) {
+      finalPhoneNumber = req.body.phone
+    }
+    
+    console.log('🔍 [DEBUG] Processing login:', { 
+      originalEmail: email, 
+      originalPhone: phoneNumber, 
+      emailOrPhone, 
+      originalPhoneField: req.body.phone,
+      finalEmail, 
+      finalPhoneNumber 
+    })
+
+    if (!finalEmail && !finalPhoneNumber) {
+      return res.status(400).json({
+        error: 'email_or_phone_required',
+        message: lang === 'ar'
+          ? 'البريد الإلكتروني أو رقم الجوال مطلوب'
+          : 'Email or phone number is required',
+        details: {
+          received: { email, phoneNumber, emailOrPhone, phone: req.body.phone },
+          expected: 'email or phoneNumber or emailOrPhone field required'
+        }
+      })
+    }
+
+    let user = null
+
+    if (finalEmail) {
+      const emailValidation = validateEmail(finalEmail)
+      if (!emailValidation.valid) {
+        return res.status(400).json({
+          error: emailValidation.error,
+          message: getErrorMessage(emailValidation.error!, lang)
         })
       }
-    }
-    
-    // Hash password
-    const passwordHash = await bcrypt.hash(password, 12)
-    
-    // Create user
-    const user = await prisma.user.create({
-      data: {
-        name,
-        email: email.toLowerCase(),
-        passwordHash,
-        role: role || 'INVESTOR',
-tenantId: tenant?.id || '1'  
-    },
-      include: {
-        tenant: true
+      const normalizedEmail = normalizeEmail(finalEmail)
+      
+      try {
+        console.log('🔍 [DEBUG] Prisma: Finding user by email:', normalizedEmail)
+        user = await prisma.user.findUnique({
+          where: { email: normalizedEmail },
+          include: { tenant: true }
+        })
+        console.log('✅ [DEBUG] Prisma: User lookup completed, found:', !!user)
+      } catch (dbError: any) {
+        console.error('❌ [CRITICAL] Prisma DB Error in user lookup:', {
+          message: dbError.message,
+          stack: dbError.stack,
+          code: dbError.code,
+          meta: dbError.meta,
+          cause: dbError.cause
+        })
+        throw new Error(`Database connection failed: ${dbError.message}`)
       }
-    })
-    
-    // Generate JWT token using same function as login
-    const userWithTenant = {
+    } else if (finalPhoneNumber) {
+      const phoneValidation = validatePhone(finalPhoneNumber)
+      if (!phoneValidation.valid) {
+        return res.status(400).json({
+          error: phoneValidation.error,
+          message: getErrorMessage(phoneValidation.error!, lang)
+        })
+      }
+      const normalizedPhone = phoneValidation.normalized!
+      
+      try {
+        console.log('🔍 [DEBUG] Prisma: Finding user by phone:', normalizedPhone)
+        user = await prisma.user.findFirst({
+          where: { phoneNumber: normalizedPhone },
+          include: { tenant: true }
+        })
+        console.log('✅ [DEBUG] Prisma: User lookup completed, found:', !!user)
+      } catch (dbError: any) {
+        console.error('❌ [CRITICAL] Prisma DB Error in user lookup:', {
+          message: dbError.message,
+          stack: dbError.stack,
+          code: dbError.code,
+          meta: dbError.meta,
+          cause: dbError.cause
+        })
+        throw new Error(`Database connection failed: ${dbError.message}`)
+      }
+    }
+
+    if (!user) {
+      return res.status(401).json({
+        code: 'INVALID_CREDENTIALS',
+        message: 'البريد الإلكتروني/الجوال أو كلمة المرور غير صحيحة'
+      })
+    }
+
+    const passwordValid = await comparePassword(password, user.passwordHash)
+    if (!passwordValid) {
+      console.log('❌ Login failed: invalid password for user:', user.id)
+      return res.status(401).json({
+        code: 'INVALID_CREDENTIALS',
+        message: 'البريد الإلكتروني/الجوال أو كلمة المرور غير صحيحة'
+      })
+    }
+
+    // Account status check — block inactive accounts from logging in
+    if ((user as any).status === 'INACTIVE') {
+      return res.status(403).json({
+        error: 'account_inactive',
+        message: 'الحساب غير مفعل، يرجى التواصل مع إدارة المنصة.'
+      })
+    }
+
+    // Maintenance mode: block non-ADMIN logins
+    const maintenanceSetting = await getSetting('maintenanceMode', 'false')
+    if (maintenanceSetting === 'true' && user.role !== 'ADMIN') {
+      console.log(`🔧 Maintenance mode active — blocking login for role: ${user.role}`)
+      return res.status(503).json({
+        error: 'maintenance_mode',
+        message: lang === 'ar'
+          ? 'المنصة تحت الصيانة حالياً'
+          : 'Platform is currently under maintenance',
+      })
+    }
+
+    // Email verification gate: block non-ADMIN users whose email is unverified
+    const requireVerification = await getSetting('requireEmailVerification', 'true')
+    if (requireVerification === 'true' && !user.emailVerified && user.role !== 'ADMIN') {
+      console.log(`📧 Login blocked — email not verified for user: ${user.id}`)
+      return res.status(403).json({
+        error: 'email_not_verified',
+        message: lang === 'ar'
+          ? 'يرجى تأكيد بريدك الإلكتروني قبل تسجيل الدخول.'
+          : 'Please verify your email address before signing in.',
+      })
+    }
+
+    console.log('✅ User authenticated:', { id: user.id, email: user.email, role: user.role })
+
+    const token = signToken({
       id: user.id,
       email: user.email,
-      role: user.role,
-      tenantId: user.tenant?.id || '1'
-    }
-    const token = signToken(userWithTenant)
-    console.log('✅ User created successfully:', { userId: user.id, email: user.email })
-    
-    res.json({
-      message: 'User created successfully',
+      role: user.role as Role,
+      tenantId: user.tenantId,
+      fullName: user.fullName
+    })
+
+    return res.status(200).json({
       token,
-      user: {
-        id: user.id,
-        name: user.name,
-        email: user.email,
-        role: user.role,
-        tenant: user.tenant
+      user: sanitizeUserForResponse(user)
+    })
+
+  } catch (error: any) {
+    console.error('❌ Login error:', {
+      message: error.message,
+      stack: error.stack,
+      name: error.name,
+      cause: error.cause,
+      isPrismaError: error.constructor.name.includes('Prisma'),
+      errorCode: error.code,
+      errorMeta: error.meta
+    })
+    return res.status(500).json({
+      error: 'login_failed',
+      message: 'An unexpected error occurred. Please try again later.'
+    })
+  }
+})
+
+// ============================================================================
+// Stub endpoints for Phase 2
+// ============================================================================
+
+// GET /api/auth/verify-email?token=... — validate JWT verification token, mark email verified
+authRouter.get('/verify-email', async (req: Request, res: Response) => {
+  const lang = (req.headers['accept-language']?.includes('ar') ? 'ar' : 'en') as 'en' | 'ar'
+  try {
+    const token = req.query.token as string | undefined
+    if (!token) {
+      return res.status(400).json({ error: 'token_required', message: lang === 'ar' ? 'رمز التحقق مطلوب' : 'Verification token is required' })
+    }
+
+    let decoded: any
+    try {
+      decoded = jwt.verify(token, JWT_SECRET, { issuer: 'estathub-mvp', audience: 'estathub-users' })
+    } catch {
+      return res.status(400).json({ error: 'invalid_or_expired_token', message: lang === 'ar' ? 'الرابط غير صالح أو منتهي الصلاحية' : 'Verification link is invalid or has expired' })
+    }
+
+    if (decoded.purpose !== 'email-verify') {
+      return res.status(400).json({ error: 'invalid_token_purpose', message: lang === 'ar' ? 'رمز غير صالح' : 'Invalid token' })
+    }
+
+    const user = await prisma.user.findUnique({ where: { id: decoded.userId } })
+    if (!user) {
+      return res.status(404).json({ error: 'user_not_found', message: lang === 'ar' ? 'المستخدم غير موجود' : 'User not found' })
+    }
+
+    if (user.emailVerified) {
+      return res.json({ ok: true, alreadyVerified: true, message: lang === 'ar' ? 'البريد الإلكتروني مؤكد مسبقاً' : 'Email already verified' })
+    }
+
+    await prisma.user.update({ where: { id: user.id }, data: { emailVerified: true } })
+    console.log('✅ Email verified for user:', user.id)
+    return res.json({ ok: true, message: lang === 'ar' ? 'تم تأكيد البريد الإلكتروني بنجاح' : 'Email verified successfully' })
+
+  } catch (error: any) {
+    console.error('❌ Email verification error:', error.message)
+    return res.status(500).json({ error: 'verification_failed', message: lang === 'ar' ? 'حدث خطأ. يرجى المحاولة مرة أخرى.' : 'Verification failed. Please try again.' })
+  }
+})
+
+authRouter.post('/verify-phone', async (_req: Request, res: Response) => {
+  return res.status(501).json({
+    error: 'not_implemented',
+    message: 'Phone verification via SMS will be available in Phase 2'
+  })
+})
+
+authRouter.post('/resend-otp', async (_req: Request, res: Response) => {
+  return res.status(501).json({
+    error: 'not_implemented',
+    message: 'OTP resend will be available in Phase 2'
+  })
+})
+
+authRouter.post('/forgot-password', forgotPasswordLimiter, async (req: Request, res: Response) => {
+  console.log('🔐 Forgot password request received:', sanitizeForLog(req.body))
+
+  try {
+    const { email } = req.body
+    const lang = (req.headers['accept-language']?.includes('ar') ? 'ar' : 'en') as 'en' | 'ar'
+
+    // Validate Email
+    if (!email) {
+      return res.status(400).json({
+        error: 'email_required',
+        message: lang === 'ar' ? 'البريد الإلكتروني مطلوب' : 'Email is required',
+        field: 'email'
+      })
+    }
+
+    const emailValidation = validateEmail(email)
+    if (!emailValidation.valid) {
+      return res.status(400).json({
+        error: emailValidation.error,
+        message: getErrorMessage(emailValidation.error!, lang),
+        field: 'email'
+      })
+    }
+    const normalizedEmail = normalizeEmail(email)
+
+    // Find user (but don't reveal if exists or not)
+    const user = await prisma.user.findUnique({
+      where: { email: normalizedEmail }
+    })
+
+    if (user) {
+      // Generate and store reset token
+      const resetToken = await generateResetToken()
+      const hashedToken = await hashResetToken(resetToken)
+      const expiresAt = new Date(Date.now() + 30 * 60 * 1000) // 30 minutes
+
+      await prisma.user.update({
+        where: { id: user.id },
+        data: {
+          passwordResetToken: hashedToken,
+          passwordResetExpiresAt: expiresAt
+        }
+      })
+
+      const resetLink = buildResetLink(resetToken)
+      
+      // Send email (real in production, logged in development)
+      if (process.env.NODE_ENV === 'production') {
+        // Production: Send real email via AWS SES
+        const emailContent = buildPasswordResetEmail(resetLink, lang === 'ar')
+        const emailSent = await sendEmail({
+          to: user.email,
+          subject: emailContent.subject,
+          html: emailContent.html,
+          text: emailContent.text
+        })
+        
+        if (emailSent) {
+          console.log('� Password reset email sent to:', user.email)
+        } else {
+          console.error('❌ Failed to send password reset email')
+        }
+      } else {
+        // Development: Log reset link
+        console.log('🔗 [DEV] Password reset link:', resetLink)
+        console.log('📧 [DEV] Would send to email:', user.email)
+      }
+    }
+
+    // Always return success to prevent user enumeration
+    console.log('✅ Forgot password processed for:', { email: normalizedEmail, userFound: !!user })
+    return res.status(200).json({
+      message: lang === 'ar' 
+        ? 'إذا كان البريد الإلكتروني مسجلاً لدينا، فسيتم إرسال رابط إعادة التعيين' 
+        : 'If the email is registered with us, a reset link will be sent'
+    })
+
+  } catch (error: any) {
+    console.error('❌ Forgot password error:', error.message)
+    const lang = (req.headers['accept-language']?.includes('ar') ? 'ar' : 'en') as 'en' | 'ar'
+    return res.status(500).json({
+      error: 'forgot_password_failed',
+      message: lang === 'ar' ? 'حدث خطأ ما. حاول مرة أخرى لاحقاً' : 'An error occurred. Please try again later.'
+    })
+  }
+})
+
+authRouter.post('/reset-password', async (req: Request, res: Response) => {
+  console.log('🔐 Reset password request received')
+
+  try {
+    const { token, password, confirmPassword } = req.body
+    const lang = (req.headers['accept-language']?.includes('ar') ? 'ar' : 'en') as 'en' | 'ar'
+
+    // Validate required fields
+    if (!token || !password || !confirmPassword) {
+      return res.status(400).json({
+        error: 'missing_required_fields',
+        message: lang === 'ar' ? 'جميع الحقول مطلوبة' : 'All fields are required'
+      })
+    }
+
+    // Validate password
+    const passwordValidation = validatePassword(password)
+    if (!passwordValidation.valid) {
+      return res.status(400).json({
+        error: 'password_validation_failed',
+        errors: passwordValidation.errors,
+        messages: passwordValidation.errors.map(e => getErrorMessage(e, lang)),
+        field: 'password',
+        strength: passwordValidation.strength
+      })
+    }
+
+    // Check password confirmation
+    if (password !== confirmPassword) {
+      return res.status(400).json({
+        error: 'password_mismatch',
+        message: getErrorMessage('password_mismatch', lang),
+        field: 'confirmPassword'
+      })
+    }
+
+    // Find user with valid reset token (bcrypt compare per candidate)
+    const candidates = await prisma.user.findMany({
+      where: {
+        passwordResetToken:     { not: null },
+        passwordResetExpiresAt: { not: null }
       }
     })
+
+    let validUser = null
+    for (const candidate of candidates) {
+      if (candidate.passwordResetToken && await verifyResetToken(token, candidate.passwordResetToken)) {
+        if (candidate.passwordResetExpiresAt && candidate.passwordResetExpiresAt > new Date()) {
+          validUser = candidate
+        }
+        break  // token matched this candidate (whether expired or not) — stop searching
+      }
+    }
+
+    if (!validUser) {
+      return res.status(400).json({
+        error: 'invalid_or_expired_token',
+        message: lang === 'ar'
+          ? 'رابط إعادة تعيين كلمة المرور غير صالح أو منتهي الصلاحية. يرجى طلب رابط جديد.'
+          : 'Invalid or expired password reset link. Please request a new one.'
+      })
+    }
+
+    // Hash new password
+    const newPasswordHash = await hashPassword(password)
+
+    // Update user password and clear reset token.
+    // Also mark emailVerified: completing a password reset proves inbox ownership.
+    await prisma.user.update({
+      where: { id: validUser.id },
+      data: {
+        passwordHash: newPasswordHash,
+        passwordResetToken: null,
+        passwordResetExpiresAt: null,
+        emailVerified: true,
+      }
+    })
+
+    console.log('✅ Password reset successful for user:', { userId: validUser.id, email: validUser.email })
     
+    return res.status(200).json({
+      message: lang === 'ar' 
+        ? 'تم إعادة تعيين كلمة المرور بنجاح' 
+        : 'Password reset successful'
+    })
+
   } catch (error: any) {
-    console.error('❌ Signup error:', error)
-    res.status(500).json({ error: 'signup_failed', details: error.message })
+    console.error('❌ Reset password error:', error.message)
+    const lang = (req.headers['accept-language']?.includes('ar') ? 'ar' : 'en') as 'en' | 'ar'
+    return res.status(500).json({
+      error: 'reset_password_failed',
+      message: lang === 'ar' ? 'حدث خطأ ما. حاول مرة أخرى لاحقاً' : 'An error occurred. Please try again later.'
+    })
+  }
+})
+
+// ============================================================================
+// Legacy signup endpoint (redirects to /register with mapped fields)
+// ============================================================================
+
+authRouter.post('/signup', registerLimiter, maintenanceGuard, registrationGuard, async (req: Request, res: Response) => {
+  req.body.fullName = req.body.name || req.body.fullName
+  req.body.termsAccepted = true
+
+  // Forward to register handler
+  try {
+    const {
+      fullName,
+      email,
+      password,
+      confirmPassword,
+      role
+    } = req.body
+
+    const lang = (req.headers['accept-language']?.includes('ar') ? 'ar' : 'en') as 'en' | 'ar'
+
+    if (!fullName || !email || !password) {
+      return res.status(400).json({ error: 'missing_required_fields' })
+    }
+
+    const nameValidation = validateFullName(fullName)
+    if (!nameValidation.valid) {
+      return res.status(400).json({
+        error: nameValidation.error,
+        message: getErrorMessage(nameValidation.error!, lang)
+      })
+    }
+
+    const emailValidation = validateEmail(email)
+    if (!emailValidation.valid) {
+      return res.status(400).json({
+        error: emailValidation.error,
+        message: getErrorMessage(emailValidation.error!, lang)
+      })
+    }
+
+    const passwordValidation = validatePassword(password)
+    if (!passwordValidation.valid) {
+      return res.status(400).json({
+        error: 'password_validation_failed',
+        errors: passwordValidation.errors
+      })
+    }
+
+    if (password !== confirmPassword) {
+      return res.status(400).json({ error: 'password_mismatch' })
+    }
+
+    const normalizedEmail = normalizeEmail(email)
+    const existingUser = await prisma.user.findUnique({
+      where: { email: normalizedEmail }
+    })
+
+    if (existingUser) {
+      return res.status(409).json({ error: 'email_already_exists' })
+    }
+
+    let tenant = await prisma.tenant.findFirst({
+      where: { name: 'Default Tenant' }
+    })
+    if (!tenant) {
+      tenant = await prisma.tenant.create({
+        data: { name: 'Default Tenant' }
+      })
+    }
+
+    const passwordHash = await hashPassword(password)
+    const userRole = role && ['INVESTOR', 'OWNER', 'ADMIN', 'REGULATOR'].includes(role.toUpperCase())
+      ? role.toUpperCase() as Role
+      : 'INVESTOR'
+
+    const user = await prisma.user.create({
+      data: {
+        fullName: nameValidation.normalized!,
+        email: normalizedEmail,
+        passwordHash,
+        role: userRole,
+        tenantId: tenant.id,
+        emailVerified: false,
+        phoneVerified: false,
+        kycVerified: false
+      },
+      include: { tenant: true }
+    })
+
+    // Fire-and-forget admin notification
+    ;(async () => {
+      try {
+        const adminEmail = await getAdminEmail(prisma as any)
+        const content = buildNewUserAdminEmail({
+          userName: user.fullName || user.email,
+          userEmail: user.email,
+          role: user.role,
+          createdAt: user.createdAt,
+        })
+        await sendEmail({ to: adminEmail, ...content })
+      } catch (emailErr: any) {
+        console.error('❌ Failed to send new-user admin email (signup):', emailErr.message)
+      }
+    })()
+
+    // Email verification gating
+    const requireVerification = await getSetting('requireEmailVerification', 'true')
+    if (requireVerification === 'true') {
+      const verifyToken = generateVerificationToken(user.id, user.email)
+      const verifyLink = buildVerifyLink(verifyToken)
+      if (process.env.NODE_ENV === 'production') {
+        const emailContent = buildVerificationEmail(verifyLink, lang === 'ar')
+        sendEmail({ to: user.email, ...emailContent })
+          .catch(err => console.error('❌ Failed to send verification email (signup):', err.message))
+      } else {
+        console.log('🔗 [DEV] Email verification link:', verifyLink)
+        console.log('📧 [DEV] Would send verification email to:', user.email)
+      }
+      return res.status(201).json({
+        requiresVerification: true,
+        message: lang === 'ar'
+          ? 'تم إنشاء الحساب. يرجى تأكيد بريدك الإلكتروني قبل تسجيل الدخول.'
+          : 'Account created. Please verify your email address before signing in.',
+        user: sanitizeUserForResponse(user)
+      })
+    }
+
+    const token = signToken({
+      id: user.id,
+      email: user.email,
+      role: user.role as Role,
+      tenantId: user.tenantId,
+      fullName: user.fullName
+    })
+
+    return res.status(201).json({
+      message: 'User created successfully',
+      token,
+      user: sanitizeUserForResponse(user)
+    })
+
+  } catch (error: any) {
+    console.error('❌ Signup error:', error.message)
+    return res.status(500).json({ error: 'signup_failed' })
+  }
+})
+
+// ============================================================================
+// GET /api/auth/me — current authenticated user with wallet summary
+// ============================================================================
+
+authRouter.get('/me', auth(true), async (req: Request & { user?: any }, res: Response) => {
+  try {
+    const user = await prisma.user.findUnique({
+      where: { id: req.user!.userId },
+      select: {
+        id: true,
+        fullName: true,
+        email: true,
+        phoneNumber: true,
+        nationalId: true,
+        role: true,
+        status: true,
+        emailVerified: true,
+        phoneVerified: true,
+        kycVerified: true,
+        tenantId: true,
+        address: true,
+        createdAt: true,
+      },
+    })
+
+    if (!user) {
+      return res.status(404).json({ error: 'user_not_found' })
+    }
+
+    const wallet = await prisma.wallet.findUnique({
+      where: { userId: req.user!.userId },
+      select: { walletId: true, cashBalance: true },
+    })
+
+    return res.json({
+      success: true,
+      data: {
+        id: user.id,
+        fullName: user.fullName,
+        email: user.email,
+        phoneNumber: user.phoneNumber
+          ? user.phoneNumber.slice(0, -6) + '***' + user.phoneNumber.slice(-3)
+          : null,
+        nationalId: user.nationalId ? maskNationalId(user.nationalId) : null,
+        role: user.role,
+        status: user.status,
+        emailVerified: user.emailVerified,
+        phoneVerified: user.phoneVerified,
+        kycVerified: user.kycVerified,
+        tenantId: user.tenantId,
+        address: user.address,
+        createdAt: user.createdAt,
+        wallet: wallet ? { walletId: wallet.walletId, cashBalance: wallet.cashBalance } : null,
+      },
+    })
+  } catch (error: any) {
+    console.error('❌ GET /me error:', error.message)
+    return res.status(500).json({ error: 'failed_to_fetch_user' })
+  }
+})
+
+// ============================================================================
+// PUT /api/auth/profile — update own profile (fullName, phoneNumber, address)
+// ============================================================================
+
+authRouter.put('/profile', auth(true), async (req: Request & { user?: any }, res: Response) => {
+  try {
+    const lang = (req.headers['accept-language']?.includes('ar') ? 'ar' : 'en') as 'en' | 'ar'
+    const { fullName, phoneNumber, address } = req.body
+    const updates: Record<string, any> = {}
+
+    if (fullName !== undefined) {
+      const nameValidation = validateFullName(fullName)
+      if (!nameValidation.valid) {
+        return res.status(400).json({
+          error: nameValidation.error,
+          message: getErrorMessage(nameValidation.error!, lang),
+          field: 'fullName',
+        })
+      }
+      updates.fullName = nameValidation.normalized!
+    }
+
+    if (phoneNumber !== undefined) {
+      const phoneValidation = validatePhone(phoneNumber)
+      if (!phoneValidation.valid) {
+        return res.status(400).json({
+          error: phoneValidation.error,
+          message: getErrorMessage(phoneValidation.error!, lang),
+          field: 'phoneNumber',
+        })
+      }
+      const taken = await prisma.user.findFirst({
+        where: { phoneNumber: phoneValidation.normalized!, id: { not: req.user!.userId } },
+      })
+      if (taken) {
+        return res.status(409).json({
+          error: 'phone_already_exists',
+          message: getErrorMessage('phone_already_exists', lang),
+          field: 'phoneNumber',
+        })
+      }
+      updates.phoneNumber = phoneValidation.normalized!
+    }
+
+    if (address !== undefined) {
+      if (typeof address !== 'string' || address.length > 500) {
+        return res.status(400).json({ error: 'invalid_address', field: 'address' })
+      }
+      updates.address = address.trim() || null
+    }
+
+    if (Object.keys(updates).length === 0) {
+      return res.status(400).json({ error: 'no_fields_to_update' })
+    }
+
+    const updated = await prisma.user.update({
+      where: { id: req.user!.userId },
+      data: updates,
+      select: { id: true, fullName: true, email: true, phoneNumber: true, address: true },
+    })
+
+    return res.json({
+      success: true,
+      message: 'تم تحديث الملف الشخصي بنجاح',
+      data: updated,
+    })
+  } catch (error: any) {
+    console.error('❌ PUT /profile error:', error.message)
+    return res.status(500).json({ error: 'failed_to_update_profile' })
   }
 })
 
@@ -274,9 +1120,12 @@ tenantId: tenant?.id || '1'
 // Users Management Endpoints
 // ============================================================================
 
-// GET /api/users - Get all users (admin only)
 usersRouter.get('/', auth(true), async (req: Request, res: Response) => {
   try {
+    if ((req as any).user?.role !== 'ADMIN') {
+      return res.status(403).json({ error: 'admin_access_required' })
+    }
+
     const users = await prisma.user.findMany({
       orderBy: { createdAt: 'desc' },
       include: {
@@ -290,8 +1139,7 @@ usersRouter.get('/', auth(true), async (req: Request, res: Response) => {
       }
     })
 
-    // Get property counts for owners
-    const ownerIds = users.map(u => u.id)
+    const ownerIds = users.map((u: any) => u.id)
     const propertyCounts = await prisma.property.groupBy({
       by: ['ownerId'],
       where: {
@@ -302,27 +1150,31 @@ usersRouter.get('/', auth(true), async (req: Request, res: Response) => {
       }
     })
 
-    // Create a map of userId -> property count
-    const propertyCountMap = propertyCounts.reduce((acc, item) => {
+    const propertyCountMap = propertyCounts.reduce((acc: Record<string, number>, item: any) => {
       if (item.ownerId) {
         acc[item.ownerId] = item._count.id
       }
       return acc
     }, {} as Record<string, number>)
 
-    const mappedUsers = users.map(user => ({
+    const mappedUsers = users.map((user: any) => ({
       id: user.id,
-      name: user.name || user.email,
+      fullName: user.fullName,
       email: user.email,
-      phone: user.phoneNumber || 'Not provided',
+      phone: user.phoneNumber ? maskNationalId(user.phoneNumber) : 'Not provided',
+      nationalId: user.nationalId ? maskNationalId(user.nationalId) : 'Not provided',
       role: user.role.toLowerCase(),
-      status: 'Active', // All users are active by default (you can add a status field later)
+      status: user.kycVerified ? 'Verified' : 'Pending Verification',
       joinedDate: user.createdAt.toISOString().split('T')[0],
       properties: propertyCountMap[user.id] || 0,
       investments: user._count.holdings,
       orders: user._count.orders,
       certificates: user._count.certificates,
-      tenantId: user.tenantId
+      tenantId: user.tenantId,
+      emailVerified: user.emailVerified,
+      phoneVerified: user.phoneVerified,
+      kycVerified: user.kycVerified,
+      accountStatus: (user as any).status || 'ACTIVE'
     }))
 
     console.log(`👥 Fetched ${mappedUsers.length} users from database`)
@@ -333,9 +1185,12 @@ usersRouter.get('/', auth(true), async (req: Request, res: Response) => {
   }
 })
 
-// PATCH /api/users/:id/role - Update user role (admin only)
 usersRouter.patch('/:id/role', auth(true), async (req: Request, res: Response) => {
   try {
+    if ((req as any).user?.role !== 'ADMIN') {
+      return res.status(403).json({ error: 'admin_access_required' })
+    }
+
     const { id } = req.params
     const { role } = req.body
 
@@ -348,14 +1203,24 @@ usersRouter.patch('/:id/role', auth(true), async (req: Request, res: Response) =
       return res.status(400).json({ error: 'invalid_role' })
     }
 
+    const existingUser = await prisma.user.findUnique({ where: { id }, select: { role: true } })
     const updatedUser = await prisma.user.update({
       where: { id },
       data: { role: role.toUpperCase() as Role }
     })
 
+    await logAdminAction({
+      admin: { userId: (req as any).user?.userId, email: (req as any).user?.email },
+      action: AuditAction.USER_ROLE_CHANGED,
+      targetType: 'USER',
+      targetId: id,
+      metadata: { previousRole: existingUser?.role?.toLowerCase(), newRole: role.toLowerCase() },
+      req,
+    })
+
     console.log(`🔄 Updated user ${id} role to ${role}`)
-    res.json({ 
-      success: true, 
+    res.json({
+      success: true,
       message: `User role updated to ${role}`,
       user: {
         id: updatedUser.id,
@@ -369,26 +1234,88 @@ usersRouter.patch('/:id/role', auth(true), async (req: Request, res: Response) =
   }
 })
 
-// PATCH /api/users/:id/status - Update user status (admin only)
+usersRouter.patch('/:id/verification', auth(true), async (req: Request, res: Response) => {
+  try {
+    if ((req as any).user?.role !== 'ADMIN') {
+      return res.status(403).json({ error: 'admin_access_required' })
+    }
+
+    const { id } = req.params
+    const { emailVerified, phoneVerified, kycVerified } = req.body
+
+    const updateData: any = {}
+    if (typeof emailVerified === 'boolean') updateData.emailVerified = emailVerified
+    if (typeof phoneVerified === 'boolean') updateData.phoneVerified = phoneVerified
+    if (typeof kycVerified === 'boolean') updateData.kycVerified = kycVerified
+
+    const updatedUser = await prisma.user.update({
+      where: { id },
+      data: updateData
+    })
+
+    await logAdminAction({
+      admin: { userId: (req as any).user?.userId, email: (req as any).user?.email },
+      action: AuditAction.USER_VERIFICATION_CHANGED,
+      targetType: 'USER',
+      targetId: id,
+      metadata: updateData,
+      req,
+    })
+
+    console.log(`🔄 Updated user ${id} verification status`)
+    res.json({
+      success: true,
+      message: 'User verification status updated',
+      user: sanitizeUserForResponse(updatedUser)
+    })
+  } catch (error) {
+    console.error('❌ Failed to update user verification status:', error)
+    res.status(500).json({ error: 'failed_to_update_user_verification' })
+  }
+})
+
+// PATCH /api/users/:id/status — update account status (ACTIVE | INACTIVE | SUSPENDED)
 usersRouter.patch('/:id/status', auth(true), async (req: Request, res: Response) => {
   try {
+    if ((req as any).user?.role !== 'ADMIN') {
+      return res.status(403).json({ error: 'admin_access_required' })
+    }
+
     const { id } = req.params
     const { status } = req.body
 
-    if (!id || !status) {
-      return res.status(400).json({ error: 'user_id_and_status_required' })
+    const validStatuses = ['ACTIVE', 'INACTIVE', 'SUSPENDED']
+    if (!status || !validStatuses.includes(status.toUpperCase())) {
+      return res.status(400).json({ error: 'invalid_status', validValues: validStatuses })
     }
 
-    // For now, we'll just return success since we don't have a status field in the User model
-    // You can add a status field to the User model later
-    console.log(`🔄 Updated user ${id} status to ${status}`)
-    res.json({ 
-      success: true, 
-      message: `User status updated to ${status}`
+    const previousUser = await prisma.user.findUnique({ where: { id }, select: { status: true } })
+    if (!previousUser) {
+      return res.status(404).json({ error: 'user_not_found' })
+    }
+
+    const updatedUser = await prisma.user.update({
+      where: { id },
+      data: { status: status.toUpperCase() as any },
+    })
+
+    await logAdminAction({
+      admin: { userId: (req as any).user?.userId, email: (req as any).user?.email },
+      action: AuditAction.USER_STATUS_CHANGED,
+      targetType: 'USER',
+      targetId: id,
+      metadata: { previousStatus: (previousUser as any).status, newStatus: status.toUpperCase() },
+      req,
+    })
+
+    console.log(`🔄 Updated user ${id} status to ${status.toUpperCase()}`)
+    return res.json({
+      success: true,
+      accountStatus: (updatedUser as any).status,
     })
   } catch (error) {
     console.error('❌ Failed to update user status:', error)
-    res.status(500).json({ error: 'failed_to_update_user_status' })
+    return res.status(500).json({ error: 'failed_to_update_user_status' })
   }
 })
 

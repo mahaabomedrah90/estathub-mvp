@@ -19,7 +19,7 @@ const STEPS = [
 ];
 
 export default function PropertySubmissionWizard() {
-  const { t } = useTranslation('pages');
+  const { t, i18n } = useTranslation('pages');
   const navigate = useNavigate();
   const [currentStep, setCurrentStep] = useState(1)
   const [loading, setLoading] = useState(false)
@@ -197,7 +197,7 @@ export default function PropertySubmissionWizard() {
       // Success - redirect to properties page
       navigate('/owner/properties', {
         state: { 
-          message: 'Property submitted successfully! It will be reviewed by an administrator.',
+          message: 'تم تقديم عقارك بنجاح، وجارٍ مراجعته من قبل الفريق المختص',
           propertyId: response.propertyId
         }
       })
@@ -214,53 +214,59 @@ export default function PropertySubmissionWizard() {
   const CurrentStepComponent = STEPS[currentStep - 1].component
 
   return (
-    <div className="min-h-screen bg-gray-50 py-8">
+    <div className="min-h-screen bg-surface-base py-8">
       <div className="max-w-4xl mx-auto px-4">
         {/* Header */}
         <div className="mb-8">
          <button
   onClick={() => navigate('/owner/properties')}
-  className="flex items-center gap-2 text-gray-600 hover:text-gray-900 mb-4"
+  className="flex items-center gap-2 text-text-muted hover:text-brand-primary mb-4 font-medium transition-colors"
 >
   <ArrowLeft size={20} />
   <span>{t('owner.newProperty.backToProperties')}</span>
 </button>
-<h1 className="text-3xl font-bold text-gray-900">
+<h1 className="text-4xl font-bold text-brand-primary mb-4">
   {t('owner.newProperty.pageTitle')}
 </h1>
-<p className="text-gray-600 mt-2">
+<p className="text-text-muted text-lg">
   {t('owner.newProperty.pageSubtitle')}
 </p>
         </div>
 
         {/* Progress Indicator */}
-        <div className="bg-white rounded-lg shadow-sm p-6 mb-6">
-          <div className="flex items-center justify-between mb-4">
+        <div className="bg-surface-card rounded-2xl shadow-card p-8 mb-8">
+          <div className="flex items-center justify-between mb-6">
             {STEPS.map((step, index) => (
               <React.Fragment key={step.id}>
                 <div className="flex flex-col items-center flex-1">
                   <div
-                    className={`w-10 h-10 rounded-full flex items-center justify-center font-semibold transition-all ${
+                    className={`w-12 h-12 rounded-full flex items-center justify-center font-semibold transition-all duration-300 shadow-sm ${
                       currentStep > step.id
-                        ? 'bg-green-600 text-white'
+                        ? 'bg-brand-accent text-white'
                         : currentStep === step.id
-                        ? 'bg-emerald-600 text-white'
-                        : 'bg-gray-200 text-gray-600'
+                        ? 'bg-brand-accent text-white shadow-lg'
+                        : 'bg-surface-muted text-text-muted'
                     }`}
                   >
-                    {currentStep > step.id ? <CheckCircle2 size={20} /> : step.id}
+                    {currentStep > step.id ? (
+                      <svg className="w-6 h-6" fill="currentColor" viewBox="0 0 20 20">
+                        <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                      </svg>
+                    ) : (
+                      step.id
+                    )}
                   </div>
                   <span
-  className={`text-xs mt-2 text-center ${
-    currentStep === step.id ? 'text-emerald-600 font-medium' : 'text-gray-600'
+  className={`text-sm mt-3 text-center font-medium ${
+    currentStep === step.id ? 'text-brand-accent' : 'text-text-muted'
   }`}
 >
   {t(`owner.newProperty.steps.${step.key}.label`)}
 </span>
                 </div>
                 {index < STEPS.length - 1 && (
-                  <div className={`flex-1 h-1 mx-2 ${
-                    currentStep > step.id ? 'bg-green-600' : 'bg-gray-200'
+                  <div className={`flex-1 h-1 mx-4 transition-all duration-300 ${
+                    currentStep > step.id ? 'bg-brand-accent' : 'bg-surface-muted'
                   }`} />
                 )}
               </React.Fragment>
@@ -270,21 +276,21 @@ export default function PropertySubmissionWizard() {
 
         {/* Success Message */}
         {successMessage && (
-          <div className="bg-green-50 border border-green-200 rounded-lg p-4 mb-6 flex items-center gap-3">
-            <CheckCircle2 className="text-green-600" size={20} />
-            <span className="text-green-800">{successMessage}</span>
+          <div className="bg-brand-accent-soft border border-brand-accent/30 rounded-2xl p-6 mb-8 flex items-center gap-4">
+            <CheckCircle2 className="text-brand-accent flex-shrink-0" size={24} />
+            <span className="text-brand-primary font-medium">{successMessage}</span>
           </div>
         )}
 
         {/* Error Message */}
         {errors.submit && (
-          <div className="bg-red-50 border border-red-200 rounded-lg p-4 mb-6">
-            <p className="text-red-800">{errors.submit}</p>
+          <div className="bg-red-50 border border-red-200 rounded-2xl p-6 mb-8">
+            <p className="text-red-800 font-medium">{errors.submit}</p>
           </div>
         )}
 
         {/* Current Step Content */}
-        <div className="bg-white rounded-lg shadow-sm p-6 mb-6">
+        <div className="bg-surface-card rounded-2xl shadow-card p-8 mb-8">
           <CurrentStepComponent
             formData={formData}
             onChange={setFormData}
@@ -297,34 +303,34 @@ export default function PropertySubmissionWizard() {
           <button
             onClick={handlePrevious}
             disabled={currentStep === 1}
-            className="flex items-center gap-2 px-6 py-3 border border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+            className="flex items-center gap-2 px-6 py-3 border border-border-soft text-text-muted rounded-xl font-medium hover:bg-surface-muted disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
           >
-            <ArrowRight size={20} />
+            {i18n.dir() === 'rtl' ? <ArrowRight size={20} /> : <ArrowLeft size={20} />}
   {t('owner.newProperty.nav.back')}
           </button>
 
           <button
             onClick={handleSaveDraft}
             disabled={loading}
-            className="flex items-center gap-2 px-6 py-3 border border-emerald-600 text-emerald-600 rounded-lg hover:bg-emerald-50 transition-colors"
+            className="flex items-center gap-2 px-6 py-3 border border-brand-accent text-brand-accent rounded-xl font-medium hover:bg-brand-accent-soft transition-colors"
           >
            <Save size={20} />
-  {t('owner.newProperty.nav.saveDraft')} {/* add this key */}
+  {t('owner.newProperty.nav.saveDraft')}
           </button>
 
           {currentStep < STEPS.length ? (
             <button
               onClick={handleNext}
-              className="flex items-center gap-2 px-6 py-3 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 transition-colors"
+              className="flex items-center gap-2 px-8 py-3 bg-brand-accent text-white rounded-xl font-semibold hover:bg-brand-accent/90 transition-all hover:scale-[1.02] active:scale-95 shadow-lg hover:shadow-xl"
             >
               {t('owner.newProperty.nav.next')}
-  <ArrowLeft size={20} />
+  {i18n.dir() === 'rtl' ? <ArrowLeft size={20} /> : <ArrowRight size={20} />}
             </button>
           ) : (
             <button
               onClick={handleSubmit}
               disabled={loading}
-              className="flex items-center gap-2 px-6 py-3 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+              className="flex items-center gap-2 px-8 py-3 bg-brand-accent text-white rounded-xl font-semibold hover:bg-brand-accent/90 disabled:opacity-50 disabled:cursor-not-allowed transition-all hover:scale-[1.02] active:scale-95 shadow-lg hover:shadow-xl"
             >
              {loading ? (
   <>

@@ -1,6 +1,5 @@
 import bcrypt from 'bcryptjs'
 import jwt from 'jsonwebtoken'
-import { Role } from '@prisma/client'
 import * as fs from 'fs'
 import * as path from 'path'
 import * as grpc from '@grpc/grpc-js'
@@ -13,6 +12,7 @@ import {
   signers, 
   connect 
 } from '@hyperledger/fabric-gateway'
+import { submitGatewayTx, evaluateGatewayTx } from './fabricGatewayClient'
 
 // ============================================================================
 // Types
@@ -25,6 +25,8 @@ export interface AuthTokenPayload {
   iat?: number
   exp?: number
 }
+
+export type Role = 'INVESTOR' | 'OWNER' | 'ADMIN' | 'REGULATOR'
 
 export interface AuthUser {
   id: string
@@ -89,11 +91,12 @@ export function generateJwt(payload: {
   tenantId: string
   role: string
 }): string {
-  return jwt.sign(payload, JWT_SECRET, {
+  const options = {
     expiresIn: JWT_EXPIRES_IN,
     issuer: 'estathub-mvp',
     audience: 'estathub-users'
-  })
+  } as any
+  return jwt.sign(payload, JWT_SECRET as any, options)
 }
 
 export function verifyJwt(token: string): AuthTokenPayload {
@@ -184,7 +187,7 @@ export function sanitizeSignupInput(data: SignupRequest): {
     password: data.password || '',
     name: data.name?.trim() || undefined,
     tenantName: data.tenantName?.trim() || undefined,
-    role: data.role || Role.INVESTOR
+    role: data.role || 'INVESTOR'
   }
   
   if (!sanitized.email) {
@@ -202,7 +205,7 @@ export function sanitizeSignupInput(data: SignupRequest): {
     errors.push('Tenant name must be between 2 and 100 characters')
   }
   
-  if (sanitized.role && !Object.values(Role).includes(sanitized.role)) {
+  if (sanitized.role && !['INVESTOR', 'OWNER', 'ADMIN', 'REGULATOR'].includes(sanitized.role)) {
     errors.push('Invalid user role')
   }
   
@@ -260,6 +263,13 @@ export default {
 }
 
 const USE_FABRIC = String(process.env.USE_FABRIC || '').toLowerCase() === 'true'
+const USE_FABRIC_GATEWAY = String(process.env.USE_FABRIC_GATEWAY || '').toLowerCase() === 'true'
+
+if (USE_FABRIC_GATEWAY) {
+  console.log('Fabric Gateway ENABLED (backend will call /gateway service)')
+} else {
+  console.log('Fabric Gateway DISABLED (backend will use direct Fabric SDK)')
+}
 
 // ============================================================================
 // Types
@@ -350,31 +360,11 @@ async function newGrpcConnection(): Promise<grpc.Client> {
 }
 
 async function newIdentity(): Promise<Identity> {
-  const walletPath = process.env.FABRIC_WALLET || './fabric/wallet'
- const userId = process.env.FABRIC_USER_ID || 'appUser'
   const mspId = process.env.FABRIC_MSP || 'Org1MSP'
   const debug = process.env.FABRIC_DEBUG === 'true'
-  // Try wallet-based authentication first
- if (fs.existsSync(walletPath)) {
-//  try {
-//  const wallet = await Wallets.newFileSystemWallet(walletPath)
-//  const identity = await wallet.get(userId)
-//  if (identity) {
-//  if (debug) {
-//  console.log(`👤 Loading identity '${userId}' from wallet ${walletPath} (MSP: ${mspId})`)
-//  }
-//  return {
-//  mspId,
-//  credentials: identity.credentials,
-//  }
-//  }
-//  } catch (error) {
-//  console.warn('⚠️ Wallet authentication failed, falling back to certificate files')
-//  }
-//  }
- }
- // Fallback to certificate files
- const certPath = process.env.FABRIC_IDENTITY_CERT || ''
+
+  // Use certificate files only (Docker-mounted or local paths)
+  const certPath = process.env.FABRIC_IDENTITY_CERT || ''
   if (!certPath) {
     throw new Error('FABRIC_IDENTITY_CERT not configured and wallet authentication failed')
   }
@@ -508,10 +498,10 @@ export async function registerProperty(propertyData: PropertyData): Promise<{ tx
   const { gateway, contract } = await getLegacyContract()
   try {
     const result = await contract.submitAsync('RegisterProperty', {
-  arguments: [propertyData.propertyId, JSON.stringify(propertyData)]
-})
-const txId = result.getTransactionId()
-await result.getStatus()
+      arguments: [propertyData.propertyId, JSON.stringify(propertyData)]
+    })
+    const txId = result.getTransactionId()
+    await result.getStatus()
     console.log(`✅ Property registered on blockchain: ${propertyData.propertyId}, txId: ${txId}`)
     return { txId }
   } finally {
@@ -524,10 +514,10 @@ export async function approveProperty(propertyId: string): Promise<{ txId: strin
   const { gateway, contract } = await getLegacyContract()
   try {
     const result = await contract.submitAsync('ApproveProperty', {
-  arguments: [propertyId]
-})
-const txId = result.getTransactionId()
-await result.getStatus()
+      arguments: [propertyId]
+    })
+    const txId = result.getTransactionId()
+    await result.getStatus()
     console.log(`✅ Property approved on blockchain: ${propertyId}, txId: ${txId}`)
     return { txId }
   } finally {
@@ -539,11 +529,11 @@ export async function tokenizeProperty(propertyId: string): Promise<{ txId: stri
   if (!USE_FABRIC) throw new Error('fabric_disabled')
   const { gateway, contract } = await getLegacyContract()
   try {
-   const result = await contract.submitAsync('TokenizeProperty', {
-  arguments: [propertyId]
-})
-const txId = result.getTransactionId()
-await result.getStatus()
+    const result = await contract.submitAsync('TokenizeProperty', {
+      arguments: [propertyId]
+    })
+    const txId = result.getTransactionId()
+    await result.getStatus()
     console.log(`✅ Property tokenized on blockchain: ${propertyId}, txId: ${txId}`)
     return { txId }
   } finally {
@@ -590,8 +580,7 @@ export async function mintTokens(
     let dbTx: any
     try {
       console.log('🔍 Attempting to create database transaction record...')
-      const { prisma } = await import('../lib/prisma')
-      const { TransactionType } = await import('@prisma/client')
+      const { prisma } = await import('../lib/prisma.js')
       
       console.log('🔍 Creating transaction with data:', {
         userId: Number(userId),
@@ -602,10 +591,15 @@ export async function mintTokens(
         blockchainTxId: txId,
       })
       
+      // Derive tenantId from user record (required by schema)
+      const userRecord = await prisma.user.findUnique({ where: { id: String(userId) } })
+      const tenantId = userRecord?.tenantId || 'default-tenant'
+
       dbTx = await prisma.transaction.create({
         data: {
-          userId: Number(userId),
-          type: TransactionType.TOKEN_MINT,
+          userId: String(userId),
+          tenantId,
+          type: 'TOKEN_MINT',
           amount: tokens,
           ref: `Property ${propertyId}`,
           note: `Minted ${tokens} tokens for property ${propertyId}`,
@@ -633,13 +627,13 @@ export async function transferTokens(
   tokens: number
 ): Promise<{ txId: string }> {
   if (!USE_FABRIC) throw new Error('fabric_disabled')
- const { gateway, contract } = await getLegacyContract()
+  const { gateway, contract } = await getLegacyContract()
   try {
-   const result = await contract.submitAsync('TransferTokens', {
-  arguments: [propertyId, fromUserId, toUserId, String(tokens)]
-})
-const txId = result.getTransactionId()
-await result.getStatus()
+    const result = await contract.submitAsync('TransferTokens', {
+      arguments: [propertyId, fromUserId, toUserId, String(tokens)]
+    })
+    const txId = result.getTransactionId()
+    await result.getStatus()
     console.log(`✅ Tokens transferred: ${tokens} from ${fromUserId} to ${toUserId}, txId: ${txId}`)
     return { txId }
   } finally {
@@ -649,15 +643,16 @@ await result.getStatus()
 
 export async function getBalance(userId: string, propertyId: string): Promise<number> {
   if (!USE_FABRIC) throw new Error('fabric_disabled')
- const { gateway, contract } = await getLegacyContract()
+  const { gateway, contract } = await getLegacyContract()
   try {
     const res = await contract.evaluateTransaction('GetBalance', userId, propertyId)
-   const txt = Buffer.from(res).toString('utf8')
+    const txt = Buffer.from(res).toString('utf8')
     return Number(txt)
   } finally {
     gateway.disconnect()
   }
 }
+
 export async function getHoldings(userId: string): Promise<Array<{ propertyId: string; tokens: number }>> {
   if (!USE_FABRIC) throw new Error('fabric_disabled')
   const { gateway, contract } = await getLegacyContract()
@@ -686,21 +681,21 @@ export async function issueDeed(
   orderId?: string
 ): Promise<{ txId: string }> {
   if (!USE_FABRIC) throw new Error('fabric_disabled')
- const { gateway, contract } = await getLegacyContract()
+  const { gateway, contract } = await getLegacyContract()
   try {
-const result = await contract.submitAsync('IssueDeed', {
-  arguments: [
-    deedNumber,
-    userId,
-    propertyId,
-    String(ownedTokens),
-    deedHash,
-    qrCodeData,
-    orderId || ''
-  ]
-})
-const txId = result.getTransactionId()
-await result.getStatus()
+    const result = await contract.submitAsync('IssueDeed', {
+      arguments: [
+        deedNumber,
+        userId,
+        propertyId,
+        String(ownedTokens),
+        deedHash,
+        qrCodeData,
+        orderId || ''
+      ]
+    })
+    const txId = result.getTransactionId()
+    await result.getStatus()
     console.log(`✅ Digital deed issued: ${deedNumber}, txId: ${txId}`)
     return { txId }
   } finally {
@@ -722,7 +717,8 @@ export async function getDeed(deedNumber: string): Promise<DigitalDeed> {
 
 export async function getDeedsByUser(userId: string): Promise<DigitalDeed[]> {
   if (!USE_FABRIC) throw new Error('fabric_disabled')
-  try {const { gateway, contract } = await getLegacyContract()
+  const { gateway, contract } = await getLegacyContract()
+  try {
     const res = await contract.evaluateTransaction('GetDeedsByUser', userId)
     const txt = Buffer.from(res).toString('utf8')
     const json = JSON.parse(txt)
@@ -735,14 +731,13 @@ export async function getDeedsByUser(userId: string): Promise<DigitalDeed[]> {
 
 export async function getDeedsByProperty(propertyId: string): Promise<DigitalDeed[]> {
   if (!USE_FABRIC) throw new Error('fabric_disabled')
- const { gateway, contract } = await getLegacyContract()
+  const { gateway, contract } = await getLegacyContract()
   try {
     const res = await contract.evaluateTransaction('GetDeedsByProperty', propertyId)
     const txt = Buffer.from(res).toString('utf8')
     const json = JSON.parse(txt)
     if (!Array.isArray(json)) return []
     return json
-    
   } finally {
     gateway.disconnect()
   }
@@ -765,7 +760,6 @@ export async function verifyDeedHash(
   const { gateway, contract } = await getLegacyContract()
   try {
     const res = await contract.evaluateTransaction('VerifyDeedHash', deedNumber, providedHash)
-   
     const txt = Buffer.from(res).toString('utf8')
     return JSON.parse(txt)
   } finally {
@@ -777,11 +771,11 @@ export async function revokeDeed(deedNumber: string, reason: string): Promise<{ 
   if (!USE_FABRIC) throw new Error('fabric_disabled')
   const { gateway, contract } = await getLegacyContract()
   try {
- const result = await contract.submitAsync('RevokeDeed', {
-  arguments: [deedNumber, reason]
-})
-const txId = result.getTransactionId()
-await result.getStatus()
+    const result = await contract.submitAsync('RevokeDeed', {
+      arguments: [deedNumber, reason]
+    })
+    const txId = result.getTransactionId()
+    await result.getStatus()
     console.log(`✅ Deed revoked: ${deedNumber}, txId: ${txId}`)
     return { txId }
   } finally {
@@ -798,11 +792,11 @@ export async function transferDeed(
   if (!USE_FABRIC) throw new Error('fabric_disabled')
   const { gateway, contract } = await getLegacyContract()
   try {
-   const result = await contract.submitAsync('TransferDeed', {
-  arguments: [deedNumber, newUserId, newDeedHash, newQrCodeData]
-})
-const txId = result.getTransactionId()
-await result.getStatus()
+    const result = await contract.submitAsync('TransferDeed', {
+      arguments: [deedNumber, newUserId, newDeedHash, newQrCodeData]
+    })
+    const txId = result.getTransactionId()
+    await result.getStatus()
     console.log(`✅ Deed transferred: ${deedNumber}, txId: ${txId}`)
     return { txId }
   } finally {
@@ -821,11 +815,11 @@ export async function storeInvestorPrivateData(
   if (!USE_FABRIC) throw new Error('fabric_disabled')
   const { gateway, contract } = await getLegacyContract()
   try {
-   const result = await contract.submitAsync('StoreInvestorPrivateData', {
-  arguments: [userId, JSON.stringify(privateData)]
-})
-const txId = result.getTransactionId()
-await result.getStatus()
+    const result = await contract.submitAsync('StoreInvestorPrivateData', {
+      arguments: [userId, JSON.stringify(privateData)]
+    })
+    const txId = result.getTransactionId()
+    await result.getStatus()
     console.log(`✅ Private data stored for user: ${userId}, txId: ${txId}`)
     return { txId }
   } finally {
@@ -951,7 +945,7 @@ export async function getAllDeedsFromLedger(): Promise<any[]> {
   const { gateway, contract } = await getLegacyContract()
   try {
     const res = await contract.evaluateTransaction('GetAllDeeds')
-   const txt = Buffer.from(res).toString('utf8')
+    const txt = Buffer.from(res).toString('utf8')
     const deeds = JSON.parse(txt)
     const result = Array.isArray(deeds) ? deeds : []
     
@@ -1006,7 +1000,7 @@ export async function getAllHoldingsFromLedger(): Promise<any[]> {
  */
 export async function getTransactionHistoryFromLedger(limit: number = 100): Promise<any[]> {
   if (!USE_FABRIC) throw new Error('fabric_disabled')
- const { gateway, contract, network } = await getLegacyContract()
+  const { gateway, contract, network } = await getLegacyContract()
   try {
     const res = await contract.evaluateTransaction('GetTransactionHistory', String(limit))
     const txt = Buffer.from(res).toString('utf8')
@@ -1023,7 +1017,7 @@ export async function getTransactionHistoryFromLedger(limit: number = 100): Prom
  */
 export async function getBlockchainEvents(limit: number = 100): Promise<any[]> {
   if (!USE_FABRIC) throw new Error('fabric_disabled')
-  const { gateway, contract } = await getLegacyContract()
+  const { gateway, contract, network } = await getLegacyContract()
   try {
     // Get recent block events
     const channel = network.getChannel()
@@ -1041,6 +1035,31 @@ export async function getBlockchainEvents(limit: number = 100): Promise<any[]> {
  * Generic evaluate transaction helper
  */
 export async function evaluateTransaction(functionName: string, ...args: string[]): Promise<any> {
+  if (USE_FABRIC_GATEWAY) {
+    try {
+      const channel = process.env.FABRIC_CHANNEL
+      const chaincode = process.env.FABRIC_CHAINCODE
+      const result = await evaluateGatewayTx({
+        channel: channel || undefined,
+        chaincode: chaincode || undefined,
+        contractName: undefined,
+        functionName,
+        args: args.map(a => String(a)),
+      })
+
+      const txt = result.resultRaw || ''
+      try {
+        return JSON.parse(txt)
+      } catch {
+        return txt
+      }
+    } catch (error: any) {
+      console.error(`❌ Gateway evaluateTransaction failed: ${functionName} (args: ${args.length})`)
+      console.error('   Error:', error?.message || error)
+      throw error
+    }
+  }
+
   if (!USE_FABRIC) throw new Error('fabric_disabled')
   const { gateway, contract } = await getLegacyContract()
   try {
@@ -1076,6 +1095,26 @@ export async function submitTxn(
   functionName: string,
   ...args: string[]
 ): Promise<{ txId: string; result?: string }> {
+  if (USE_FABRIC_GATEWAY) {
+    const channel = process.env.FABRIC_CHANNEL
+    const chaincode = process.env.FABRIC_CHAINCODE
+    try {
+      const result = await submitGatewayTx({
+        channel: channel || undefined,
+        chaincode: chaincode || undefined,
+        contractName,
+        functionName,
+        args: args.map(a => String(a)),
+      })
+
+      return { txId: result.txId, result: result.resultRaw || '' }
+    } catch (error: any) {
+      console.error(`❌ Gateway submitTxn failed: ${functionName} (args: ${args.length})`)
+      console.error('   Error:', error?.message || error)
+      throw error
+    }
+  }
+
   if (!USE_FABRIC) throw new Error('fabric_disabled')
   
   const debug = process.env.FABRIC_DEBUG === 'true'
@@ -1136,6 +1175,26 @@ export async function evaluateTxn(
   functionName: string,
   ...args: string[]
 ): Promise<string> {
+  if (USE_FABRIC_GATEWAY) {
+    const channel = process.env.FABRIC_CHANNEL
+    const chaincode = process.env.FABRIC_CHAINCODE
+    try {
+      const result = await evaluateGatewayTx({
+        channel: channel || undefined,
+        chaincode: chaincode || undefined,
+        contractName,
+        functionName,
+        args: args.map(a => String(a)),
+      })
+
+      return result.resultRaw || ''
+    } catch (error: any) {
+      console.error(`❌ Gateway evaluateTxn failed: ${functionName} (args: ${args.length})`)
+      console.error('   Error:', error?.message || error)
+      throw error
+    }
+  }
+
   if (!USE_FABRIC) throw new Error('fabric_disabled')
   
   const { gateway, contract } = await getLegacyContract()

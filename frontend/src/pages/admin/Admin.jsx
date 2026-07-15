@@ -127,8 +127,8 @@ export default function Admin() {
       await loadProperties()
       setTimeout(() => resetForm(), 2000)
     } catch (err) {
-      setError(err.message || 'Failed to save property')
-    } finally {
+  setError(err.message || t('admin.management.error'))
+} finally {
       setSubmitting(false)
     }
   }
@@ -138,11 +138,12 @@ export default function Admin() {
   }
 
   if (!getToken()) {
+    setError(t('admin.management.loginRequired'))
     return (
       <div className="flex items-center justify-center py-12">
         <div className="text-center space-y-4">
-          <Building2 className="mx-auto text-gray-400" size={64} />
-          <div className="text-gray-600">
+          <Building2 className="mx-auto text-text-muted" size={64} />
+          <div className="text-text-muted">
   {t('admin.management.loginRequired')}
 </div>
         </div>
@@ -155,10 +156,10 @@ export default function Admin() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold text-gray-900">
+          <h1 className="text-3xl font-bold text-text-strong">
   {t('admin.management.headerTitle')}
 </h1>
-<p className="text-gray-600">
+<p className="text-text-muted">
   {t('admin.management.headerSubtitle')}
 </p>
         </div>
@@ -192,12 +193,12 @@ export default function Admin() {
       {showForm && (
         <div className="bg-white border border-gray-200 rounded-xl p-6 shadow-lg">
           <div className="flex items-center justify-between mb-6">
-            <h2 className="text-xl font-semibold text-gray-900">
+            <h2 className="text-xl font-semibold text-text-strong">
               {editingId ? 'Edit Property' : 'Add New Property'}
             </h2>
             <button
               onClick={resetForm}
-              className="text-gray-400 hover:text-gray-600 transition-colors"
+              className="text-text-muted hover:text-text-body transition-colors"
             >
               <X size={24} />
             </button>
@@ -207,7 +208,7 @@ export default function Admin() {
             <div className="grid md:grid-cols-2 gap-5">
               {/* Property Name */}
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
+                <label className="block text-sm font-medium text-text-body mb-2">
                   {t('admin.management.form.labels.name')}
                 </label>
                 <input
@@ -222,7 +223,7 @@ export default function Admin() {
 
               {/* Location */}
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
+                <label className="block text-sm font-medium text-text-body mb-2">
                   {t('admin.management.form.labels.location')}
                 </label>
                 <input
@@ -237,12 +238,12 @@ export default function Admin() {
 
               {/* Latitude */}
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
+                <label className="block text-sm font-medium text-text-body mb-2">
                     {t('admin.management.form.labels.latitude')}
                 </label>
                 <div className="relative">
                   <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                    <Map className="text-gray-400" size={18} />
+                    <Map className="text-text-muted" size={18} />
                   </div>
                   <input
                     type="number"
@@ -257,12 +258,12 @@ export default function Admin() {
 
               {/* Longitude */}
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
+                <label className="block text-sm font-medium text-text-body mb-2">
                   {t('admin.management.form.labels.longitude')}
                 </label>
                 <div className="relative">
                   <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                    <Map className="text-gray-400" size={18} />
+                    <Map className="text-text-muted" size={18} />
                   </div>
                   <input
                     type="number"
@@ -273,14 +274,14 @@ export default function Admin() {
                     placeholder=  {t('admin.management.form.placeholders.longitude')}
                   />
                 </div>
-                <p className="text-xs text-gray-500 mt-1">
+                <p className="text-xs text-text-muted mt-1">
                   {t('admin.management.form.tips.coords')}
                 </p>
               </div>
 
               {/* Token Price */}
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
+                <label className="block text-sm font-medium text-text-body mb-2">
                   {t('admin.management.form.labels.tokenPrice')}
                 </label>
                 <input
@@ -297,7 +298,7 @@ export default function Admin() {
 
               {/* Total Tokens */}
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
+                <label className="block text-sm font-medium text-text-body mb-2">
                   {t('admin.management.form.labels.totalTokens')}
                 </label>
                 <input
@@ -313,7 +314,7 @@ export default function Admin() {
 
               {/* Monthly Yield */}
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
+                <label className="block text-sm font-medium text-text-body mb-2">
                   {t('admin.management.form.labels.monthlyYield')}
                 </label>
                 <input
@@ -332,7 +333,7 @@ export default function Admin() {
 
             {/* Description */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
+              <label className="block text-sm font-medium text-text-body mb-2">
                 {t('admin.management.form.labels.description')}
               </label>
               <textarea
@@ -346,14 +347,14 @@ export default function Admin() {
 
             {/* Image URL */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
+              <label className="block text-sm font-medium text-text-body mb-2">
                 {t('admin.management.form.labels.imageUrl')}
               </label>
               <div className="space-y-3">
                 <div className="flex gap-2">
                   <div className="flex-1 relative">
                     <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                      <ImageIcon className="text-gray-400" size={20} />
+                      <ImageIcon className="text-text-muted" size={20} />
                     </div>
                     <input
                       type="url"
@@ -366,7 +367,7 @@ export default function Admin() {
                 </div>
                 {formData.imageUrl && (
                   <div className="border border-gray-200 rounded-lg p-3 bg-gray-50">
-                    <div className="text-sm text-gray-600 mb-2">{t('admin.management.form.tips.imagePreview')}</div>
+                    <div className="text-sm text-text-muted mb-2">{t('admin.management.form.image.preview')}</div>
                     <div className="relative w-full h-48 bg-gray-200 rounded-lg overflow-hidden">
                       <img 
                         src={formData.imageUrl} 
@@ -378,16 +379,16 @@ export default function Admin() {
                         }}
                       />
                       <div className="absolute inset-0 hidden items-center justify-center bg-gray-100">
-                        <div className="text-center text-gray-500">
+                        <div className="text-center text-text-muted">
                           <ImageIcon className="mx-auto mb-2" size={32} />
-                          <div className="text-sm">{t('admin.management.form.tips.invalidImageUrl')}</div>
+                          <div className="text-sm">{t('admin.management.form.image.invalid')}</div>
                         </div>
                       </div>
                     </div>
                   </div>
                 )}
-                <p className="text-xs text-gray-500">
-                  {t('admin.management.form.tips.imageUrl')}
+                <p className="text-xs text-text-muted">
+                  {t('admin.management.form.image.tips')}
                 </p>
               </div>
             </div>
@@ -407,14 +408,14 @@ export default function Admin() {
                 ) : (
                   <>
                     <Save size={20} />
-                    <span>{editingId ? t('admin.management.form.buttons.update') : t('admin.management.form.buttons.create')}</span>
+                    <span>{editingId ? t('admin.management.form.buttons.updateProperty') : t('admin.management.form.buttons.createProperty')}</span>
                   </>
                 )}
               </button>
               <button
                 type="button"
                 onClick={resetForm}
-                className="px-6 py-2.5 rounded-lg border border-gray-300 hover:bg-gray-50 text-gray-700 font-medium transition-colors"
+                className="px-6 py-2.5 rounded-lg border border-border-soft hover:bg-surface-muted text-text-body font-medium transition-colors"
               >
                 {t('admin.management.form.buttons.cancel')}
               </button>
@@ -425,18 +426,18 @@ export default function Admin() {
 
       {/* Properties List */}
       <div className="bg-white border border-gray-200 rounded-xl p-6">
-        <h2 className="text-xl font-semibold text-gray-900 mb-4">{t('admin.management.list.title')}</h2>
+        <h2 className="text-xl font-semibold text-text-strong mb-4">{t('admin.management.list.title')}</h2>
         
         {loading ? (
           <div className="flex items-center justify-center py-12">
             <div className="text-center space-y-3">
               <Loader2 className="animate-spin text-emerald-600 mx-auto" size={40} />
-                  <div className="text-gray-600">{t('admin.management.list.loading')}</div>
+                  <div className="text-text-muted">{t('admin.management.list.loading')}</div>
             </div>
           </div>
         ) : properties.length === 0 ? (
-          <div className="text-center py-12 text-gray-500">
-            <Building2 className="mx-auto mb-2 text-gray-300" size={48} />
+          <div className="text-center py-12 text-text-muted">
+            <Building2 className="mx-auto mb-2 text-border-soft" size={48} />
             <div>{t('admin.management.list.noProperties')}</div>
           </div>
         ) : (
@@ -473,15 +474,15 @@ export default function Admin() {
                     <div className="flex-1 p-5">
                       <div className="flex justify-between items-start mb-3">
                         <div className="flex-1">
-                          <h3 className="font-semibold text-lg text-gray-900 mb-1">{property.name || property.title}</h3>
-                          <div className="flex items-center gap-1 text-sm text-gray-500">
+                          <h3 className="font-semibold text-lg text-text-strong mb-1">{property.name || property.title}</h3>
+                          <div className="flex items-center gap-1 text-sm text-text-muted">
                             <MapPin size={14} />
                             <span>{property.location || 'Riyadh, Saudi Arabia'}</span>
                           </div>
                         </div>
                         <button
                           onClick={() => handleEdit(property)}
-                          className="flex items-center gap-2 px-3 py-1.5 rounded-lg border border-gray-300 hover:bg-gray-50 text-gray-700 text-sm font-medium transition-colors"
+                          className="flex items-center gap-2 px-3 py-1.5 rounded-lg border border-border-soft hover:bg-surface-muted text-text-body text-sm font-medium transition-colors"
                         >
                           <Edit2 size={16} />
                           <span> {t('admin.management.list.edit')}</span>
@@ -490,11 +491,11 @@ export default function Admin() {
 
                       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                         <div className="bg-gray-50 rounded-lg p-3">
-                          <div className="flex items-center gap-1 text-gray-500 text-xs mb-1">
+                          <div className="flex items-center gap-1 text-text-muted text-xs mb-1">
                             <Coins size={14} />
                             <span>{t('admin.management.list.tokenPrice')}</span>
                           </div>
-                          <div className="font-semibold text-gray-900">{tokenPrice.toLocaleString()} SAR</div>
+                          <div className="font-semibold text-text-strong">{tokenPrice.toLocaleString()} SAR</div>
                         </div>
 
                         <div className="bg-emerald-50 rounded-lg p-3">

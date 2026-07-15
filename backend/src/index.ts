@@ -14,57 +14,324 @@ import { settingsRouter } from './controllers/settings.controller'
 import { isFabricEnabled, testFabricConnection } from './lib/fabric'
 import { errorHandler } from './middleware/roles'
 import { ownerRouter } from './controllers/owner.controller'
+import { depositRequestAdminRouter } from './controllers/depositRequest.controller'
+import { withdrawalRequestRouter, withdrawalRequestAdminRouter } from './controllers/withdrawalRequest.controller'
+import { auditLogRouter } from './controllers/auditLog.controller'
 import { regulatorRouter } from './controllers/regulator.controller'
+import { waitlistRouter } from './controllers/waitlist.controller'
+import { requestIdMiddleware } from './middleware/requestId'
+import { checkGatewayHealth } from './lib/gatewayHealth'
+import { mobileRouter } from './controllers/mobile.controller'
+import { deviceRouter } from './controllers/device.controller'
+import { notificationsRouter } from './controllers/notifications.controller'
+import { holdingsRouter } from './controllers/holdings.controller'
+import { investorStatementRouter } from './controllers/investorStatement.controller'
+import { ownerStatementRouter } from './controllers/ownerStatement.controller'
+import { platformPnlRouter } from './controllers/platformPnl.controller'
+import { propertyLeadRouter, propertyLeadAdminRouter } from './controllers/propertyLead.controller'
 
 dotenv.config()
 
 const app = express()
 
-// CORS configuration - MUST be before other middleware
-app.use(cors({ 
-  origin: 'http://localhost:5173',
-  credentials: true,
-  methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization', 'user-id', 'Cache-Control', 'Pragma', 'Expires']
-}))
+// Trust proxy for AWS ALB - limited to specific IPs
+app.set('trust proxy', ['127.0.0.1', '::1', '10.0.0.0/8', '172.16.0.0/12', '192.168.0.0/16'])
+
+function parseCorsOrigins(raw: string): string[] {
+  return raw
+    .split(',')
+    .map(s => s.trim())
+    .filter(Boolean)
+}
+
+function createCorsOptions() {
+  const nodeEnv = process.env.NODE_ENV || 'development'
+  const isProd = nodeEnv === 'production'
+
+  const raw = (process.env.CORS_ORIGIN || '').trim()
+  if (isProd && !raw) {
+    throw new Error(
+      'Missing required env var CORS_ORIGIN in production. Example: "https://alwsm.sa,https://www.alwsm.sa"'
+    )
+  }
+
+  const allowlist = raw ? parseCorsOrigins(raw) : []
+
+  const options = {
+    origin: (origin: string | undefined, callback: (err: Error | null, allow?: boolean) => void) => {
+      if (!origin) {
+        return callback(null, true)
+      }
+
+      if (allowlist.length === 0) {
+        return callback(null, true)
+      }
+
+      if (allowlist.includes(origin)) {
+        return callback(null, true)
+      }
+
+      return callback(new Error(`CORS blocked for origin: ${origin}`))
+    },
+    credentials: true,
+    methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'Authorization', 'user-id', 'x-request-id'],
+  }
+
+  return options
+}
+
+/**
+ * ================================
+ * ✅ CRITICAL: HEALTH CHECK (ALB)
+ * ================================
+ * يجب أن يكون:
+ * - قبل أي منطق معقد
+ * - خارج async startup
+ * - سريع جدًا
+ */
+app.get('/health', (_req, res) => {
+  res.status(200).send('ok')
+})
+
+app.get('/api/health', (_req, res) => {
+  res.status(200).json({
+    status: 'ok',
+    service: 'estathub-backend',
+    timestamp: new Date().toISOString(),
+  })
+})
+
+/**
+ * ================================
+ * 🔧 DEBUG: Database Ping Endpoint
+ * ================================
+ * Temporary endpoint for debugging RDS connectivity issues
+ * Protected by DEBUG_TOKEN environment variable
+ */
+app.get('/api/_debug/db-ping', async (req, res) => {
+  const debugToken = req.headers['x-debug-token'] as string
+  const expectedToken = process.env.DEBUG_TOKEN
+  
+  if (!expectedToken) {
+    return res.status(500).json({
+      error: 'debug_not_configured',
+      message: 'DEBUG_TOKEN environment variable not set'
+    })
+  }
+  
+  if (debugToken !== expectedToken) {
+    return res.status(401).json({
+      error: 'unauthorized',
+      message: 'Invalid debug token'
+    })
+  }
+  
+  const startTime = Date.now()
+  const results = {
+    timestamp: new Date().toISOString(),
+    database: {
+      connection: 'unknown' as 'unknown' | 'connected' | 'healthy' | 'failed',
+      latency: null as string | null,
+      error: null as {
+        message: string
+        code: any
+        name: string
+        stack: string
+      } | null,
+      details: null as { queryResult: any } | null
+    },
+    environment: {
+      NODE_ENV: process.env.NODE_ENV,
+      DATABASE_URL: process.env.DATABASE_URL ? '***SET***' : 'NOT_SET',
+      DB_HOST: process.env.DB_HOST || 'NOT_SET',
+      DB_PORT: process.env.DB_PORT || 'NOT_SET',
+      DB_NAME: process.env.DB_NAME || 'NOT_SET'
+    }
+  }
+  
+  try {
+    console.log('🔧 [DEBUG] Starting database ping test...')
+    
+    // Test 1: Simple Prisma connection
+    const prisma = require('./lib/prisma').prisma
+    await prisma.$connect()
+    results.database.connection = 'connected'
+    
+    // Test 2: Simple query (SELECT 1)
+    const queryStart = Date.now()
+    const dbResult = await prisma.$queryRaw`SELECT 1 as ping`
+    const queryLatency = Date.now() - queryStart
+    results.database.latency = `${queryLatency}ms`
+    results.database.details = { queryResult: dbResult }
+    
+    console.log('✅ [DEBUG] Database ping successful:', { latency: queryLatency })
+    
+    await prisma.$disconnect()
+    
+    results.database.connection = 'healthy'
+    return res.status(200).json(results)
+    
+  } catch (error: any) {
+    console.error('❌ [DEBUG] Database ping failed:', {
+      message: error.message,
+      stack: error.stack,
+      code: error.code,
+      meta: error.meta,
+      cause: error.cause
+    })
+    
+    results.database.connection = 'failed'
+    results.database.error = {
+      message: error.message,
+      code: error.code,
+      name: error.name,
+      stack: error.stack
+    }
+    
+    return res.status(500).json(results)
+  }
+})
+
+/**
+ * ================================
+ * 🔧 DEBUG: Recent Users Endpoint (TEMPORARY)
+ * ================================
+ * Temporary endpoint for pilot phase to verify new user registrations
+ * Protected by ADMIN_DEBUG_TOKEN environment variable
+ * Returns only safe, non-sensitive user information
+ */
+app.get('/api/admin/debug/recent-users', async (req, res) => {
+  const adminDebugToken = req.headers['x-admin-debug-token'] as string
+  const expectedToken = process.env.ADMIN_DEBUG_TOKEN
+  
+  if (!expectedToken) {
+    return res.status(500).json({
+      error: 'debug_not_configured',
+      message: 'ADMIN_DEBUG_TOKEN environment variable not set'
+    })
+  }
+  
+  if (adminDebugToken !== expectedToken) {
+    return res.status(401).json({
+      error: 'unauthorized',
+      message: 'Invalid admin debug token'
+    })
+  }
+  
+  try {
+    console.log('🔧 [ADMIN-DEBUG] Recent users request received')
+    
+    const prisma = require('./lib/prisma').prisma
+    const recentUsers = await prisma.user.findMany({
+      take: 20,
+      orderBy: { createdAt: 'desc' },
+      select: {
+        id: true,
+        fullName: true,
+        email: true,
+        phoneNumber: true,
+        nationalId: true,
+        createdAt: true,
+        role: true,
+        emailVerified: true,
+        phoneVerified: true,
+        kycVerified: true
+      }
+    })
+    
+    // Mask sensitive information
+    const maskedUsers = recentUsers.map((user: any) => ({
+      id: user.id,
+      fullName: user.fullName,
+      email: user.email,
+      phone: user.phoneNumber,
+      nationalId: user.nationalId ? 
+        user.nationalId.slice(0, -4).replace(/./g, '*') + user.nationalId.slice(-4) : 
+        null,
+      createdAt: user.createdAt,
+      role: user.role,
+      emailVerified: user.emailVerified,
+      phoneVerified: user.phoneVerified,
+      kycVerified: user.kycVerified
+    }))
+    
+    console.log(`🔧 [ADMIN-DEBUG] Returned ${maskedUsers.length} recent users`)
+    
+    return res.status(200).json({
+      count: maskedUsers.length,
+      users: maskedUsers,
+      timestamp: new Date().toISOString()
+    })
+    
+  } catch (error: any) {
+    console.error('❌ [ADMIN-DEBUG] Recent users error:', error.message)
+    return res.status(500).json({
+      error: 'debug_failed',
+      message: 'Failed to fetch recent users'
+    })
+  }
+})
+
+/**
+ * ================================
+ * Middleware
+ * ================================
+ */
+app.use(cors(createCorsOptions()))
 
 app.use(express.json())
 app.use(morgan('dev'))
+app.use(requestIdMiddleware)
 
-// Serve static files for uploaded property images
+/**
+ * Static files
+ */
 app.use('/api/uploads', express.static('uploads'))
 
-// Debug middleware to log all requests
-app.use((req, res, next) => {
+/**
+ * Debug request logger
+ */
+app.use((req, _res, next) => {
   console.log(`📥 ${req.method} ${req.path}`)
-  if (req.path.includes('/login')) {
-    console.log('  Body:', req.body)
-    console.log('  Headers:', req.headers)
-  }
   next()
 })
 
-app.get('/api/health', (_req, res) => res.json({ ok: true }))
-
-// Debug: Check if blockchainRouter is properly imported
-console.log('\n=== DEBUGGING BLOCKCHAIN ROUTER ===')
-console.log('blockchainRouter type:', typeof blockchainRouter)
-console.log('blockchainRouter is Router?:', blockchainRouter?.constructor?.name)
-console.log('blockchainRouter.stack length:', blockchainRouter?.stack?.length)
-if (blockchainRouter?.stack) {
-  console.log('Routes in blockchainRouter:')
-  blockchainRouter.stack.forEach((layer: any, i: number) => {
-    if (layer.route) {
-      console.log(`  ${i}: ${Object.keys(layer.route.methods)} ${layer.route.path}`)
-    }
-  })
+/**
+ * ================================
+ * Routes
+ * ================================
+ */
+// Ensure auth routes are properly mounted
+interface RouteLayer {
+  name: string;
+  route?: {
+    methods: { [method: string]: boolean };
+    path: string;
+  };
 }
-console.log('=== END DEBUG ===\n')
 
-// Register routes
-app.use('/api/auth', authRouter)
+const hasAuthRouter = app._router.stack.some((layer: RouteLayer) => layer.name === 'authRouter');
+
+if (!hasAuthRouter) {
+  console.log('🔒 Mounting auth routes...');
+  app.use('/api/auth', authRouter);
+  
+  // Log registered routes for debugging
+  const registeredRoutes = authRouter.stack
+    .filter((layer: any) => layer.route) // Filter out non-route layers
+    .map((layer: any) => 
+      Object.keys(layer.route.methods || {})
+        .map(method => `${method.toUpperCase()} /api/auth${layer.route.path}`)
+    )
+    .flat();
+    
+  console.log('🔍 Registered auth routes:', registeredRoutes);
+}
 app.use('/api/users', usersRouter)
 app.use('/api/properties', propertyRouter)
+app.use('/api/property-leads', propertyLeadRouter)
+app.use('/api/admin/property-leads', propertyLeadAdminRouter)
 app.use('/api/tokens', tokenRouter)
 app.use('/api/wallet', walletRouter)
 app.use('/api/orders', ordersRouter)
@@ -74,38 +341,183 @@ app.use('/api/deeds', deedRouter)
 app.use('/api/owners', ownerRouter)
 app.use('/api/settings', settingsRouter)
 app.use('/api/regulator', regulatorRouter)
-// Register centralized error handler (must be after all routes)
-app.use(errorHandler)
+app.use('/api/admin/deposit-requests', depositRequestAdminRouter)
+app.use('/api/wallet/withdrawal-request', withdrawalRequestRouter)
+app.use('/api/admin/withdrawal-requests', withdrawalRequestAdminRouter)
+app.use('/api/admin', auditLogRouter)
+app.use('/api/waitlist', waitlistRouter)
 
-const port = Number(process.env.PORT || 5000)
+// Mobile-specific endpoints
+app.use('/api/mobile', mobileRouter)
+app.use('/api/device', deviceRouter)
+app.use('/api/notifications', notificationsRouter)
+app.use('/api/holdings', holdingsRouter)
+app.use('/api', investorStatementRouter)
+app.use('/api', ownerStatementRouter)
+app.use('/api', platformPnlRouter)
 
-// Test Fabric connection on startup
-async function startServer() {
-  console.log('\n=== FABRIC CONNECTION CHECK ===')
+/**
+ * ================================
+ * /api/v1 aliases — same routers, Flutter-preferred prefix
+ * Old /api/* routes remain unchanged for web frontend.
+ * ================================
+ */
+app.use('/api/v1/auth', authRouter)
+app.use('/api/v1/users', usersRouter)
+app.use('/api/v1/wallet', walletRouter)
+app.use('/api/v1/wallet/withdrawal-request', withdrawalRequestRouter)
+app.use('/api/v1/properties', propertyRouter)
+app.use('/api/v1/orders', ordersRouter)
+app.use('/api/v1/deeds', deedRouter)
+app.use('/api/v1/settings', settingsRouter)
+app.use('/api/v1/mobile', mobileRouter)
+app.use('/api/v1/device', deviceRouter)
+app.use('/api/v1/notifications', notificationsRouter)
+app.use('/api/v1/holdings', holdingsRouter)
+
+/**
+ * ================================
+ * API 404 Handler (JSON only)
+ * ================================
+ */
+app.use('/api/*', (req, res) => {
+  res.status(404).json({
+    code: 'NOT_FOUND',
+    message: 'Not found'
+  })
+})
+
+/**
+ * ================================
+ * Centralized API Error Handler (JSON only)
+ * ================================
+ */
+function isSafeMessage(message: string): boolean {
+  if (typeof message !== 'string') return false
+  if (message.length > 200) return false
   
-  if (isFabricEnabled()) {
-    console.log('✅ Fabric is enabled (USE_FABRIC=true)')
-    try {
-      await testFabricConnection()
-      console.log('✅ Fabric connection test PASSED')
-    } catch (err: any) {
-      console.error('❌ Fabric connection test FAILED:', err.message)
-      console.error('   The server will start but Fabric queries will fail.')
-      console.error('   Please check your Fabric network and configuration.')
-    }
-  } else {
-    console.log('⚠️  Fabric is disabled (USE_FABRIC=false or not set)')
-    console.log('   All blockchain queries will use database fallback.')
+  // Filter out HTML, XML, stack traces, and technical error patterns
+  const unsafePatterns = [
+    /<[^>]*>/,           // HTML tags
+    /<\/[^>]*>/,         // HTML closing tags
+    /Error>/,            // XML error tags
+    /AccessDenied/,      // AWS/AWS S3 errors
+    /Non-JSON/,          // JSON parsing errors
+    /stack|trace/i,      // Stack traces
+    /cloudfront|s3/i,    // AWS service errors
+    /prisma/i,           // Prisma technical details
+    /database.*connection/i, // Database connection details
+    /internal server error/i, // Generic technical messages
+  ]
+  
+  return !unsafePatterns.some(pattern => pattern.test(message))
+}
+
+function getSafeErrorMessage(status: number): string {
+  const lang = 'ar' // Default to Arabic for safety
+  const messages: Record<number, string> = {
+    400: lang === 'ar' ? 'طلب غير صالح' : 'Bad request',
+    401: lang === 'ar' ? 'غير مصرح به' : 'Unauthorized',
+    403: lang === 'ar' ? 'ممنوع' : 'Forbidden',
+    404: lang === 'ar' ? 'غير موجود' : 'Not found',
+    409: lang === 'ar' ? 'تعارض' : 'Conflict',
+    422: lang === 'ar' ? 'كيان غير قابل للمعالجة' : 'Unprocessable entity',
+    429: lang === 'ar' ? 'عدد محاولات كثيرة' : 'Too many requests',
+    500: lang === 'ar' ? 'خطأ في الخادم' : 'Internal server error'
+  }
+  return messages[status] || (lang === 'ar' ? 'حدث خطأ' : 'An error occurred')
+}
+
+app.use('/api/*', (err: any, req: express.Request, res: express.Response, next: express.NextFunction) => {
+  // Ensure we always return JSON for /api routes
+  const status = err.status || err.statusCode || 500
+  
+  let message = err.message || 'Unknown error'
+  
+  // Sanitize error message
+  if (!isSafeMessage(message)) {
+    message = getSafeErrorMessage(status)
   }
   
-  console.log('=== END FABRIC CHECK ===\n')
+  // Build standardized error response
+  const errorResponse: any = {
+    code: err.code || 'INTERNAL_ERROR',
+    message
+  }
   
-  app.listen(port, () => {
-    console.log(`🚀 API running on http://localhost:${port}`)
+  // Add field if present
+  if (err.field) {
+    errorResponse.field = err.field
+  }
+  
+  console.error(`API Error ${status}:`, {
+    code: err.code,
+    message: err.message,
+    stack: err.stack,
+    url: req.url,
+    method: req.method
+  })
+  
+  res.status(status).json(errorResponse)
+})
+
+/**
+ * Error handler (last)
+ */
+app.use(errorHandler)
+
+/**
+ * ================================
+ * Server startup
+ * ================================
+ */
+const PORT = Number(process.env.PORT || 5001)
+
+async function startServer() {
+  console.log('\n=== STARTUP CHECKS ===')
+
+  // Database connectivity check
+  try {
+    console.log('🔍 Checking database connectivity...')
+    const prisma = require('./lib/prisma').prisma
+    await prisma.$connect()
+    await prisma.$queryRaw`SELECT 1 as ping`
+    await prisma.$disconnect()
+    console.log('✅ Database connectivity OK')
+  } catch (err: any) {
+    console.error('❌ Database connectivity failed:', err.message)
+    console.error('⚠️ Server will start but login may fail. Check RDS connectivity.')
+  }
+
+  if (isFabricEnabled()) {
+    console.log('✅ Fabric enabled')
+    try {
+      await testFabricConnection()
+      console.log('✅ Fabric connection OK')
+    } catch (err: any) {
+      console.error('⚠️ Fabric check failed:', err.message)
+    }
+  } else {
+    console.log('ℹ️ Fabric disabled')
+  }
+
+  if (
+    process.env.USE_FABRIC_GATEWAY === 'true' &&
+    process.env.GATEWAY_STARTUP_CHECK === 'true'
+  ) {
+    try {
+      await checkGatewayHealth()
+    } catch (err: any) {
+      console.error('⚠️ Gateway health failed:', err?.message || err)
+    }
+  }
+
+  app.listen(PORT, '0.0.0.0', () => {
+    console.log(`🚀 API running on http://0.0.0.0:${PORT}`)
   })
 }
 
 startServer().catch(err => {
-  console.error('Failed to start server:', err)
+  console.error('❌ Failed to start server:', err)
   process.exit(1)
 })

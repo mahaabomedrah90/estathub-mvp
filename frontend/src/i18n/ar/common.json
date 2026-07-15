@@ -1,5 +1,5 @@
 {
-  "appName": "Estathub",
+  "appName": "الوسم",
   "loading": "جاري التحميل...",
   "save": "حفظ",
   "cancel": "إلغاء",
@@ -16,8 +16,8 @@
     "rejected": "مرفوض",
     "underReview": "العقار تحت المراجعة"
   },
-    "footer": {
-    "tagline": "نفتح الاستثمار العقاري للجميع عبر التوكنات على البلوكشين.",
+  "footer": {
+    "tagline": "نفتح الاستثمار العقاري للجميع.",
     "quickLinks": "روابط سريعة",
     "resources": "المصادر",
     "contactUs": "تواصل معنا",
@@ -25,6 +25,7 @@
       "home": "الرئيسية",
       "opportunities": "الفرص الاستثمارية",
       "wallet": "محفظتي",
+      "tokenize": "إدراج عقارك",
       "blockchainExplorer": "مستكشف البلوكشين",
       "about": "من نحن",
       "howItWorks": "طريقة العمل",
@@ -33,7 +34,7 @@
       "privacy": "سياسة الخصوصية"
     },
     "location": "الرياض، المملكة العربية السعودية",
-    "copyright": "جميع الحقوق محفوظة. مبني على Hyperledger Fabric."
+    "copyright": "جميع الحقوق محفوظة."
   },
   "date": {
     "joinedOn": "انضم في {{date}}"
@@ -41,5 +42,4 @@
   "currency": {
     "sar": "ر.س"
   }
-
 }

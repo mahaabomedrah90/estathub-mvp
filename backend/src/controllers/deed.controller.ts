@@ -2,7 +2,8 @@ import { Router, Request, Response } from 'express'
 import { prisma } from '../lib/prisma'
 import * as fabric from '../lib/fabric'
 import { auth } from '../middleware/auth'
-import { $Enums } from '@prisma/client'
+import { requireRole } from '../middleware/roles'
+import { getFeatureFlag } from '../lib/featureFlags'
 import {
   generateDeedNumber,
   calculateDeedHash,
@@ -19,17 +20,24 @@ export const deedRouter = Router()
 // ============================================================================
 deedRouter.get('/', auth(true), async (req: Request & { user?: any }, res: Response) => {
   try {
-    const { userId, propertyId, status } = req.query
-    
+    const { propertyId, status } = req.query
+    const requestingRole = req.user?.role
+    const isPrivileged = requestingRole === 'ADMIN' || requestingRole === 'REGULATOR'
+
     const where: any = {}
-    if (userId) where.userId = String(userId)
+    // Non-privileged users may only see their own deeds
+    if (!isPrivileged) {
+      where.userId = req.user!.userId
+    } else if (req.query.userId) {
+      where.userId = String(req.query.userId)
+    }
     if (propertyId) where.propertyId = String(propertyId)
     if (status) where.status = status
     
     const deeds = await prisma.digitalDeed.findMany({
       where,
       include: {
-        user: { select: { id: true, name: true, email: true } },
+        user: { select: { id: true, fullName: true, email: true } },
         property: { select: { id: true, title: true, location: true } },
         events: { orderBy: { createdAt: 'asc' } },
       },
@@ -53,7 +61,7 @@ deedRouter.get('/:deedNumber', auth(true), async (req: Request & { user?: any },
     const deed = await prisma.digitalDeed.findUnique({
       where: { deedNumber },
       include: {
-        user: { select: { id: true, name: true, email: true } },
+        user: { select: { id: true, fullName: true, email: true } },
         property: {
           select: {
             id: true,
@@ -71,7 +79,13 @@ deedRouter.get('/:deedNumber', auth(true), async (req: Request & { user?: any },
     if (!deed) {
       return res.status(404).json({ error: 'deed_not_found' })
     }
-    
+
+    const requestingRole = req.user?.role
+    const isPrivileged = requestingRole === 'ADMIN' || requestingRole === 'REGULATOR'
+    if (!isPrivileged && deed.userId !== req.user!.userId) {
+      return res.status(403).json({ error: 'forbidden' })
+    }
+
     res.json(deed)
   } catch (error) {
     console.error('Error fetching deed:', error)
@@ -83,10 +97,15 @@ deedRouter.get('/:deedNumber', auth(true), async (req: Request & { user?: any },
 // POST /deeds/issue - Issue a new digital deed
 // Body: { userId, propertyId, orderId }
 // ============================================================================
-deedRouter.post('/issue', auth(true), async (req: Request & { user?: any }, res: Response) => {
+deedRouter.post('/issue', auth(true), requireRole(['ADMIN']), async (req: Request & { user?: any }, res: Response) => {
     try {
+    const deedIssuanceEnabled = await getFeatureFlag('deedIssuanceEnabled', true)
+    if (!deedIssuanceEnabled) {
+      return res.status(410).json({ error: 'DEED_ISSUANCE_DISABLED', message: 'إصدار الصكوك متوقف حالياً.' })
+    }
+
     const { userId, propertyId, orderId } = req.body
-    
+
     if (!userId || !propertyId) {
       return res.status(400).json({ error: 'userId and propertyId required' })
     }
@@ -116,7 +135,7 @@ deedRouter.post('/issue', auth(true), async (req: Request & { user?: any }, res:
     
     // Calculate total tokens already covered by existing deeds (for backward compatibility
     // with older multiple-deed records)
-    const totalIssuedTokens = existingDeeds.reduce((sum, deed) => sum + deed.ownedTokens, 0)
+    const totalIssuedTokens = existingDeeds.reduce((sum: number, deed: any) => sum + deed.ownedTokens, 0)
     
     // Get property details first (needed for both new and existing deeds)
     const property = await prisma.property.findUnique({
@@ -147,7 +166,7 @@ deedRouter.post('/issue', auth(true), async (req: Request & { user?: any }, res:
     console.log(`📝 Issuing additional ${newTokensToIssue} token(s) (Total owned: ${holding.tokens}, Already issued: ${totalIssuedTokens})`)
 
     // Decide whether to create a new deed (first time) or update an existing one
-    let deedToUse = existingDeeds.find(d => d.status === 'ISSUED') || existingDeeds[0] || null
+    let deedToUse = existingDeeds.find((d: any) => d.status === 'ISSUED') || existingDeeds[0] || null
 
     // Generate a deed number now; if we reuse an existing deed we keep its number
     const deedNumber = deedToUse?.deedNumber || await generateDeedNumber()
@@ -162,7 +181,7 @@ deedRouter.post('/issue', auth(true), async (req: Request & { user?: any }, res:
 
     const { pdfUrl, pdfHash } = await generateDeedPDF({
       deedNumber,
-      userName: user.name || user.email,
+      userName: user.fullName || user.email,
       propertyTitle: property.title,
       ownedTokens: updatedOwnedTokens,
       ownershipPct,
@@ -251,7 +270,7 @@ deedRouter.post('/issue', auth(true), async (req: Request & { user?: any }, res:
           await prisma.onChainEvent.create({
             data: {
               txId: txId,
-              type: $Enums.OnChainEventType.TOKEN_MINT, // Reusing existing enum
+              type: 'TOKEN_MINT',
               userId: userId,
               propertyId: propertyId,
               orderId: orderId || undefined,
@@ -318,7 +337,7 @@ deedRouter.post('/verify', async (req: Request, res: Response) => {
     const deed = await prisma.digitalDeed.findUnique({
       where: { deedNumber },
       include: {
-        user: { select: { name: true, email: true } },
+        user: { select: { fullName: true, email: true } },
         property: { select: { title: true, location: true } }
       }
     })
@@ -345,8 +364,8 @@ deedRouter.post('/verify', async (req: Request, res: Response) => {
       deed: isValid ? {
         deedNumber: deed.deedNumber,
         status: deed.status,
-        userName: deed.user.name || deed.user.email,
-        propertyTitle: deed.property.title,
+        userName: (deed as any).user.fullName || (deed as any).user.email,
+        propertyTitle: (deed as any).property.title,
         ownedTokens: deed.ownedTokens,
         ownershipPct: deed.ownershipPct,
         issuedAt: deed.issuedAt
@@ -366,13 +385,19 @@ deedRouter.get('/user/:userId', auth(true), async (req: Request & { user?: any }
   try {
     const { userId } = req.params
 
+    // Only the owner of the deeds or an admin/regulator may view them
+    const requestingRole = req.user?.role
+    if (requestingRole !== 'ADMIN' && requestingRole !== 'REGULATOR' && req.user?.userId !== userId) {
+      return res.status(403).json({ error: 'forbidden', message: 'Access denied.' })
+    }
+
     const deeds = await prisma.digitalDeed.findMany({
       where: { userId: String(userId) },
       include: {
         user: {
           select: {
             id: true,
-            name: true,
+            fullName: true,
             email: true,
             nationalId: true,
           },

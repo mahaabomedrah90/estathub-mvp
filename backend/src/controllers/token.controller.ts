@@ -2,12 +2,11 @@ import { Router, Request, Response } from 'express'
 import { prisma } from '../lib/prisma'
 import { auth } from '../middleware/auth'
 import { requireRole } from '../middleware/roles'
-import { $Enums, Role } from '@prisma/client'
 import { isFabricEnabled, submitMintTokens } from '../lib/fabric'
 
 export const tokenRouter = Router()
 
-tokenRouter.post('/api/tokens/mint', auth(true), requireRole([Role.ADMIN, Role.OWNER] as unknown as string[]), async (req: Request & { user?: any }, res: Response) => {
+tokenRouter.post('/mint', auth(true), requireRole(['ADMIN', 'OWNER']), async (req: Request & { user?: any }, res: Response) => {
   try {
     const { propertyId, userEmail, userId, tokens } = req.body || {}
    const pid = String(propertyId)
@@ -50,7 +49,8 @@ tokenRouter.post('/api/tokens/mint', auth(true), requireRole([Role.ADMIN, Role.O
     
     if (!fabricResult?.dbTx) {
       console.log('🔍 Fabric did not create dbTx, creating it in controller...')
-      await prisma.$transaction(async tx => {
+      await prisma.$transaction(async (tx: any) => {
+
         await tx.property.update({ where: { id: pid }, data: { remainingTokens: { decrement: qty } } })
         if (targetUser) {
           await tx.holding.upsert({
@@ -63,7 +63,7 @@ tokenRouter.post('/api/tokens/mint', auth(true), requireRole([Role.ADMIN, Role.O
             data: {
               userId: targetUser.id,
               tenantId: targetUser.tenantId,
-              type: $Enums.TransactionType.TOKEN_MINT,
+              type: 'TOKEN_MINT',
               amount: qty,
               note: 'Admin/Owner mint',
               blockchainTxId: fabricResult?.txId,
@@ -73,7 +73,8 @@ tokenRouter.post('/api/tokens/mint', auth(true), requireRole([Role.ADMIN, Role.O
       })
     } else {
       // Still need to update property and holdings even if Fabric created the transaction
-      await prisma.$transaction(async tx => {
+     await prisma.$transaction(async (tx: any) => {
+
                 if (targetUser) {
         await tx.holding.upsert({
         where: { userId_propertyId: { userId: targetUser.id, propertyId: pid } },
@@ -109,10 +110,10 @@ tokenRouter.post('/api/tokens/mint', auth(true), requireRole([Role.ADMIN, Role.O
   }
 })
 
-tokenRouter.get('/api/holdings', async (_req: Request, res: Response) => {
+tokenRouter.get('/holdings', auth(true), requireRole(['ADMIN']), async (_req: Request, res: Response) => {
   try {
     const rows = await prisma.holding.findMany({ include: { property: true, user: true }, orderBy: { id: 'asc' } })
-    const data = rows.map(r => ({
+    const data = rows.map((r: any) => ({
       id: r.id,
       user: { id: r.userId, email: r.user.email },
       property: { id: r.propertyId, name: r.property.title, tokenPrice: r.property.tokenPrice },

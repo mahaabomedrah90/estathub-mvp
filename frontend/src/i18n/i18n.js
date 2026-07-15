@@ -1,19 +1,19 @@
 import i18n from 'i18next'
 import { initReactI18next } from 'react-i18next'
 
-import enCommon from './en/common.json'
-import enSidebar from './en/sidebar.json'
-import enNavbar from './en/navbar.json'
-import enPages from './en/pages.json'
-import enBlockchain from './en/blockchain.json'
-import enProperty from './en/property.json'
+import enCommon from './en/common.json' with { type: 'json' }
+import enSidebar from './en/sidebar.json' with { type: 'json' }
+import enNavbar from './en/navbar.json' with { type: 'json' }
+import enPages from './en/pages.json' with { type: 'json' }
+import enBlockchain from './en/blockchain.json' with { type: 'json' }
+import enProperty from './en/property.json' with { type: 'json' }
 
-import arCommon from './ar/common.json'
-import arSidebar from './ar/sidebar.json'
-import arNavbar from './ar/navbar.json'
-import arPages from './ar/pages.json'
-import arBlockchain from './ar/blockchain.json'
-import arProperty from './ar/property.json'
+import arCommon from './ar/common.json' with { type: 'json' }
+import arSidebar from './ar/sidebar.json' with { type: 'json' }
+import arNavbar from './ar/navbar.json' with { type: 'json' }
+import arPages from './ar/pages.json' with { type: 'json' }
+import arBlockchain from './ar/blockchain.json' with { type: 'json' }
+import arProperty from './ar/property.json' with { type: 'json' }
 
 const resources = {
   en: {

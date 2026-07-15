@@ -1,5 +1,5 @@
 {
-  "appName": "Estathub",
+  "appName": "ALWASM",
   "loading": "Loading...",
   "save": "Save",
   "cancel": "Cancel",
@@ -15,10 +15,9 @@
     "approved": "Approved",
     "rejected": "Rejected",
     "underReview": "Under Review"
-    
   },
-   "footer": {
-    "tagline": "Democratizing real estate investment through blockchain-powered tokenization.",
+  "footer": {
+    "tagline": "Opening real estate ownership to everyone.",
     "quickLinks": "Quick Links",
     "resources": "Resources",
     "contactUs": "Contact Us",
@@ -26,6 +25,7 @@
       "home": "Home",
       "opportunities": "Opportunities",
       "wallet": "My Wallet",
+      "tokenize": "List Your Property",
       "blockchainExplorer": "Blockchain Explorer",
       "about": "About Us",
       "howItWorks": "How It Works",
@@ -34,7 +34,7 @@
       "privacy": "Privacy Policy"
     },
     "location": "Riyadh, Saudi Arabia",
-    "copyright": "All rights reserved. Built with Hyperledger Fabric."
+    "copyright": "All rights reserved."
   },
   "date": {
     "joinedOn": "Joined on {{date}}"

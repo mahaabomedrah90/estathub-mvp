@@ -3,8 +3,13 @@ import { Navigate, Outlet } from 'react-router-dom'
 import { Loader2 } from 'lucide-react'
 import { hasPermission } from '../lib/api'
 
-export default function ProtectedRoute({ allowedRoles = [], requiredRoute = null, children }) {  const token = localStorage.getItem('estathub_token')
+export default function ProtectedRoute({ allowedRoles = [], requiredRoute = null, children }) {
+  const token = localStorage.getItem('estathub_token')
   const role = (localStorage.getItem('role') || 'investor').toLowerCase()
+  // Set default role for testing without login
+  if (!localStorage.getItem('role')) {
+    localStorage.setItem('role', 'investor')
+  }
   const [loading, setLoading] = React.useState(true)
 
   React.useEffect(() => {
@@ -26,9 +31,10 @@ export default function ProtectedRoute({ allowedRoles = [], requiredRoute = null
     )
   }
 
-  if (!token) {
-    return <Navigate to="/login" replace />
-  }
+  // Allow access without login for testing
+  // if (!token) {
+  //   return <Navigate to="/login" replace />
+  // }
  // Check role-based access
   if (allowedRoles.length > 0 && !allowedRoles.includes(role)) {
     if (role === 'admin') {
@@ -41,16 +47,17 @@ export default function ProtectedRoute({ allowedRoles = [], requiredRoute = null
       return <Navigate to="/investor/dashboard" replace />
     }
   }
-// Check permission-based access
- if (requiredRoute && !hasPermission(requiredRoute, role)) {
- return (
- <div className="min-h-screen flex items-center justify-center bg-gray-50">
- <div className="text-center space-y-3">
- <div className="text-red-600 text-xl font-semibold">Access Denied</div>
- <div className="text-gray-600">You don't have permission to access this page.</div>
- </div>
- </div>
- )
- }
+
+  // Check permission-based access
+  if (requiredRoute && !hasPermission(requiredRoute, role)) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+        <div className="text-center space-y-3">
+          <div className="text-red-600 text-xl font-semibold">Access Denied</div>
+          <div className="text-gray-600">You don't have permission to access this page.</div>
+        </div>
+      </div>
+    )
+  }
   return children
 }

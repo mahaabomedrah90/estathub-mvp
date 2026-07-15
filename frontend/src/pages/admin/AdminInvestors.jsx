@@ -1,10 +1,11 @@
 import React, { useState, useEffect } from 'react'
-import { 
-  Users, Building2, DollarSign, Mail, Phone, TrendingUp, TrendingDown, 
-  Activity, Target, Calendar, Award, AlertCircle, CheckCircle, Eye
+import {
+  Users, Building2, DollarSign, Mail, Phone, TrendingUp, TrendingDown,
+  Activity, Target, Calendar, Award, AlertCircle, CheckCircle, Eye, Wallet
 } from 'lucide-react'
 import { authHeader, fetchJson, getToken } from '../../lib/api'
-import { useTranslation } from 'react-i18next';
+import { useTranslation } from 'react-i18next'
+import WalletHistoryModal from '../../components/ui/WalletHistoryModal'
 
 
 
@@ -15,6 +16,7 @@ export default function OwnerInvestors() {
   const [investors, setInvestors] = useState([])
   const [selectedInvestor, setSelectedInvestor] = useState(null)
   const [showDetails, setShowDetails] = useState(false)
+  const [walletTarget, setWalletTarget] = useState(null) // { userId, name }
   const [analytics, setAnalytics] = useState({
     totalInvestors: 0,
     totalInvestment: 0,
@@ -363,11 +365,21 @@ const property = inv.property || {}
 
   return (
     <div className="space-y-6">
+      {/* Wallet History Modal */}
+      {walletTarget && (
+        <WalletHistoryModal
+          userId={walletTarget.userId}
+          investorName={walletTarget.name}
+          onClose={() => setWalletTarget(null)}
+        />
+      )}
+
+      {/* Header */}
       <div>
-        <h1 className="text-2xl font-bold text-gray-900">
+        <h1 className="text-3xl font-bold text-[#1E1958]">
           {isArabic ? 'إدارة المستثمرين' : 'Investor Management'}
         </h1>
-        <p className="text-gray-600 mt-1">
+        <p className="text-gray-600 mt-2">
           {isArabic
             ? 'إدارة وتحليل أنشطة المحافظ الاستثمارية للمستثمرين.'
             : 'Manage and analyze investors and their investment portfolios.'}
@@ -375,81 +387,106 @@ const property = inv.property || {}
       </div>
 
       {/* Analytics Overview */}
-      <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-6 gap-4">
-        <div className="bg-white rounded-lg p-4 border shadow">
-          <Users className="text-blue-600 mb-2" size={20} />
-          <p className="text-xs text-gray-600">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+        {/* Total Investors Card */}
+        <div className="bg-gradient-to-br from-[#1E1958] to-[#2a2458] rounded-xl p-6 text-white">
+          <div className="flex items-center justify-between mb-4">
+            <div className="w-12 h-12 bg-white/20 rounded-lg flex items-center justify-center">
+              <Users className="text-white" size={24} />
+            </div>
+            <div className="flex items-center gap-1 text-sm bg-white/20 px-2 py-1 rounded">
+              <TrendingUp size={14} />
+              <span>{isArabic ? 'إجمالي' : 'Total'}</span>
+            </div>
+          </div>
+          <div className="text-3xl font-bold mb-1">{analytics.totalInvestors}</div>
+          <div className="text-white/80 text-sm">
             {isArabic ? 'إجمالي المستثمرين' : 'Total Investors'}
-          </p>
-          <h3 className="text-xl font-bold text-gray-900">{analytics.totalInvestors}</h3>
+          </div>
         </div>
-        <div className="bg-white rounded-lg p-4 border shadow">
-          <DollarSign className="text-emerald-600 mb-2" size={20} />
-          <p className="text-xs text-gray-600">
+
+        {/* Total Investment Card */}
+        <div className="bg-[#41EAD4]/10 border border-[#41EAD4]/30 rounded-xl p-6">
+          <div className="flex items-center justify-between mb-4">
+            <div className="w-12 h-12 bg-[#41EAD4]/20 rounded-lg flex items-center justify-center">
+              <DollarSign className="text-[#41EAD4]" size={24} />
+            </div>
+            <div className="flex items-center gap-1 text-sm text-[#41EAD4]">
+              <DollarSign size={14} />
+              <span>{isArabic ? 'إجمالي' : 'Total'}</span>
+            </div>
+          </div>
+          <div className="text-3xl font-bold text-[#1E1958] mb-1">{formatCurrency(analytics.totalInvestment)}</div>
+          <div className="text-sm text-gray-600">
             {isArabic ? 'إجمالي الاستثمار' : 'Total Investment'}
-          </p>
-          <h3 className="text-xl font-bold text-gray-900">{formatCurrency(analytics.totalInvestment)}</h3>
+          </div>
         </div>
-        <div className="bg-white rounded-lg p-4 border shadow">
-          <TrendingUp className="text-purple-600 mb-2" size={20} />
-          <p className="text-xs text-gray-600">
+
+        {/* Total Returns Card */}
+        <div className="bg-[#CDB9A1]/30 border border-[#CDB9A1]/50 rounded-xl p-6">
+          <div className="flex items-center justify-between mb-4">
+            <div className="w-12 h-12 bg-[#1E1958]/10 rounded-lg flex items-center justify-center">
+              <TrendingUp className="text-[#1E1958]" size={24} />
+            </div>
+            <div className="flex items-center gap-1 text-sm text-[#1E1958]">
+              <TrendingUp size={14} />
+              <span>{isArabic ? 'إجمالي' : 'Total'}</span>
+            </div>
+          </div>
+          <div className="text-3xl font-bold text-[#1E1958] mb-1">{formatCurrency(analytics.totalReturns)}</div>
+          <div className="text-sm text-gray-600">
             {isArabic ? 'إجمالي العوائد' : 'Total Returns'}
-          </p>
-          <h3 className="text-xl font-bold text-gray-900">{formatCurrency(analytics.totalReturns)}</h3>
+          </div>
         </div>
-        <div className="bg-white rounded-lg p-4 border shadow">
-          <Activity className="text-amber-600 mb-2" size={20} />
-          <p className="text-xs text-gray-600">
-            {isArabic ? 'متوسط الاستثمار' : 'Avg. Investment'}
-          </p>
-          <h3 className="text-xl font-bold text-gray-900">{formatCurrency(analytics.avgInvestment)}</h3>
-        </div>
-        <div className="bg-white rounded-lg p-4 border shadow">
-          <Target className="text-green-600 mb-2" size={20} />
-          <p className="text-xs text-gray-600">
+
+        {/* Profitable Investors Card */}
+        <div className="bg-[#986F9A]/10 border border-[#986F9A]/30 rounded-xl p-6">
+          <div className="flex items-center justify-between mb-4">
+            <div className="w-12 h-12 bg-[#986F9A]/20 rounded-lg flex items-center justify-center">
+              <Target className="text-[#986F9A]" size={24} />
+            </div>
+            <div className="flex items-center gap-1 text-sm text-[#986F9A]">
+              <Target size={14} />
+              <span>{isArabic ? 'مربح' : 'Profit'}</span>
+            </div>
+          </div>
+          <div className="text-3xl font-bold text-[#1E1958] mb-1">{analytics.profitableInvestors}</div>
+          <div className="text-sm text-gray-600">
             {isArabic ? 'المستثمرون المربحون' : 'Profitable Investors'}
-          </p>
-          <h3 className="text-xl font-bold text-gray-900">{analytics.profitableInvestors}</h3>
-        </div>
-        <div className="bg-white rounded-lg p-4 border shadow">
-          <Award className="text-indigo-600 mb-2" size={20} />
-          <p className="text-xs text-gray-600">
-            {isArabic ? 'متوسط العائد' : 'Avg. ROI'}
-          </p>
-          <h3 className="text-xl font-bold text-gray-900">{analytics.avgROI.toFixed(1)}%</h3>
+          </div>
         </div>
       </div>
 
       {/* Investors Table */}
-      <div className="bg-white rounded-lg border shadow overflow-hidden">
+      <div className="bg-white rounded-xl border border-gray-200 overflow-hidden shadow-sm">
         <div className="px-6 py-4 border-b border-gray-200">
-          <h2 className="text-lg font-semibold text-gray-900">
+          <h2 className="text-lg font-semibold text-[#1E1958]">
             {isArabic ? 'محفظة المستثمر' : 'Investor Portfolio'}
           </h2>
         </div>
         <div className="overflow-x-auto">
           <table className="w-full">
-            <thead className="bg-gray-50 border-b">
+            <thead className="bg-[#1E1958]/5 border-b border-gray-200">
               <tr>
-                <th className="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase">
+                <th className="px-6 py-3 text-left text-xs font-semibold text-[#1E1958] uppercase">
                   {isArabic ? 'اسم المستثمر' : 'Investor Name'}
                 </th>
-                <th className="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase">
+                <th className="px-6 py-3 text-left text-xs font-semibold text-[#1E1958] uppercase">
                   {isArabic ? 'العقارات' : 'Properties'}
                 </th>
-                <th className="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase">
+                <th className="px-6 py-3 text-left text-xs font-semibold text-[#1E1958] uppercase">
                   {isArabic ? 'إجمالي الاستثمار' : 'Total Investment'}
                 </th>
-                <th className="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase">
+                <th className="px-6 py-3 text-left text-xs font-semibold text-[#1E1958] uppercase">
                   {isArabic ? 'إجمالي العوائد' : 'Total Returns'}
                 </th>
-                <th className="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase">
+                <th className="px-6 py-3 text-left text-xs font-semibold text-[#1E1958] uppercase">
                   {isArabic ? 'العائد على الاستثمار' : 'ROI'}
                 </th>
-                <th className="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase">
+                <th className="px-6 py-3 text-left text-xs font-semibold text-[#1E1958] uppercase">
                   {isArabic ? 'الحالة' : 'Status'}
                 </th>
-                <th className="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase">
+                <th className="px-6 py-3 text-left text-xs font-semibold text-[#1E1958] uppercase">
                   {isArabic ? 'الأداء' : 'Performance'}
                 </th>
                 <th className="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase">
@@ -545,16 +582,25 @@ const property = inv.property || {}
                       </div>
                     </td>
                     <td className="px-6 py-4">
-                      <button
-                        onClick={() => {
-                          setSelectedInvestor(investor)
-                          setShowDetails(true)
-                        }}
-                        className="text-blue-600 hover:text-blue-800 text-sm font-medium flex items-center space-x-1"
-                      >
-                        <Eye size={14} />
-                        <span>{i18n.language === 'ar' ? 'التفاصيل' : 'Details'}</span>
-                      </button>
+                      <div className="flex flex-col gap-2">
+                        <button
+                          onClick={() => {
+                            setSelectedInvestor(investor)
+                            setShowDetails(true)
+                          }}
+                          className="text-blue-600 hover:text-blue-800 text-sm font-medium flex items-center gap-1"
+                        >
+                          <Eye size={14} />
+                          <span>{i18n.language === 'ar' ? 'التفاصيل' : 'Details'}</span>
+                        </button>
+                        <button
+                          onClick={() => setWalletTarget({ userId: investor.id, name: investor.name })}
+                          className="text-[#1E1958] hover:text-[#41EAD4] text-sm font-medium flex items-center gap-1"
+                        >
+                          <Wallet size={14} />
+                          <span>{i18n.language === 'ar' ? 'سجل المحفظة' : 'Wallet History'}</span>
+                        </button>
+                      </div>
                     </td>
                   </tr>
                 )

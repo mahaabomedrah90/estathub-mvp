@@ -2,14 +2,14 @@ import React from 'react'
 import { Info } from 'lucide-react'
 
 const toneStyles = {
-  blue: 'bg-blue-50 text-blue-900 border-blue-100',
-  emerald: 'bg-emerald-50 text-emerald-900 border-emerald-100',
-  purple: 'bg-purple-50 text-purple-900 border-purple-100',
-  amber: 'bg-amber-50 text-amber-900 border-amber-100',
-  indigo: 'bg-indigo-50 text-indigo-900 border-indigo-100',
-  cyan: 'bg-cyan-50 text-cyan-900 border-cyan-100',
-  slate: 'bg-slate-50 text-slate-900 border-slate-100',
-  rose: 'bg-rose-50 text-rose-900 border-rose-100'
+  blue:    'bg-brand-accent-soft text-brand-primary border-brand-accent/20',
+  emerald: 'bg-brand-accent-soft text-brand-primary border-brand-accent/20',
+  purple:  'bg-brand-primary/5 text-brand-primary border-brand-primary/10',
+  amber:   'bg-brand-primary/5 text-brand-primary border-brand-primary/10',
+  indigo:  'bg-brand-primary/5 text-brand-primary border-brand-primary/10',
+  cyan:    'bg-brand-accent-soft text-brand-primary border-brand-accent/20',
+  slate:   'bg-surface-muted text-text-strong border-border-soft',
+  rose:    'bg-red-50 text-red-900 border-red-100',
 }
 
 export default function KpiCard({

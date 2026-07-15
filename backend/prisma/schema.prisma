@@ -80,6 +80,12 @@ enum OwnerType {
   COMPANY
 }
 
+enum UserStatus {
+  ACTIVE
+  INACTIVE
+  SUSPENDED
+}
+
 // Tenant model for multi-tenant support
 model Tenant {
   id        String   @id @default(cuid())
@@ -100,11 +106,17 @@ model User {
   id            String   @id @default(cuid())
   email         String   @unique
   passwordHash  String   // Added for proper authentication
-  name          String?
-  role          Role     @default(INVESTOR)
+  fullName      String?  // Temporarily optional for migration, enforced at app level
+  role          Role       @default(INVESTOR)
+  status        UserStatus @default(ACTIVE)
   tenantId      String   // Multi-tenant support
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
+  
+  // Verification status fields (PDPL compliance)
+  emailVerified Boolean  @default(false)
+  phoneVerified Boolean  @default(false)
+  kycVerified   Boolean  @default(false)  // KYC/National ID verification status
   
   // Relations
   tenant        Tenant         @relation(fields: [tenantId], references: [id], onDelete: Cascade)
@@ -112,18 +124,26 @@ model User {
   holdings      Holding[]
   distributions Distribution[]
   certificates  Certificate[]
-  wallet        Wallet?
-  transactions  Transaction[]
-  bankLinks     BankLink[]
-  deeds         DigitalDeed[]
+  wallet          Wallet?
+  transactions    Transaction[]
+  bankLinks       BankLink[]
+  depositRequests    DepositRequest[]
+  withdrawalRequests WithdrawalRequest[]
+  deeds              DigitalDeed[]
   
-  // Saudi KYC fields
-  nationalId   String?        // Saudi National ID or Iqama
-  phoneNumber  String?
+  // Saudi KYC fields - now with unique constraints
+  nationalId   String?        @unique // Saudi National ID or Iqama - UNIQUE
+  phoneNumber  String?        @unique // Saudi phone in E.164 format - UNIQUE
   address      String?
+  
+  // Password reset fields
+  passwordResetToken     String?   // Hashed reset token
+  passwordResetExpiresAt DateTime? // Token expiry timestamp
   
   @@index([tenantId])
   @@index([email])
+  @@index([nationalId])
+  @@index([phoneNumber])
 }
 
 model Property {
@@ -431,6 +451,58 @@ model DeedDocument {
   @@index([documentType])
 }
 
+enum DepositStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
+model DepositRequest {
+  id            String        @id @default(cuid())
+  userId        String
+  walletId      String?
+  amount        Float
+  bankName      String?
+  bankReference String?
+  receiptUrl    String?
+  status        DepositStatus @default(PENDING)
+  adminNote     String?
+  reviewedBy    String?
+  reviewedAt    DateTime?
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+
+  user          User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([status])
+}
+
+enum WithdrawalStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
+model WithdrawalRequest {
+  id          String           @id @default(cuid())
+  userId      String
+  amount      Float
+  bankName    String?
+  iban        String?
+  status      WithdrawalStatus @default(PENDING)
+  adminNote   String?
+  reviewedBy  String?
+  reviewedAt  DateTime?
+  createdAt   DateTime         @default(now())
+  updatedAt   DateTime         @updatedAt
+
+  user        User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([status])
+}
+
 // Platform Settings Model
 model Settings {
   id                    String   @id @default(cuid())
@@ -440,7 +512,193 @@ model Settings {
   description           String?             // Human-readable description
   updatedAt             DateTime @updatedAt
   createdAt             DateTime @default(now())
-  
+
   @@index([category])
   @@index([key])
+}
+
+// ─── Platform P&L Models ──────────────────────────────────────────────────────
+
+enum PlatformRevenueType {
+  INVESTMENT_FEE    // Derived from token purchase orders
+  OWNER_FEE         // Property listing / tokenization / setup fees
+  MANAGEMENT_FEE    // Annual / asset management fees
+  SUBSCRIPTION      // Premium accounts, enterprise plans
+  OTHER             // Penalties, service charges, miscellaneous
+}
+
+enum PlatformExpenseCategory {
+  TECHNOLOGY          // AWS, hosting, domains, monitoring, security
+  OPERATIONS          // Office, bank charges, payment gateway, admin
+  MARKETING           // Advertising, influencers, content, events
+  PAYROLL             // Founders, employees, contractors
+  PROFESSIONAL_SERVICES // Accounting, legal, audit, compliance
+  OTHER               // Miscellaneous
+}
+
+model PlatformRevenue {
+  id          String              @id @default(cuid())
+  type        PlatformRevenueType
+  description String
+  amount      Float
+  propertyId  String?
+  userId      String?
+  date        DateTime
+  createdAt   DateTime            @default(now())
+  updatedAt   DateTime            @updatedAt
+  createdBy   String?
+  notes       String?
+
+  @@index([type])
+  @@index([date])
+  @@index([propertyId])
+  @@map("platform_revenues")
+}
+
+model PlatformExpense {
+  id          String                  @id @default(cuid())
+  category    PlatformExpenseCategory
+  description String
+  amount      Float
+  vendor      String?
+  date        DateTime
+  createdAt   DateTime                @default(now())
+  updatedAt   DateTime                @updatedAt
+  createdBy   String?
+  notes       String?
+  invoiceRef  String?
+
+  @@index([category])
+  @@index([date])
+  @@map("platform_expenses")
+}
+
+model WaitlistLead {
+  id        String   @id @default(uuid())
+  contact   String
+  amount    String   @default("")
+  language  String   @default("en")
+  source    String   @default("home")
+  createdAt DateTime @default(now())
+}
+
+model AdminAuditLog {
+  id           String   @id @default(cuid())
+
+  adminId      String?
+  adminEmail   String?
+
+  action       String
+
+  targetType   String
+  targetId     String?
+
+  investorId   String?
+  investorName String?
+
+  amount       Float?
+
+  walletBefore Float?
+  walletAfter  Float?
+
+  metadata     Json?
+
+  ipAddress    String?
+  userAgent    String?
+
+  createdAt    DateTime @default(now())
+
+  @@index([action])
+  @@index([targetType])
+  @@index([investorId])
+  @@index([createdAt])
+}
+
+// ============================================================================
+// PropertyLead — preliminary owner opportunity submission ("طلب التقديم المبدئي")
+// ----------------------------------------------------------------------------
+// A lightweight lead captured BEFORE full due diligence / tokenization.
+// This is intentionally SEPARATE from the Property model: a lead is not a
+// tokenized property and not an approved opportunity. An accepted lead may
+// later be converted into the full Property workflow by an admin.
+// Most fields are nullable; the API layer enforces which are required at
+// first submission. See owner_onboarding_final.html (approved design).
+// ============================================================================
+
+enum PropertyLeadStatus {
+  NEW
+  UNDER_REVIEW
+  NEEDS_INFO
+  ACCEPTED
+  REJECTED
+  CONVERTED_TO_PROPERTY
+}
+
+model PropertyLead {
+  id                             String   @id @default(cuid())
+
+  // Applicant
+  applicantType                  String?  // 'owner' | 'developer'
+  fullName                       String?
+  companyName                    String?
+  phone                          String?
+  email                          String?
+
+  // Property
+  propertyName                   String?
+  propertyType                   String?  // land | apartment | building | warehouse | farm | other
+  city                           String?
+  district                       String?
+  googleMapsUrl                  String?
+  landArea                       Float?
+  buildingArea                   Float?
+  buildingYear                   Int?     // property age in years (design field: "عمر العقار")
+  requestedPrice                 Float?
+  isPriceNegotiable              Boolean?
+
+  // Investment status
+  isLeased                       Boolean?
+  annualRent                     Float?
+  leaseExpiryDate                DateTime?
+
+  // Legal status
+  hasMortgage                    Boolean?
+  hasOwnershipPartner            Boolean?
+  hasLegalDispute                Boolean?
+  noLegalIssues                  Boolean?
+
+  // Description
+  shortDescription               String?
+
+  // Images / documents (URLs from /api/properties/upload-document)
+  imageUrls                      Json?
+  deedImageUrl                   String?
+
+  // Declarations
+  dataAccuracyConfirmed          Boolean  @default(false)
+  reviewConsentConfirmed         Boolean  @default(false)
+  noAcceptanceGuaranteeConfirmed Boolean  @default(false)
+
+  // Internal scoring (owner must NOT see these — admin only)
+  qualificationScore             Int?
+  tokenizationSuitabilityScore   Int?
+  internalRecommendation         String?
+  adminStatus                    String?
+
+  // Lifecycle status
+  status                         PropertyLeadStatus @default(NEW)
+
+  // Metadata
+  ownerId                        String?  // submitting user id (loose, mirrors Property.ownerId)
+  tenantId                       String   // Multi-tenant support
+  createdAt                      DateTime @default(now())
+  updatedAt                      DateTime @updatedAt
+  reviewedAt                     DateTime?
+  reviewedBy                     String?
+  reviewNotes                    String?
+
+  @@index([tenantId])
+  @@index([ownerId])
+  @@index([status])
+  @@index([createdAt])
 }

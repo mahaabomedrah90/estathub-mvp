@@ -6,17 +6,26 @@
   },
   "owner": {
     "dashboard": "Dashboard",
+    "requests": "My Requests",
     "properties": "My Properties",
     "submitProperty": "Submit Property"
   },
   "admin": {
     "overview": "Overview",
-    "reviewProperties": "Review Properties",
+    "propertyLeads": "Preliminary Submissions",
+    "reviewProperties": "Property Listing Opportunities",
     "users": "Manage Users",
     "issueDeeds": "Issue Deeds",
     "reports": "Reports",
     "settings": "Settings",
-    "investors": "Investor Management"
+    "investors": "Investor Management",
+    "deposits": "Deposit Requests",
+    "auditLogs": "Audit Logs",
+    "financialReports": "Financial Reports",
+    "withdrawals": "Withdrawal Requests",
+    "investorStatement": "Investor Statement",
+    "ownerStatement": "Owner Statement",
+    "platformPnl": "Platform P&L"
   },
   "regulator": {
     "dashboard": "Dashboard",

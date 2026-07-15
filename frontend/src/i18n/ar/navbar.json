@@ -1,7 +1,11 @@
 {
-  "brand": "Estathub",
+  "brand": "الوسم",
   "login": "تسجيل الدخول",
   "logout": "تسجيل الخروج",
+  "home": "الرئيسية",
+  "howItWorks": "كيف تعمل",
+  "about": "عن الوسم",
+  "faq": "الأسئلة الشائعة",
   "dashboard": "لوحة التحكم",
   "reviewProperties": " الفرص الاستثمارية",
   "properties": "العقارات",

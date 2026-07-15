@@ -133,6 +133,24 @@ VITE_API_BASE=http://localhost:5000
 
 **Never commit `.env`**. It’s ignored by `.gitignore`.
 
+### Production notes (AWS)
+
+- **CORS_ORIGIN** must be the requesting **site origin(s)**, not an API path. Example:
+  - `CORS_ORIGIN="https://alwsm.sa,https://www.alwsm.sa"`
+- **Vite API base** is embedded at build time. For production builds behind CloudFront, set:
+  - `VITE_API_BASE=https://www.alwsm.sa/api`
+
+If you use CloudFront for both frontend and backend:
+
+- Configure CloudFront so that **`/api/*` is routed to the backend origin (ALB)**.
+- Ensure `/api/*` is **never** served by the S3 SPA origin (otherwise you will get HTML `index.html` in API responses).
+
+After uploading a new frontend build to S3, invalidate CloudFront:
+
+```bash
+aws cloudfront create-invalidation --distribution-id <DIST_ID> --paths "/*"
+```
+
 ---
 
 ## 8) GitHub Actions (CI)

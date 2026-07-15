@@ -1,0 +1,89 @@
+{
+  "containerDefinitions": [
+    {
+      "name": "backend",
+      "image": "101143944706.dkr.ecr.eu-central-1.amazonaws.com/estathub-backend:prod-20260317-0257-amd64",
+      "cpu": 0,
+      "portMappings": [
+        {
+          "containerPort": 5001,
+          "hostPort": 5001,
+          "protocol": "tcp",
+          "name": "estathub-backend-5001-tcp",
+          "appProtocol": "http"
+        }
+      ],
+      "essential": true,
+      "environment": [
+        {
+          "name": "BCRYPT_SALT_ROUNDS",
+          "value": "12"
+        },
+        {
+          "name": "NODE_ENV",
+          "value": "production"
+        },
+        {
+          "name": "JWT_EXPIRES_IN",
+          "value": "1d"
+        },
+        {
+          "name": "PORT",
+          "value": "5001"
+        },
+        {
+          "name": "JWT_SECRET",
+          "value": "+u7pODxBR+ZSjeTmfAzFaHJuWqWZjw57BLtSmrai2vKfppxA09xHEiWl/TLoLE98 pshb/NxxzEytCgkMAnmWWA=="
+        },
+        {
+          "name": "CORS_ORIGIN",
+          "value": "https://www.alwsm.sa,https://alwsm.sa"
+        }
+      ],
+      "mountPoints": [],
+      "volumesFrom": [],
+      "secrets": [
+        {
+          "name": "DATABASE_URL",
+          "valueFrom": "/alwsm/prod/DATABASE_URL"
+        }
+      ],
+      "logConfiguration": {
+        "logDriver": "awslogs",
+        "options": {
+          "awslogs-group": "/ecs/estathub-backend-task",
+          "awslogs-create-group": "true",
+          "awslogs-region": "eu-central-1",
+          "awslogs-stream-prefix": "ecs"
+        },
+        "secretOptions": []
+      },
+      "healthCheck": {
+        "command": [
+          "CMD-SHELL",
+          "curl -f http://localhost:5001/health || exit 1"
+        ],
+        "interval": 30,
+        "timeout": 5,
+        "retries": 5,
+        "startPeriod": 60
+      },
+      "systemControls": []
+    }
+  ],
+  "family": "estathub-backend-task",
+  "taskRoleArn": "arn:aws:iam::101143944706:role/ecsTaskExecutionRole",
+  "executionRoleArn": "arn:aws:iam::101143944706:role/ecsTaskExecutionRole",
+  "networkMode": "awsvpc",
+  "volumes": [],
+  "placementConstraints": [],
+  "runtimePlatform": {
+    "cpuArchitecture": "X86_64",
+    "operatingSystemFamily": "LINUX"
+  },
+  "requiresCompatibilities": [
+    "FARGATE"
+  ],
+  "cpu": "1024",
+  "memory": "4096"
+}

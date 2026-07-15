@@ -1,0 +1,87 @@
+{
+  "containerDefinitions": [
+    {
+      "name": "backend",
+      "image": "101143944706.dkr.ecr.eu-central-1.amazonaws.com/estathub-backend:latest",
+      "cpu": 0,
+      "portMappings": [
+        {
+          "containerPort": 5001,
+          "hostPort": 5001,
+          "protocol": "tcp"
+        }
+      ],
+      "essential": true,
+      "environment": [
+        {
+          "name": "AWS_REGION",
+          "value": "eu-central-1"
+        },
+        {
+          "name": "DATABASE_URL",
+          "value": "postgresql://estathub_user:Maha59592025@alwsm-db-1.c9w4q020yq0g.eu-central-1.rds.amazonaws.com:5432/estathub_db?schema=public"
+        },
+        {
+          "name": "PORT",
+          "value": "5001"
+        },
+        {
+          "name": "JWT_SECRET",
+          "value": "CHANGE_ME_JWT_SECRET_32_CHARS_MINIMUM"
+        },
+        {
+          "name": "USE_FABRIC",
+          "value": "false"
+        },
+        {
+          "name": "NODE_ENV",
+          "value": "production"
+        },
+        {
+          "name": "EMAIL_FROM",
+          "value": "support@alwsm.sa"
+        },
+        {
+          "name": "CORS_ORIGIN",
+          "value": "https://alwsm.sa"
+        },
+        {
+          "name": "FRONTEND_URL",
+          "value": "https://www.alwsm.sa"
+        }
+      ],
+      "mountPoints": [],
+      "volumesFrom": [],
+      "logConfiguration": {
+        "logDriver": "awslogs",
+        "options": {
+          "awslogs-group": "/ecs/estathub-backend",
+          "awslogs-region": "eu-central-1",
+          "awslogs-stream-prefix": "ecs"
+        }
+      },
+      "healthCheck": {
+        "command": [
+          "CMD-SHELL",
+          "curl -f http://localhost:5001/api/health || exit 1"
+        ],
+        "interval": 30,
+        "timeout": 5,
+        "retries": 3,
+        "startPeriod": 60
+      },
+      "systemControls": []
+    }
+  ],
+  "family": "estathub-backend-task",
+  "taskRoleArn": "arn:aws:iam::101143944706:role/ecsTaskRole-estathub",
+  "executionRoleArn": "arn:aws:iam::101143944706:role/ecsTaskExecutionRole",
+  "networkMode": "awsvpc",
+  "volumes": [],
+  "placementConstraints": [],
+  "requiresCompatibilities": [
+    "FARGATE"
+  ],
+  "cpu": "256",
+  "memory": "512"
+}

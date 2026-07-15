@@ -1,11 +1,14 @@
 import React, { useState, useEffect } from 'react'
-import { Building2, Eye, CheckCircle, X, MapPin, DollarSign, Clock, User, Loader2 } from 'lucide-react'
-import { useTranslation } from 'react-i18next';
+import { useNavigate } from 'react-router-dom'
+import { Building2, Eye, CheckCircle, X, MapPin, DollarSign, Clock, User, Loader2, ClipboardList } from 'lucide-react'
+import { useTranslation } from 'react-i18next'
+import { fetchJson, authHeader } from '../../lib/api'
 
 
 
 export default function AdminOpportunities() {
   const { t, i18n } = useTranslation('pages');
+  const navigate = useNavigate()
 
   const [properties, setProperties] = useState([])
   const [loading, setLoading] = useState(true)
@@ -57,7 +60,6 @@ export default function AdminOpportunities() {
   ]) */
 
   const [selectedProperty, setSelectedProperty] = useState(null)
-  const [filter, setFilter] = useState('all')
 
   useEffect(() => {
     loadProperties()
@@ -66,9 +68,10 @@ export default function AdminOpportunities() {
   const loadProperties = async () => {
     setLoading(true)
     try {
-      const response = await fetch(import.meta.env.VITE_API_BASE + '/api/properties')
-      const data = await response.json()
-      
+      const data = await fetchJson('/api/properties', {
+        headers: { ...authHeader() }
+      })
+
       // Map backend data to frontend format
       const mapped = data.map(p => ({
         
@@ -101,63 +104,43 @@ description: p.description || t('admin.opportunities.defaults.description'),
 
   const handleApprove = async (id) => {
     try {
-      const response = await fetch(import.meta.env.VITE_API_BASE + `/api/properties/${id}/approve`, {
+      await fetchJson(`/api/properties/${id}/approve`, {
         method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', ...authHeader() },
       })
-      
-      if (response.ok) {
-        setProperties(properties.map(p => 
-          p.id === id ? { ...p, status: 'approved' } : p
-        ))
-        setSelectedProperty(null)
-        alert(t('admin.opportunities.messages.approveSuccess'))
-        loadProperties() // Reload to get fresh data
-      } else {
-        alert(t('admin.opportunities.messages.approveFailed'))
-        console.error('Approve failed with status:', response.status);
-      }
+      setProperties(properties.map(p =>
+        p.id === id ? { ...p, status: 'approved' } : p
+      ))
+      setSelectedProperty(null)
+      alert(t('admin.opportunities.messages.approveSuccess'))
+      loadProperties()
     } catch (error) {
       console.error('Approve error:', error)
       alert(t('admin.opportunities.messages.approveFailed'))
-
     }
   }
 
   const handleReject = async (id) => {
     const reason =
-  prompt(t('admin.opportunities.messages.rejectReasonPrompt')) ||
-  t('admin.opportunities.messages.rejectNoReason')    
+      prompt(t('admin.opportunities.messages.rejectReasonPrompt')) ||
+      t('admin.opportunities.messages.rejectNoReason')
     try {
-      const response = await fetch(import.meta.env.VITE_API_BASE + `/api/properties/${id}/reject`, {
+      await fetchJson(`/api/properties/${id}/reject`, {
         method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', ...authHeader() },
         body: JSON.stringify({ reason }),
       })
-      
-      if (response.ok) {
-        setProperties(properties.map(p => 
-          p.id === id ? { ...p, status: 'rejected', rejectionReason: reason } : p
-        ))
-        setSelectedProperty(null)
-        alert(t('admin.opportunities.messages.rejectFailed'))
-
-        loadProperties() // Reload to get fresh data
-      } else {
-        console.error('Reject failed with status:', response.status);
-        alert(t('admin.opportunities.messages.rejectFailed'))
-
-      }
+      setProperties(properties.map(p =>
+        p.id === id ? { ...p, status: 'rejected', rejectionReason: reason } : p
+      ))
+      setSelectedProperty(null)
+      alert(t('admin.opportunities.messages.rejectSuccess'))
+      loadProperties()
     } catch (error) {
       console.error('Reject error:', error)
       alert(t('admin.opportunities.messages.rejectFailed'))
-
     }
   }
-
-  const filteredProperties = filter === 'all'
-  ? properties
-  : properties.filter(p => p.status === filter)
 
   const getStatusBadge = (status) => {
     const styles = {
@@ -179,38 +162,46 @@ description: p.description || t('admin.opportunities.defaults.description'),
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
-         <h1 className="text-2xl font-bold text-gray-900">
-  {t('admin.opportunities.headerTitle')}
-</h1>
-<p className="text-gray-600 mt-1">
-  {t('admin.opportunities.headerSubtitle')}
-</p>        </div>
-        <div className="flex gap-2">
-          {['all', 'pending', 'approved', 'rejected'].map((status) => (
-            <button
-              key={status}
-                  onClick={() => setFilter(status)}
-              className={`px-4 py-2 rounded-lg font-medium transition-colors ${
-                filter === status
-                  ? 'bg-blue-600 text-white'
-                  : 'bg-white text-gray-700 hover:bg-gray-100'
-              }`}
-            >
-              {t(`admin.opportunities.filters.${status}`)}
-            </button>
-          ))}
-        </div>
+      <div>
+        <h1 className="text-3xl font-bold text-[#1E1958]">
+          {i18n.language === 'ar' ? 'فرص الإدراج العقاري' : 'Property Listing Opportunities'}
+        </h1>
+        <p className="text-gray-600 mt-2">
+          {i18n.language === 'ar'
+            ? 'العقارات التي اجتازت التقديم المبدئي والدراسة التفصيلية.'
+            : 'Properties that passed preliminary submission and detailed study.'}
+        </p>
       </div>
 
-      {/* Properties Table */}
-      <div className="bg-white/80 backdrop-blur-sm rounded-xl border border-white/20 shadow-lg overflow-hidden">
+      {/* Properties Table (or empty state) */}
+      {properties.length === 0 ? (
+        <div className="text-center py-16 bg-white rounded-xl border border-gray-200 shadow-sm">
+          <Building2 className="mx-auto text-[#1E1958]/20 mb-6" size={64} />
+          <h3 className="text-xl font-semibold text-[#1E1958] mb-3">
+            {i18n.language === 'ar'
+              ? 'لا توجد عقارات جاهزة للإدراج بعد.'
+              : 'No properties are ready for listing yet.'}
+          </h3>
+          <p className="text-gray-500 mb-8 max-w-md mx-auto">
+            {i18n.language === 'ar'
+              ? 'يتم إنشاء هذه الفرص بعد قبول طلب التقديم المبدئي واستكمال الدراسة التفصيلية.'
+              : 'These opportunities are created after a preliminary submission is accepted and the detailed study is completed.'}
+          </p>
+          <button
+            onClick={() => navigate('/admin/property-leads')}
+            className="inline-flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-[#1E1958] to-[#2a2458] text-white rounded-xl font-semibold hover:shadow-lg transition-all"
+          >
+            <ClipboardList size={20} />
+            {i18n.language === 'ar' ? 'عرض طلبات التقديم المبدئي' : 'View preliminary submissions'}
+          </button>
+        </div>
+      ) : (
+      <div className="bg-white rounded-xl border border-gray-200 overflow-hidden shadow-sm">
         <div className="overflow-x-auto">
           <table className="w-full">
-            <thead className="bg-gray-50 border-b border-gray-200">
+            <thead className="bg-[#1E1958]/5 border-b border-gray-200">
               <tr>
-                <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
+                <th className="px-6 py-4 text-left text-xs font-semibold text-[#1E1958] uppercase tracking-wider">
                   {t('admin.opportunities.table.property')}
                 </th>
                 <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
@@ -231,7 +222,7 @@ description: p.description || t('admin.opportunities.defaults.description'),
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-200">
-              {filteredProperties.map((property) => (
+              {properties.map((property) => (
                 <tr key={property.id} className="hover:bg-gray-50 transition-colors">
                   <td className="px-6 py-4">
                     <div className="flex items-center gap-3">
@@ -285,6 +276,7 @@ description: p.description || t('admin.opportunities.defaults.description'),
           </table>
         </div>
       </div>
+      )}
 
       {/* Detail Modal */}
       {selectedProperty && (

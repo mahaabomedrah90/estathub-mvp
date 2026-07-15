@@ -50,7 +50,7 @@ const { t } = useTranslation('pages');
         formData.append('file', file)
         formData.append('documentType', 'propertyImage')
 
-        const response = await fetch(`${import.meta.env.VITE_API_BASE}/api/properties/upload-document`, {
+        const response = await fetch('/api/properties/upload-document', {
           method: 'POST',
           headers: authHeader(),
           body: formData
@@ -146,15 +146,15 @@ const { t } = useTranslation('pages');
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex items-center gap-3 pb-4 border-b border-gray-200">
-        <div className="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center">
-          <Building2 className="text-blue-600" size={24} />
+      <div className="flex items-center gap-4 pb-6 border-b border-border-soft">
+        <div className="w-14 h-14 bg-brand-primary/10 rounded-2xl flex items-center justify-center">
+          <Building2 className="text-brand-primary" size={28} />
         </div>
         <div>
-         <h2 className="text-2xl font-bold text-gray-900">
+         <h2 className="text-2xl font-bold text-brand-primary">
   {t('owner.newProperty.step2.title')}
 </h2>
-<p className="text-sm text-gray-600">
+<p className="text-text-muted mt-1">
   {t('owner.newProperty.step2.subtitle')}
 </p>
         </div>
@@ -162,14 +162,14 @@ const { t } = useTranslation('pages');
 
       {/* Property Type */}
       <div>
-        <label className="block text-sm font-medium text-gray-700 mb-2">
+        <label className="block text-sm font-semibold text-text-body mb-3">
        {t('owner.newProperty.step2.propertyTypeLabel')}
  <span className="text-red-500">*</span>
         </label>
         <select
           value={formData.propertyType}
           onChange={(e) => handleChange('propertyType', e.target.value)}
-          className="w-full border border-gray-300 rounded-lg px-4 py-2.5 focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
+          className="w-full border border-border-soft rounded-xl px-4 py-3 focus:ring-2 focus:ring-brand-accent focus:border-brand-accent bg-surface-card transition-colors"
         >
           <option value="">
             {t('owner.newProperty.step2.propertyTypePlaceholder')}
@@ -188,7 +188,7 @@ const { t } = useTranslation('pages');
       {/* Area Measurements */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-2">
+          <label className="block text-sm font-semibold text-text-body mb-3">
        {t('owner.newProperty.step2.landAreaLabel')} <span className="text-red-500">*</span>
           </label>
           <input
@@ -198,7 +198,7 @@ const { t } = useTranslation('pages');
              placeholder={t('owner.newProperty.step2.landAreaPlaceholder')}
             min="0"
             step="0.01"
-            className="w-full border border-gray-300 rounded-lg px-4 py-2.5 focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
+            className="w-full border border-border-soft rounded-xl px-4 py-3 focus:ring-2 focus:ring-brand-accent focus:border-brand-accent bg-surface-card transition-colors"
           />
           {errors.landArea && (
             <p className="mt-1 text-sm text-red-600">{errors.landArea}</p>
@@ -206,7 +206,7 @@ const { t } = useTranslation('pages');
         </div>
 
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-2">
+          <label className="block text-sm font-semibold text-text-body mb-3">
        {t('owner.newProperty.step2.builtAreaLabel')} <span className="text-red-500">*</span>
           </label>
           <input
@@ -216,7 +216,7 @@ const { t } = useTranslation('pages');
             placeholder={t('owner.newProperty.step2.builtAreaPlaceholder')}
             min="0"
             step="0.01"
-            className="w-full border border-gray-300 rounded-lg px-4 py-2.5 focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
+            className="w-full border border-border-soft rounded-xl px-4 py-3 focus:ring-2 focus:ring-brand-accent focus:border-brand-accent bg-surface-card transition-colors"
           />
           {errors.builtArea && (
             <p className="mt-1 text-sm text-red-600">{errors.builtArea}</p>
@@ -227,7 +227,7 @@ const { t } = useTranslation('pages');
       {/* Building Details */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-2">
+          <label className="block text-sm font-semibold text-text-body mb-3">
        {t('owner.newProperty.step2.buildingAgeLabel')} <span className="text-red-500">*</span>
           </label>
           <input
@@ -236,7 +236,7 @@ const { t } = useTranslation('pages');
             onChange={(e) => handleChange('buildingAge', e.target.value)}
             placeholder={t('owner.newProperty.step2.buildingAgePlaceholder')}
             min="0"
-            className="w-full border border-gray-300 rounded-lg px-4 py-2.5 focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
+            className="w-full border border-border-soft rounded-xl px-4 py-3 focus:ring-2 focus:ring-brand-accent focus:border-brand-accent bg-surface-card transition-colors"
           />
           {errors.buildingAge && (
             <p className="mt-1 text-sm text-red-600">{errors.buildingAge}</p>
@@ -244,7 +244,7 @@ const { t } = useTranslation('pages');
         </div>
 
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-2">
+          <label className="block text-sm font-semibold text-text-body mb-3">
        {t('owner.newProperty.step2.floorsCountLabel')} <span className="text-red-500">*</span>
           </label>
           <input
@@ -253,7 +253,7 @@ const { t } = useTranslation('pages');
             onChange={(e) => handleChange('floorsCount', e.target.value)}
             placeholder= {t('owner.newProperty.step2.floorsCountPlaceholder')}
             min="1"
-            className="w-full border border-gray-300 rounded-lg px-4 py-2.5 focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
+            className="w-full border border-border-soft rounded-xl px-4 py-3 focus:ring-2 focus:ring-brand-accent focus:border-brand-accent bg-surface-card transition-colors"
           />
           {errors.floorsCount && (
             <p className="mt-1 text-sm text-red-600">{errors.floorsCount}</p>
@@ -261,7 +261,7 @@ const { t } = useTranslation('pages');
         </div>
 
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-2">
+          <label className="block text-sm font-semibold text-text-body mb-3">
            {t('owner.newProperty.step2.unitsCountLabel')}
  <span className="text-red-500">*</span>
           </label>
@@ -271,7 +271,7 @@ const { t } = useTranslation('pages');
             onChange={(e) => handleChange('unitsCount', e.target.value)}
             placeholder={t('owner.newProperty.step2.unitsCountPlaceholder')}
             min="1"
-            className="w-full border border-gray-300 rounded-lg px-4 py-2.5 focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
+            className="w-full border border-border-soft rounded-xl px-4 py-3 focus:ring-2 focus:ring-brand-accent focus:border-brand-accent bg-surface-card transition-colors"
           />
           {errors.unitsCount && (
             <p className="mt-1 text-sm text-red-600">{errors.unitsCount}</p>
@@ -281,13 +281,13 @@ const { t } = useTranslation('pages');
 
       {/* Property Condition */}
       <div>
-        <label className="block text-sm font-medium text-gray-700 mb-2">
+        <label className="block text-sm font-semibold text-text-body mb-3">
        {t('owner.newProperty.step2.propertyConditionLabel')} <span className="text-red-500">*</span>
         </label>
         <select
           value={formData.propertyCondition}
           onChange={(e) => handleChange('propertyCondition', e.target.value)}
-          className="w-full border border-gray-300 rounded-lg px-4 py-2.5 focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
+          className="w-full border border-border-soft rounded-xl px-4 py-3 focus:ring-2 focus:ring-brand-accent focus:border-brand-accent bg-surface-card transition-colors"
         >
           <option value="">
             {t('owner.newProperty.step2.propertyConditionPlaceholder')}
@@ -303,8 +303,8 @@ const { t } = useTranslation('pages');
 
       {/* Location Details */}
       <div className="space-y-4 pt-4">
-        <h3 className="text-lg font-semibold text-gray-900 flex items-center gap-2">
-          <MapPin size={20} />
+        <h3 className="text-xl font-semibold text-brand-primary flex items-center gap-3">
+          <MapPin size={24} />
           {t('owner.newProperty.step2.locationInformationTitle')}
         </h3>
 
@@ -312,7 +312,7 @@ const { t } = useTranslation('pages');
         <button
           type="button"
           onClick={() => setShowMap(!showMap)}
-          className="text-sm text-blue-600 hover:text-blue-700 font-medium mb-2"
+          className="text-sm text-brand-accent hover:text-brand-accent/90 font-semibold mb-3 transition-colors"
         >
           {showMap
             ? t('owner.newProperty.step2.hideMapButton', { defaultValue: 'Hide map' })
@@ -320,14 +320,14 @@ const { t } = useTranslation('pages');
         </button>
 
         {showMap && (
-          <div className="mb-4 h-64 rounded-lg border border-gray-300 overflow-hidden">
+          <div className="mb-4 h-64 rounded-xl border border-border-soft overflow-hidden shadow-sm">
             <div id="owner-property-map" className="w-full h-full" />
           </div>
         )}
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
+            <label className="block text-sm font-semibold text-text-body mb-3">
            {t('owner.newProperty.step2.cityLabel')} <span className="text-red-500">*</span>
             </label>
             <input
@@ -335,7 +335,7 @@ const { t } = useTranslation('pages');
               value={formData.city}
               onChange={(e) => handleChange('city', e.target.value)}
               placeholder={t('owner.newProperty.step2.cityPlaceholder')}
-              className="w-full border border-gray-300 rounded-lg px-4 py-2.5 focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
+              className="w-full border border-border-soft rounded-xl px-4 py-3 focus:ring-2 focus:ring-brand-accent focus:border-brand-accent bg-surface-card transition-colors"
             />
             {errors.city && (
               <p className="mt-1 text-sm text-red-600">{errors.city}</p>
@@ -343,7 +343,7 @@ const { t } = useTranslation('pages');
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
+            <label className="block text-sm font-semibold text-text-body mb-3">
            {t('owner.newProperty.step2.districtLabel')} <span className="text-red-500">*</span>
             </label>
             <input
@@ -351,7 +351,7 @@ const { t } = useTranslation('pages');
               value={formData.district}
               onChange={(e) => handleChange('district', e.target.value)}
               placeholder={t('owner.newProperty.step2.districtPlaceholder')}
-              className="w-full border border-gray-300 rounded-lg px-4 py-2.5 focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
+              className="w-full border border-border-soft rounded-xl px-4 py-3 focus:ring-2 focus:ring-brand-accent focus:border-brand-accent bg-surface-card transition-colors"
             />
             {errors.district && (
               <p className="mt-1 text-sm text-red-600">{errors.district}</p>
@@ -359,7 +359,7 @@ const { t } = useTranslation('pages');
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
+            <label className="block text-sm font-semibold text-text-body mb-3">
            {t('owner.newProperty.step2.municipalityLabel')} <span className="text-red-500">*</span>
             </label>
             <input
@@ -367,7 +367,7 @@ const { t } = useTranslation('pages');
               value={formData.municipality}
               onChange={(e) => handleChange('municipality', e.target.value)}
               placeholder={t('owner.newProperty.step2.municipalityPlaceholder')}
-              className="w-full border border-gray-300 rounded-lg px-4 py-2.5 focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
+              className="w-full border border-border-soft rounded-xl px-4 py-3 focus:ring-2 focus:ring-brand-accent focus:border-brand-accent bg-surface-card transition-colors"
             />
             {errors.municipality && (
               <p className="mt-1 text-sm text-red-600">{errors.municipality}</p>
@@ -378,7 +378,7 @@ const { t } = useTranslation('pages');
         {/* GPS Coordinates */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
+            <label className="block text-sm font-semibold text-text-body mb-3">
               {t('owner.newProperty.step2.gpsLatitudeLabel')} <span className="text-red-500">*</span>
             </label>
             <input
@@ -387,7 +387,7 @@ const { t } = useTranslation('pages');
               onChange={(e) => handleChange('gpsLatitude', e.target.value)}
               placeholder={t('owner.newProperty.step2.gpsLatitudePlaceholder')}
               step="0.000001"
-              className="w-full border border-gray-300 rounded-lg px-4 py-2.5 focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
+              className="w-full border border-border-soft rounded-xl px-4 py-3 focus:ring-2 focus:ring-brand-accent focus:border-brand-accent bg-surface-card transition-colors"
             />
             {errors.gpsLatitude && (
               <p className="mt-1 text-sm text-red-600">{errors.gpsLatitude}</p>
@@ -395,7 +395,7 @@ const { t } = useTranslation('pages');
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
+            <label className="block text-sm font-semibold text-text-body mb-3">
            {t('owner.newProperty.step2.gpsLongitudeLabel')} <span className="text-red-500">*</span>
             </label>
             <input
@@ -404,7 +404,7 @@ const { t } = useTranslation('pages');
               onChange={(e) => handleChange('gpsLongitude', e.target.value)}
               placeholder={t('owner.newProperty.step2.gpsLongitudePlaceholder')}
               step="0.000001"
-              className="w-full border border-gray-300 rounded-lg px-4 py-2.5 focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
+              className="w-full border border-border-soft rounded-xl px-4 py-3 focus:ring-2 focus:ring-brand-accent focus:border-brand-accent bg-surface-card transition-colors"
             />
             {errors.gpsLongitude && (
               <p className="mt-1 text-sm text-red-600">{errors.gpsLongitude}</p>
@@ -415,7 +415,7 @@ const { t } = useTranslation('pages');
 
       {/* Property Description */}
       <div>
-        <label className="block text-sm font-medium text-gray-700 mb-2">
+        <label className="block text-sm font-semibold text-text-body mb-3">
            {t('owner.newProperty.step2.propertyDescriptionLabel')} <span className="text-red-500">*</span>
         </label>
         <textarea
@@ -423,7 +423,7 @@ const { t } = useTranslation('pages');
           onChange={(e) => handleChange('propertyDescription', e.target.value)}
           placeholder={t('owner.newProperty.step2.propertyDescriptionPlaceholder')}
           rows={5}
-          className="w-full border border-gray-300 rounded-lg px-4 py-2.5 focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
+          className="w-full border border-border-soft rounded-xl px-4 py-3 focus:ring-2 focus:ring-brand-accent focus:border-brand-accent bg-surface-card transition-colors"
         />
         <div className="flex justify-between items-center mt-1">
           {errors.propertyDescription && (
@@ -441,17 +441,17 @@ const { t } = useTranslation('pages');
       {/* Property Images */}
       <div className="space-y-4 pt-4">
         <div className="flex items-center justify-between">
-          <h3 className="text-lg font-semibold text-gray-900 flex items-center gap-2">
-            <ImageIcon size={20} />
+          <h3 className="text-xl font-semibold text-brand-primary flex items-center gap-3">
+            <ImageIcon size={24} />
             {t('owner.newProperty.step2.propertyImagesRangeLabel', { min: 3, max: 10 })}
           </h3>
-          <span className="text-sm text-gray-600">
+          <span className="text-sm text-text-muted font-medium">
             {(formData.mainImagesUrls || []).length} / 10
           </span>
         </div>
 
         {/* Upload Area */}
-        <div className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center hover:border-emerald-500 hover:bg-emerald-50 transition-colors">
+        <div className="border-2 border-dashed border-brand-accent/40 rounded-2xl p-8 text-center hover:border-brand-accent hover:bg-brand-accent-soft/30 transition-all duration-300">
           <input
             type="file"
             accept="image/*"
@@ -462,13 +462,13 @@ const { t } = useTranslation('pages');
             id="image-upload"
           />
           <label htmlFor="image-upload" className="cursor-pointer">
-            <ImageIcon className="mx-auto text-gray-400 mb-2" size={40} />
-            <p className="text-sm text-gray-600 mb-1">
+            <ImageIcon className="mx-auto text-brand-accent mb-4" size={48} />
+            <p className="text-sm text-text-body font-medium mb-2">
   {uploadingImages
     ? t('owner.newProperty.step2.uploadingImagesLabel')
     : t('owner.newProperty.step2.uploadImagesLabel')}
 </p>
-            <p className="text-xs text-gray-500">
+            <p className="text-xs text-text-muted">
   {t('owner.newProperty.step2.imagesFormatsHint')}
 </p>
           </label>
@@ -489,13 +489,13 @@ const { t } = useTranslation('pages');
                 <img
                   src={`${import.meta.env.VITE_API_BASE}${url}`}
                   alt={`Property ${index + 1}`}
-                  className="w-full h-32 object-cover rounded-lg border border-gray-200"
+                  className="w-full h-32 object-cover rounded-xl border border-border-soft"
                 />
-                <button type="button" onClick={() => removeImage(index)} className="absolute top-2 right-2 p-1 bg-red-500 text-white rounded-full opacity-0 group-hover:opacity-100 transition-opacity">
+                <button type="button" onClick={() => removeImage(index)} className="absolute top-3 right-3 p-2 bg-brand-coral text-white rounded-full opacity-0 group-hover:opacity-100 transition-opacity shadow-lg hover:bg-brand-coral/90">
                   <X size={16} />
                 </button>
                 {index === 0 && (
-                  <div className="absolute bottom-2 left-2 px-2 py-1 bg-emerald-600 text-white text-xs rounded">
+                  <div className="absolute bottom-3 left-3 px-3 py-1.5 bg-brand-accent text-white text-xs rounded-lg font-medium">
                     {t('owner.newProperty.step2.mainImageBadge')}
                   </div>
                 )}

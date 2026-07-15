@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from 'react'
-import { useNavigate } from 'react-router-dom'
-import { 
-  Building2, Edit2, Eye, MapPin, DollarSign, 
-  Users, TrendingUp, Clock, CheckCircle, XCircle, AlertCircle, Loader2 
+import { useNavigate, useLocation } from 'react-router-dom'
+import {
+  Building2, Edit2, Eye, MapPin, DollarSign,
+  Users, TrendingUp, Clock, CheckCircle, XCircle, AlertCircle, Loader2, ClipboardList
 } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 
@@ -11,13 +11,26 @@ export default function OwnerProperties() {
   const { t: tCommon } = useTranslation('common')
 
   const navigate = useNavigate()
+  const location = useLocation()
   const [filter, setFilter] = useState('all')
   const [properties, setProperties] = useState([]) // Start with empty array
   const [loading, setLoading] = useState(true)
+  const [successMessage, setSuccessMessage] = useState('')
 
   useEffect(() => {
+    // Check for success message from navigation state
+    if (location.state?.message) {
+      setSuccessMessage(location.state.message)
+      // Clear the message after 5 seconds
+      setTimeout(() => setSuccessMessage(''), 5000)
+      // Set filter to 'Pending' to show the newly submitted property
+      setFilter('Pending')
+      // Clear the navigation state
+      window.history.replaceState({}, document.title)
+    }
+
     loadProperties()
-  }, [])
+  }, [location.state])
 
   const loadProperties = async () => {
     setLoading(true)
@@ -25,7 +38,7 @@ export default function OwnerProperties() {
       const ownerId = localStorage.getItem('userId') || '1'
       console.log('🔍 Owner Properties - Current User ID:', ownerId)
       
-      const response = await fetch(import.meta.env.VITE_API_BASE + '/api/properties')
+      const response = await fetch('/api/properties')
       const data = await response.json()
       
       console.log('📊 Total properties fetched:', data.length)
@@ -88,42 +101,52 @@ export default function OwnerProperties() {
 
   return (
     <div className="space-y-6">
+      {/* Success Message */}
+      {successMessage && (
+        <div className="bg-green-50 border border-green-200 rounded-2xl p-6 flex items-start gap-4">
+          <CheckCircle className="text-green-600 flex-shrink-0 mt-0.5" size={24} />
+          <div className="text-sm text-green-800">
+            <p className="font-semibold">{successMessage}</p>
+          </div>
+        </div>
+      )}
+
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">{t('owner.properties.title')}</h1>
-          <p className="text-gray-600 mt-1">{t('owner.properties.subtitle')}</p>
+          <h1 className="text-2xl font-bold text-brand-primary">{t('owner.properties.title')}</h1>
+          <p className="text-text-muted mt-1">{t('owner.properties.subtitle')}</p>
         </div>
         <button
-          onClick={() => navigate('/owner/properties/new')}
-          className="flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-amber-500 to-orange-600 text-white rounded-xl font-semibold hover:shadow-lg transition-all hover:scale-105"
+          onClick={() => navigate('/owner/requests')}
+          className="flex items-center gap-2 px-6 py-3 bg-brand-accent text-white rounded-xl font-semibold hover:bg-brand-accent/90 transition-all hover:scale-[1.02] active:scale-95 shadow-lg hover:shadow-xl"
         >
-          <Building2 size={20} />
-          {t('owner.properties.ctaNewProperty')}
+          <ClipboardList size={20} />
+          عرض طلباتي
         </button>
       </div>
 
       {/* Filter Tabs */}
-      <div className="flex gap-2">
-  {['All', 'Approved', 'Pending', 'Rejected'].map((status) => (
-    <button
-      key={status}
-      onClick={() => setFilter(status)}
-      className={`px-4 py-2 rounded-lg font-medium transition-colors ${
-        filter === status
-          ? 'bg-amber-600 text-white'
-          : 'bg-white text-gray-700 hover:bg-gray-100'
-      }`}
-    >
-      {t(`owner.properties.filters.${status.toLowerCase()}`)}
-    </button>
-  ))}
-</div>
+      <div className="flex gap-2 p-1 bg-surface-muted rounded-xl">
+        {['All', 'Approved', 'Pending', 'Rejected'].map((status) => (
+          <button
+            key={status}
+            onClick={() => setFilter(status)}
+            className={`px-4 py-2 rounded-lg font-medium transition-all duration-200 ${
+              filter === status
+                ? 'bg-brand-accent text-white shadow-sm'
+                : 'text-text-muted hover:text-brand-primary hover:bg-white/50'
+            }`}
+          >
+            {t(`owner.properties.filters.${status.toLowerCase()}`)}
+          </button>
+        ))}
+      </div>
 
       {/* Loading State */}
       {loading ? (
         <div className="flex items-center justify-center py-12">
-          <Loader2 className="animate-spin text-amber-600" size={48} />
+          <Loader2 className="animate-spin text-brand-accent" size={48} />
         </div>
       ) : (
         <>
@@ -137,14 +160,14 @@ export default function OwnerProperties() {
           return (
             <div
               key={property.id}
-              className="bg-white/80 backdrop-blur-sm rounded-xl border border-white/20 shadow-lg hover:shadow-xl transition-all duration-300 overflow-hidden"
+              className="bg-white border border-border-soft rounded-2xl shadow-card hover:shadow-elevated transition-all duration-300 overflow-hidden"
             >
               {/* Property Image */}
-              <div className="relative h-48 bg-gradient-to-br from-amber-500 to-orange-600">
+              <div className="relative h-48 bg-gradient-to-br from-brand-primary to-brand-primary/80">
                 <img 
                   src={property.imageUrl} 
                   alt={property.name}
-                  className="w-full h-full object-cover"
+                  className="w-full h-full object-cover opacity-90"
                 />
                 <div className="absolute top-4 right-4">
                   <span className={`inline-flex items-center gap-1 px-3 py-1.5 rounded-full text-xs font-semibold backdrop-blur-sm ${getStatusBadge(property.status)}`}>
@@ -157,31 +180,25 @@ export default function OwnerProperties() {
               {/* Property Details */}
               <div className="p-6 space-y-4">
                 <div>
-                  <h3 className="text-xl font-bold text-gray-900 mb-2">{property.name}</h3>
-                  <div className="flex items-center gap-2 text-sm text-gray-600">
-                   <MapPin size={16} />
-{property.location || t('owner.properties.defaultLocation')}
-
-<p className="text-sm text-gray-600 line-clamp-2">
-  {property.description || t('owner.properties.noDescription')}
-</p>
+                  <h3 className="text-xl font-bold text-brand-primary mb-2">{property.name}</h3>
+                  <div className="flex items-center gap-2 text-sm text-text-muted">
+                    <MapPin size={16} />
+                    {property.location || t('owner.properties.defaultLocation')}
                   </div>
+                  <p className="text-sm text-text-muted line-clamp-2 mt-2">
+                    {property.description || t('owner.properties.noDescription')}
+                  </p>
                 </div>
 
-                <p className="text-sm text-gray-600 line-clamp-2">{property.description || t('owner.properties.noDescription')}</p>
-
                 {/* Stats */}
-                <div className="grid grid-cols-2 gap-4 py-4 border-y border-gray-200">
+                <div className="grid grid-cols-2 gap-4 py-4 border-y border-border-soft">
                   <div>
-                    <p className="text-xs text-gray-600 mb-1">
+                    <p className="text-xs text-text-muted mb-1">
                       {t('owner.properties.metrics.targetAmount')}
                     </p>
-                    <span className="font-bold text-gray-900">
-                      {tCommon('currency.sar')} {property.targetAmount.toLocaleString()}
-                    </span>
                     <div className="flex items-center gap-1">
-                      <DollarSign size={16} className="text-amber-600" />
-                      <span className="font-bold text-gray-900">
+                      <DollarSign size={16} className="text-brand-accent" />
+                      <span className="font-bold text-brand-primary">
                         {tCommon('currency.sar')} {property.targetAmount.toLocaleString()}
                       </span>
                     </div>
@@ -189,23 +206,23 @@ export default function OwnerProperties() {
                   {property.status === 'Approved' && (
                     <>
                       <div>
-                        <p className="text-xs text-gray-600 mb-1">{t('owner.properties.metrics.investors')}</p>
+                        <p className="text-xs text-text-muted mb-1">{t('owner.properties.metrics.investors')}</p>
                         <div className="flex items-center gap-1">
-                          <Users size={16} className="text-blue-600" />
-                          <span className="font-bold text-gray-900">{property.investors}</span>
+                          <Users size={16} className="text-brand-accent" />
+                          <span className="font-bold text-brand-primary">{property.investors}</span>
                         </div>
                       </div>
                       <div>
-                        <p className="text-xs text-gray-600 mb-1">{t('owner.properties.metrics.raised')}</p>
-                        <span className="font-bold text-emerald-600">
+                        <p className="text-xs text-text-muted mb-1">{t('owner.properties.metrics.raised')}</p>
+                        <span className="font-bold text-brand-accent">
                           {tCommon('currency.sar')} {property.raised.toLocaleString()}
                         </span>
                       </div>
                       <div>
-                        <p className="text-xs text-gray-600 mb-1">{t('owner.properties.metrics.yield')}</p>
+                        <p className="text-xs text-text-muted mb-1">{t('owner.properties.metrics.yield')}</p>
                         <div className="flex items-center gap-1">
-                          <TrendingUp size={16} className="text-purple-600" />
-                          <span className="font-bold text-gray-900">{property.yield}%</span>
+                          <TrendingUp size={16} className="text-brand-coral" />
+                          <span className="font-bold text-brand-primary">{property.yield}%</span>
                         </div>
                       </div>
                     </>
@@ -216,12 +233,12 @@ export default function OwnerProperties() {
                 {property.status === 'Approved' && (
                   <div>
                     <div className="flex items-center justify-between mb-2">
-                      <span className="text-sm font-medium text-gray-700">{t('owner.properties.metrics.fundingProgress')}</span>
-                      <span className="text-sm font-bold text-amber-600">{progress.toFixed(1)}%</span>
+                      <span className="text-sm font-medium text-text-body">{t('owner.properties.metrics.fundingProgress')}</span>
+                      <span className="text-sm font-bold text-brand-accent">{progress.toFixed(1)}%</span>
                     </div>
-                    <div className="w-full bg-gray-200 rounded-full h-2.5">
+                    <div className="w-full bg-border-soft rounded-full h-2.5">
                       <div
-                        className="bg-gradient-to-r from-amber-500 to-orange-600 h-2.5 rounded-full transition-all"
+                        className="bg-brand-accent h-2.5 rounded-full transition-all duration-500"
                         style={{ width: `${progress}%` }}
                       />
                     </div>
@@ -263,7 +280,7 @@ export default function OwnerProperties() {
                 <div className="flex gap-2 pt-2">
                   <button
                     onClick={() => navigate(`/properties/${property.id}`)}
-                    className="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors font-medium"
+                    className="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 bg-surface-muted text-brand-primary rounded-lg hover:bg-brand-accent hover:text-white transition-colors font-medium"
                   >
                     <Eye size={18} />
                     {t('owner.properties.actions.viewDetails')}
@@ -276,29 +293,26 @@ export default function OwnerProperties() {
       </div>
 
       {filteredProperties.length === 0 && (
-        <div className="text-center py-12">
-          <Building2 className="mx-auto text-gray-400 mb-4" size={64} />
-      <h3 className="text-xl font-semibold text-gray-900 mb-2">
-  {t('owner.properties.empty.title')}
-</h3>
-<p className="text-gray-600 mb-6">
-  {filter === 'All'
-    ? t('owner.properties.empty.bodyAll')
-    : t('owner.properties.empty.bodyFiltered', {
-        status: t(`owner.properties.filters.${filter.toLowerCase()}`)
-      })}
-</p>
+        <div className="text-center py-16">
+          <Building2 className="mx-auto text-brand-coral/30 mb-6" size={64} />
+          <h3 className="text-xl font-semibold text-brand-primary mb-3">
+            لا توجد عقارات معتمدة بعد
+          </h3>
+          <p className="text-text-muted mb-8 max-w-md mx-auto">
+            ستظهر هنا العقارات التي تم قبولها وتحويلها بعد الدراسة.
+          </p>
           <button
-            onClick={() => navigate('/owner/properties/new')}
-            className="inline-flex items-center gap-2 px-6 py-3 bg-amber-600 text-white rounded-xl font-semibold hover:bg-amber-700 transition-colors"
+            onClick={() => navigate('/owner/requests')}
+            className="inline-flex items-center gap-3 px-8 py-4 bg-brand-accent text-white rounded-xl font-semibold hover:bg-brand-accent/90 transition-all hover:scale-[1.02] active:scale-95 shadow-lg hover:shadow-xl"
           >
-            <Building2 size={20} />
-             {t('owner.properties.empty.cta')}
+            <ClipboardList size={20} />
+            عرض طلباتي
           </button>
         </div>
       )}
       </>
       )}
+
     </div>
   )
 }
