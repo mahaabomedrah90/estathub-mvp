@@ -210,7 +210,7 @@ export default function OwnerDashboard() {
             className="flex items-center gap-2 px-6 py-3 bg-brand-accent text-white rounded-xl font-semibold hover:bg-brand-accent/90 transition-all hover:scale-[1.02] active:scale-95 shadow-lg"
           >
             <Plus size={20} />
-            {t('owner.dashboard.ctaNewProperty')}
+            تقديم طلب جديد
           </button>
         </div>
       </div>
@@ -228,10 +228,10 @@ export default function OwnerDashboard() {
             </p>
           </div>
           <button
-            onClick={() => navigate('/owner/properties')}
+            onClick={() => navigate('/owner/requests')}
             className="flex-shrink-0 inline-flex items-center gap-2 px-5 py-2.5 bg-orange-600 text-white rounded-xl font-semibold hover:bg-orange-700 transition-colors"
           >
-            عرض التفاصيل
+            عرض طلباتي
           </button>
         </div>
       )}
@@ -245,10 +245,10 @@ export default function OwnerDashboard() {
               <h2 className="text-xl font-bold text-text-strong">طلبات التقديم المبدئي</h2>
             </div>
             <button
-              onClick={() => navigate('/owner/properties')}
+              onClick={() => navigate('/owner/requests')}
               className="text-sm text-brand-accent hover:text-brand-accent/80 font-medium transition-colors"
             >
-              عرض الكل {i18n.dir() === 'rtl' ? '←' : '→'}
+              عرض طلباتي {i18n.dir() === 'rtl' ? '←' : '→'}
             </button>
           </div>
 
