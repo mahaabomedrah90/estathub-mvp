@@ -22,9 +22,10 @@ import { scoreLead } from '../lib/propertyLeadScoring'
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
 const ALLOWED_STATUS_UPDATES = ['UNDER_REVIEW', 'NEEDS_INFO', 'ACCEPTED', 'REJECTED'] as const
 
-// Owner-facing projection — deliberately EXCLUDES internal fields
-// (qualificationScore, tokenizationSuitabilityScore, internalRecommendation,
-//  adminStatus, reviewedBy, reviewNotes, ownerId, tenantId).
+// Owner-facing projection — exposes review feedback (adminStatus, reviewNotes,
+// reviewedAt) so owners see the team's decision, but deliberately EXCLUDES the
+// internal-only fields (qualificationScore, tokenizationSuitabilityScore,
+// internalRecommendation, reviewedBy, ownerId, tenantId).
 const OWNER_SAFE_SELECT = {
   id: true,
   applicantType: true, fullName: true, companyName: true, phone: true, email: true,
@@ -34,7 +35,8 @@ const OWNER_SAFE_SELECT = {
   hasMortgage: true, hasOwnershipPartner: true, hasLegalDispute: true, noLegalIssues: true,
   shortDescription: true, imageUrls: true, deedImageUrl: true,
   dataAccuracyConfirmed: true, reviewConsentConfirmed: true, noAcceptanceGuaranteeConfirmed: true,
-  status: true, createdAt: true, updatedAt: true, reviewedAt: true,
+  status: true, adminStatus: true, reviewNotes: true,
+  createdAt: true, updatedAt: true, reviewedAt: true,
 } as const
 
 // Admin list projection — includes internal scores.
