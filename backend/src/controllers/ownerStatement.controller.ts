@@ -310,6 +310,77 @@ async function buildOwnerStatement(ownerId: string) {
   }
 }
 
+// ─── Admin: full portfolio report (all owners + properties) ──────────────────
+// GET /api/admin/owner-statement/full-report   ← must be BEFORE /:ownerId
+ownerStatementRouter.get(
+  '/admin/owner-statement/full-report',
+  auth(true),
+  requireRole(['ADMIN']),
+  async (_req: Request & { user?: any }, res: Response) => {
+    try {
+      const [owners, allProperties] = await Promise.all([
+        prisma.user.findMany({
+          where:   { role: 'OWNER' },
+          select:  { id: true, fullName: true, email: true, status: true },
+          orderBy: { createdAt: 'desc' },
+        }),
+        (prisma.property as any).findMany({
+          select: { id: true, ownerId: true, title: true, totalValue: true, status: true },
+        }),
+      ])
+
+      const allPropIds = (allProperties as any[]).map((p: any) => p.id)
+      const allOrders  = allPropIds.length > 0
+        ? await prisma.order.findMany({
+            where:  { propertyId: { in: allPropIds }, status: { in: ['PAID', 'ISSUED'] } },
+            select: { propertyId: true, amount: true },
+          })
+        : []
+
+      const capitalPerProp = new Map<string, number>()
+      for (const o of allOrders as any[]) {
+        capitalPerProp.set(o.propertyId, (capitalPerProp.get(o.propertyId) ?? 0) + o.amount)
+      }
+
+      const propsByOwner = new Map<string, any[]>()
+      for (const p of allProperties as any[]) {
+        if (!propsByOwner.has(p.ownerId)) propsByOwner.set(p.ownerId, [])
+        propsByOwner.get(p.ownerId)!.push(p)
+      }
+
+      const data = (owners as any[])
+        .map(owner => {
+          const props = propsByOwner.get(owner.id) ?? []
+          if (props.length === 0) return null
+          const propertyRows = props.map((p: any) => {
+            const capitalRaised = capitalPerProp.get(p.id) ?? 0
+            return {
+              id:             p.id,
+              title:          p.title,
+              totalValue:     p.totalValue ?? 0,
+              capitalRaised:  +capitalRaised.toFixed(2),
+              status:         p.status,
+            }
+          })
+          return {
+            id:            owner.id,
+            fullName:      owner.fullName ?? '—',
+            email:         owner.email,
+            status:        owner.status,
+            capitalRaised: +propertyRows.reduce((s: number, p: any) => s + p.capitalRaised, 0).toFixed(2),
+            properties:    propertyRows,
+          }
+        })
+        .filter(Boolean)
+
+      return res.json({ success: true, data })
+    } catch (e: any) {
+      console.error('❌ owner full-report:', e?.message)
+      return res.status(500).json({ error: 'failed_to_fetch_full_report' })
+    }
+  }
+)
+
 // ─── Admin: list owners ───────────────────────────────────────────────────────
 ownerStatementRouter.get(
   '/admin/owner-statement',

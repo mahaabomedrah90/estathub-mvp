@@ -299,6 +299,104 @@ async function buildStatement(userId: string) {
   }
 }
 
+// ─── Admin: full portfolio report (all investors + holdings) ─────────────────
+// GET /api/admin/investor-statement/full-report   ← must be BEFORE /:userId
+investorStatementRouter.get(
+  '/admin/investor-statement/full-report',
+  auth(true),
+  requireRole(['ADMIN']),
+  async (_req: Request & { user?: any }, res: Response) => {
+    try {
+      const [investors, allOrders, allHoldings, allDistributions, allWallets] = await Promise.all([
+        prisma.user.findMany({
+          where:   { role: 'INVESTOR' },
+          select:  { id: true, fullName: true, email: true, status: true, createdAt: true },
+          orderBy: { createdAt: 'desc' },
+        }),
+        prisma.order.findMany({
+          where:  { status: { in: ['PAID', 'ISSUED'] } },
+          select: { userId: true, propertyId: true, amount: true },
+        }),
+        prisma.holding.findMany({
+          select: {
+            userId: true, propertyId: true, tokens: true,
+            property: { select: { id: true, title: true, tokenPrice: true } },
+          },
+        }),
+        prisma.distribution.findMany({
+          select: {
+            userId: true, amount: true,
+            payout: { select: { propertyId: true } },
+          },
+        }),
+        prisma.wallet.findMany({ select: { userId: true, cashBalance: true } }),
+      ])
+
+      // build lookup maps
+      const investedByUserProp = new Map<string, Map<string, number>>()
+      for (const o of allOrders as any[]) {
+        if (!investedByUserProp.has(o.userId)) investedByUserProp.set(o.userId, new Map())
+        const m = investedByUserProp.get(o.userId)!
+        m.set(o.propertyId, (m.get(o.propertyId) ?? 0) + o.amount)
+      }
+
+      const profitByUserProp = new Map<string, Map<string, number>>()
+      for (const d of allDistributions as any[]) {
+        const pid = (d as any).payout?.propertyId
+        if (!pid) continue
+        if (!profitByUserProp.has(d.userId)) profitByUserProp.set(d.userId, new Map())
+        const m = profitByUserProp.get(d.userId)!
+        m.set(pid, (m.get(pid) ?? 0) + d.amount)
+      }
+
+      const walletMap      = new Map((allWallets as any[]).map((w: any) => [w.userId, w.cashBalance ?? 0]))
+      const holdingsByUser = new Map<string, any[]>()
+      for (const h of allHoldings as any[]) {
+        if (!holdingsByUser.has(h.userId)) holdingsByUser.set(h.userId, [])
+        holdingsByUser.get(h.userId)!.push(h)
+      }
+
+      const data = (investors as any[])
+        .map(inv => {
+          const holdings = holdingsByUser.get(inv.id) ?? []
+          if (holdings.length === 0) return null
+
+          const propInv    = investedByUserProp.get(inv.id) ?? new Map()
+          const propProfit = profitByUserProp.get(inv.id)   ?? new Map()
+
+          const holdingRows = holdings.map((h: any) => {
+            const invested       = propInv.get(h.propertyId) ?? h.tokens * (h.property?.tokenPrice ?? 0)
+            const profitReceived = propProfit.get(h.propertyId) ?? 0
+            return {
+              propertyId:       h.propertyId,
+              propertyTitle:    h.property?.title ?? '—',
+              tokens:           h.tokens,
+              investmentAmount: +invested.toFixed(2),
+              profitReceived:   +profitReceived.toFixed(2),
+            }
+          })
+
+          return {
+            id:               inv.id,
+            fullName:         inv.fullName ?? '—',
+            email:            inv.email,
+            status:           inv.status,
+            cashBalance:      +(walletMap.get(inv.id) ?? 0).toFixed(2),
+            totalInvested:    +holdingRows.reduce((s: number, h: any) => s + h.investmentAmount, 0).toFixed(2),
+            totalDistributed: +holdingRows.reduce((s: number, h: any) => s + h.profitReceived, 0).toFixed(2),
+            holdings:         holdingRows,
+          }
+        })
+        .filter(Boolean)
+
+      return res.json({ success: true, data })
+    } catch (e: any) {
+      console.error('❌ investor full-report:', e?.message)
+      return res.status(500).json({ error: 'failed_to_fetch_full_report' })
+    }
+  }
+)
+
 // ─── Admin: list investors ────────────────────────────────────────────────────
 // GET /api/admin/investor-statement
 investorStatementRouter.get(
