@@ -43,8 +43,8 @@ const adminGroups = (t, isAr) => [
   {
     header: isAr ? 'إدارة العقارات والملكية' : 'Properties & Ownership',
     items: [
-      { path: '/admin/opportunities', label: t('admin.reviewProperties'), icon: Building2 },
-      { path: '/admin/property-leads', label: t('admin.propertyLeads', 'طلبات الفرص المبدئية'), icon: ClipboardList },
+      { path: '/admin/property-leads', label: t('admin.propertyLeads', 'طلبات التقديم المبدئي'), icon: ClipboardList },
+      { path: '/admin/opportunities', label: t('admin.reviewProperties', 'مراجعة العقارات بعد الدراسة'), icon: Building2 },
       { path: '/admin/issue-deeds',   label: t('admin.issueDeeds'),       icon: FileText },
     ],
   },
