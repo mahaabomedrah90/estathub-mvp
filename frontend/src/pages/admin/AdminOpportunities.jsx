@@ -60,7 +60,6 @@ export default function AdminOpportunities() {
   ]) */
 
   const [selectedProperty, setSelectedProperty] = useState(null)
-  const [filter, setFilter] = useState('all')
 
   useEffect(() => {
     loadProperties()
@@ -143,10 +142,6 @@ description: p.description || t('admin.opportunities.defaults.description'),
     }
   }
 
-  const filteredProperties = filter === 'all'
-  ? properties
-  : properties.filter(p => p.status === filter)
-
   const getStatusBadge = (status) => {
     const styles = {
         pending: 'bg-yellow-100 text-yellow-700',
@@ -169,48 +164,28 @@ description: p.description || t('admin.opportunities.defaults.description'),
       {/* Header */}
       <div>
         <h1 className="text-3xl font-bold text-[#1E1958]">
-          {t('admin.opportunities.headerTitle')}
+          {i18n.language === 'ar' ? 'فرص الإدراج العقاري' : 'Property Listing Opportunities'}
         </h1>
         <p className="text-gray-600 mt-2">
-          {t('admin.opportunities.headerSubtitle')}
-        </p>
-        <p className="text-sm text-gray-500 mt-1">
           {i18n.language === 'ar'
-            ? 'هذه الصفحة لمراجعة العقارات بعد الدراسة التفصيلية. طلبات التقديم المبدئي الجديدة من الملاك تظهر أولاً في صفحة طلبات التقديم المبدئي.'
-            : 'This page reviews properties after detailed study. New preliminary submissions from owners appear first in the preliminary submissions queue.'}
+            ? 'العقارات التي اجتازت التقديم المبدئي والدراسة التفصيلية.'
+            : 'Properties that passed preliminary submission and detailed study.'}
         </p>
-      </div>
-
-      {/* Filter Tabs */}
-      <div className="flex gap-2">
-        {['all', 'pending', 'approved', 'rejected'].map((status) => (
-          <button
-            key={status}
-            onClick={() => setFilter(status)}
-            className={`px-6 py-3 rounded-xl font-medium transition-all duration-200 ${
-              filter === status
-                ? 'bg-gradient-to-r from-[#1E1958] to-[#2a2458] text-white shadow-lg'
-                : 'bg-white border border-gray-200 text-gray-600 hover:border-[#41EAD4] hover:text-[#41EAD4]'
-            }`}
-          >
-            {t(`admin.opportunities.filters.${status}`)}
-          </button>
-        ))}
       </div>
 
       {/* Properties Table (or empty state) */}
-      {filteredProperties.length === 0 ? (
+      {properties.length === 0 ? (
         <div className="text-center py-16 bg-white rounded-xl border border-gray-200 shadow-sm">
           <Building2 className="mx-auto text-[#1E1958]/20 mb-6" size={64} />
           <h3 className="text-xl font-semibold text-[#1E1958] mb-3">
             {i18n.language === 'ar'
-              ? 'لا توجد عقارات جاهزة للمراجعة بعد الدراسة.'
-              : 'No properties are ready for post-study review yet.'}
+              ? 'لا توجد عقارات جاهزة للإدراج بعد.'
+              : 'No properties are ready for listing yet.'}
           </h3>
           <p className="text-gray-500 mb-8 max-w-md mx-auto">
             {i18n.language === 'ar'
-              ? 'طلبات التقديم المبدئي الجديدة من الملاك تظهر أولاً في صفحة طلبات التقديم المبدئي.'
-              : 'New preliminary submissions from owners appear first in the preliminary submissions queue.'}
+              ? 'يتم إنشاء هذه الفرص بعد قبول طلب التقديم المبدئي واستكمال الدراسة التفصيلية.'
+              : 'These opportunities are created after a preliminary submission is accepted and the detailed study is completed.'}
           </p>
           <button
             onClick={() => navigate('/admin/property-leads')}
@@ -247,7 +222,7 @@ description: p.description || t('admin.opportunities.defaults.description'),
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-200">
-              {filteredProperties.map((property) => (
+              {properties.map((property) => (
                 <tr key={property.id} className="hover:bg-gray-50 transition-colors">
                   <td className="px-6 py-4">
                     <div className="flex items-center gap-3">
