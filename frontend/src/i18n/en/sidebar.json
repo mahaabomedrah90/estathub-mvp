@@ -11,7 +11,8 @@
   },
   "admin": {
     "overview": "Overview",
-    "reviewProperties": "Review Properties",
+    "propertyLeads": "Preliminary Submissions",
+    "reviewProperties": "Property Review (Post-Study)",
     "users": "Manage Users",
     "issueDeeds": "Issue Deeds",
     "reports": "Reports",

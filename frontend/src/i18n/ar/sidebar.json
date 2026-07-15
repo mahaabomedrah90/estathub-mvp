@@ -11,7 +11,8 @@
   },
   "admin": {
     "overview": "نظرة عامة",
-    "reviewProperties": "مراجعة العقارات",
+    "propertyLeads": "طلبات التقديم المبدئي",
+    "reviewProperties": "مراجعة العقارات بعد الدراسة",
     "users": "إدارة المستخدمين",
     "issueDeeds": "إصدار الصكوك",
     "reports": "التقارير",
