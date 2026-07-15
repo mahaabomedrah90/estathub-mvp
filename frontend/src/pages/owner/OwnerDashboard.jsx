@@ -2,10 +2,23 @@ import React, { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import {
   Building2, DollarSign, Users, TrendingUp,
-  Clock, CheckCircle, AlertCircle, Plus, Loader2, Eye
+  Clock, CheckCircle, AlertCircle, Plus, Loader2, Eye, ClipboardList
 } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import { authHeader, fetchJson, getToken } from '../../lib/api'
+
+// Preliminary opportunity submissions (PropertyLead) — owner-facing labels.
+// These are NOT approved properties.
+const LEAD_STATUS = {
+  NEW:                   { label: 'جديد',                 cls: 'bg-blue-100 text-blue-700' },
+  UNDER_REVIEW:          { label: 'قيد المراجعة',         cls: 'bg-amber-100 text-amber-700' },
+  NEEDS_INFO:            { label: 'مطلوب معلومات إضافية', cls: 'bg-orange-100 text-orange-700' },
+  ACCEPTED:              { label: 'قبول مبدئي',           cls: 'bg-green-100 text-green-700' },
+  REJECTED:              { label: 'مرفوض',                cls: 'bg-red-100 text-red-700' },
+  CONVERTED_TO_PROPERTY: { label: 'تم تحويله لعقار',      cls: 'bg-teal-100 text-teal-700' },
+}
+const leadStatusOf = (l) => l.adminStatus || l.status || 'NEW'
+const fmtLeadDate = (d) => d ? new Date(d).toLocaleDateString('ar-SA', { year: 'numeric', month: 'short', day: 'numeric' }) : '—'
 
 export default function OwnerDashboard() {
   const { t, i18n } = useTranslation('pages')
@@ -14,6 +27,7 @@ export default function OwnerDashboard() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
   const [properties, setProperties] = useState([])
+  const [leads, setLeads] = useState([])
   const [stats, setStats] = useState({
     totalProperties: 0,
     approvedProperties: 0,
@@ -69,6 +83,18 @@ export default function OwnerDashboard() {
         totalRevenue,
         monthlyYield: avgYield
       })
+
+      // Preliminary opportunity submissions (isolated so a lead-fetch failure
+      // never breaks the rest of the dashboard).
+      try {
+        const leadsData = await fetchJson('/api/property-leads/mine', {
+          headers: { ...authHeader() }
+        })
+        setLeads(Array.isArray(leadsData) ? leadsData : [])
+      } catch (leadErr) {
+        console.error('Owner leads load error:', leadErr)
+        setLeads([])
+      }
     } catch (err) {
       console.error('Owner dashboard load error:', err)
       setError(err.message || t('owner.dashboard.loadFailed'))
@@ -166,6 +192,8 @@ export default function OwnerDashboard() {
     },
   ]
 
+  const needsInfoLeads = leads.filter(l => leadStatusOf(l) === 'NEEDS_INFO')
+
   return (
     <div className="space-y-6">
       {/* Welcome Banner */}
@@ -186,6 +214,73 @@ export default function OwnerDashboard() {
           </button>
         </div>
       </div>
+
+      {/* NEEDS_INFO callout for preliminary submissions */}
+      {needsInfoLeads.length > 0 && (
+        <div className="bg-orange-50 border border-orange-200 rounded-2xl p-5 flex items-start gap-3">
+          <AlertCircle className="text-orange-600 flex-shrink-0 mt-0.5" size={22} />
+          <div className="flex-1">
+            <p className="font-bold text-orange-800">لديك طلب يحتاج إلى معلومات إضافية</p>
+            <p className="text-sm text-orange-700 mt-1">
+              {needsInfoLeads.length === 1
+                ? 'أحد طلبات التقديم المبدئي يحتاج معلومات إضافية من فريق الوسم.'
+                : `${needsInfoLeads.length} من طلبات التقديم المبدئي تحتاج معلومات إضافية من فريق الوسم.`}
+            </p>
+          </div>
+          <button
+            onClick={() => navigate('/owner/properties')}
+            className="flex-shrink-0 inline-flex items-center gap-2 px-5 py-2.5 bg-orange-600 text-white rounded-xl font-semibold hover:bg-orange-700 transition-colors"
+          >
+            عرض التفاصيل
+          </button>
+        </div>
+      )}
+
+      {/* Preliminary opportunity submissions (PropertyLead) — not approved properties */}
+      {leads.length > 0 && (
+        <div className="bg-surface-card rounded-2xl p-6 border border-border-soft shadow-card">
+          <div className="flex items-center justify-between mb-4">
+            <div className="flex items-center gap-2">
+              <ClipboardList className="text-brand-accent" size={22} />
+              <h2 className="text-xl font-bold text-text-strong">طلبات التقديم المبدئي</h2>
+            </div>
+            <button
+              onClick={() => navigate('/owner/properties')}
+              className="text-sm text-brand-accent hover:text-brand-accent/80 font-medium transition-colors"
+            >
+              عرض الكل {i18n.dir() === 'rtl' ? '←' : '→'}
+            </button>
+          </div>
+
+          <div className="flex flex-wrap gap-3 mb-5">
+            <div className="px-4 py-3 rounded-xl bg-surface-muted border border-border-soft">
+              <p className="text-xs text-text-muted">إجمالي الطلبات المبدئية</p>
+              <p className="text-2xl font-bold text-brand-primary">{leads.length}</p>
+            </div>
+            <div className="px-4 py-3 rounded-xl bg-orange-50 border border-orange-200">
+              <p className="text-xs text-orange-700">تحتاج معلومات إضافية</p>
+              <p className="text-2xl font-bold text-orange-700">{needsInfoLeads.length}</p>
+            </div>
+          </div>
+
+          <div className="space-y-3">
+            {leads.slice(0, 3).map((lead) => {
+              const st = LEAD_STATUS[leadStatusOf(lead)] || LEAD_STATUS.NEW
+              return (
+                <div key={lead.id} className="flex items-center justify-between gap-3 p-3 bg-surface-muted rounded-xl">
+                  <div className="min-w-0">
+                    <p className="font-semibold text-text-strong truncate">{lead.propertyName || '—'}</p>
+                    <p className="text-xs text-text-muted mt-0.5">طلب تقديم مبدئي • {fmtLeadDate(lead.createdAt)}</p>
+                  </div>
+                  <span className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold whitespace-nowrap ${st.cls}`}>
+                    {st.label}
+                  </span>
+                </div>
+              )
+            })}
+          </div>
+        </div>
+      )}
 
       {/* Stats Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6">

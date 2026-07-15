@@ -380,7 +380,9 @@ export default function OwnerProperties() {
         ) : (
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
             {leads.map((lead) => {
-              const st = LEAD_STATUS[lead.status] || LEAD_STATUS.NEW
+              const effStatus = lead.adminStatus || lead.status
+              const st = LEAD_STATUS[effStatus] || LEAD_STATUS.NEW
+              const needsInfo = effStatus === 'NEEDS_INFO'
               const place = [leadCity(lead.city), lead.district].filter(Boolean).join(' - ')
               return (
                 <div key={lead.id} className="bg-white border border-border-soft rounded-2xl shadow-card p-5 space-y-3">
@@ -411,12 +413,25 @@ export default function OwnerProperties() {
                     </div>
                   </div>
 
-                  {lead.reviewNotes && (
+                  {needsInfo ? (
+                    <div className="flex items-start gap-2 p-3 bg-orange-50 border border-orange-200 rounded-lg">
+                      <AlertCircle size={18} className="text-orange-600 flex-shrink-0 mt-0.5" />
+                      <div>
+                        <p className="text-sm font-bold text-orange-800">مطلوب معلومات إضافية من فريق الوسم</p>
+                        {lead.reviewNotes && (
+                          <p className="text-xs text-orange-700 mt-1 whitespace-pre-line">{lead.reviewNotes}</p>
+                        )}
+                      </div>
+                    </div>
+                  ) : lead.reviewNotes ? (
                     <div className="flex items-start gap-2 p-3 bg-amber-50 rounded-lg">
                       <AlertCircle size={16} className="text-amber-600 flex-shrink-0 mt-0.5" />
-                      <p className="text-xs text-amber-800">{lead.reviewNotes}</p>
+                      <div>
+                        <p className="text-xs font-semibold text-amber-800 mb-0.5">ملاحظات فريق الوسم</p>
+                        <p className="text-xs text-amber-800 whitespace-pre-line">{lead.reviewNotes}</p>
+                      </div>
                     </div>
-                  )}
+                  ) : null}
 
                   <div className="flex items-center gap-1.5 text-xs text-text-muted pt-1">
                     <Clock size={13} />
