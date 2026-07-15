@@ -42,7 +42,9 @@ COPY --from=builder /app/prisma ./prisma
 RUN mkdir -p /app/uploads && chown -R appuser:appuser /app/uploads
 
 # ensure uploads paths are writable by appuser
-RUN mkdir -p /app/uploads \
+# /app/uploads/properties is the runtime (CWD-relative) target for multer diskStorage
+# and express.static('uploads') — must exist or diskStorage fails with ENOENT (400).
+RUN mkdir -p /app/uploads/properties \
     && mkdir -p /app/dist/uploads/properties \
     && chown -R appuser:appuser /app/uploads /app/dist/uploads
     
