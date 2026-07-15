@@ -6,6 +6,7 @@
   },
   "owner": {
     "dashboard": "Dashboard",
+    "requests": "My Requests",
     "properties": "My Properties",
     "submitProperty": "Submit Property"
   },
