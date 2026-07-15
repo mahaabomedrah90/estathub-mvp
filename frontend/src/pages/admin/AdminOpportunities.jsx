@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react'
-import { Building2, Eye, CheckCircle, X, MapPin, DollarSign, Clock, User, Loader2 } from 'lucide-react'
+import { useNavigate } from 'react-router-dom'
+import { Building2, Eye, CheckCircle, X, MapPin, DollarSign, Clock, User, Loader2, ClipboardList } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import { fetchJson, authHeader } from '../../lib/api'
 
@@ -7,6 +8,7 @@ import { fetchJson, authHeader } from '../../lib/api'
 
 export default function AdminOpportunities() {
   const { t, i18n } = useTranslation('pages');
+  const navigate = useNavigate()
 
   const [properties, setProperties] = useState([])
   const [loading, setLoading] = useState(true)
@@ -172,6 +174,11 @@ description: p.description || t('admin.opportunities.defaults.description'),
         <p className="text-gray-600 mt-2">
           {t('admin.opportunities.headerSubtitle')}
         </p>
+        <p className="text-sm text-gray-500 mt-1">
+          {i18n.language === 'ar'
+            ? 'هذه الصفحة لمراجعة العقارات بعد الدراسة التفصيلية. طلبات التقديم المبدئي الجديدة من الملاك تظهر أولاً في صفحة طلبات التقديم المبدئي.'
+            : 'This page reviews properties after detailed study. New preliminary submissions from owners appear first in the preliminary submissions queue.'}
+        </p>
       </div>
 
       {/* Filter Tabs */}
@@ -191,7 +198,29 @@ description: p.description || t('admin.opportunities.defaults.description'),
         ))}
       </div>
 
-      {/* Properties Table */}
+      {/* Properties Table (or empty state) */}
+      {filteredProperties.length === 0 ? (
+        <div className="text-center py-16 bg-white rounded-xl border border-gray-200 shadow-sm">
+          <Building2 className="mx-auto text-[#1E1958]/20 mb-6" size={64} />
+          <h3 className="text-xl font-semibold text-[#1E1958] mb-3">
+            {i18n.language === 'ar'
+              ? 'لا توجد عقارات جاهزة للمراجعة بعد الدراسة.'
+              : 'No properties are ready for post-study review yet.'}
+          </h3>
+          <p className="text-gray-500 mb-8 max-w-md mx-auto">
+            {i18n.language === 'ar'
+              ? 'طلبات التقديم المبدئي الجديدة من الملاك تظهر أولاً في صفحة طلبات التقديم المبدئي.'
+              : 'New preliminary submissions from owners appear first in the preliminary submissions queue.'}
+          </p>
+          <button
+            onClick={() => navigate('/admin/property-leads')}
+            className="inline-flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-[#1E1958] to-[#2a2458] text-white rounded-xl font-semibold hover:shadow-lg transition-all"
+          >
+            <ClipboardList size={20} />
+            {i18n.language === 'ar' ? 'عرض طلبات التقديم المبدئي' : 'View preliminary submissions'}
+          </button>
+        </div>
+      ) : (
       <div className="bg-white rounded-xl border border-gray-200 overflow-hidden shadow-sm">
         <div className="overflow-x-auto">
           <table className="w-full">
@@ -272,6 +301,7 @@ description: p.description || t('admin.opportunities.defaults.description'),
           </table>
         </div>
       </div>
+      )}
 
       {/* Detail Modal */}
       {selectedProperty && (

@@ -1,10 +1,28 @@
 import React, { useState, useEffect } from 'react'
 import { useNavigate, useLocation } from 'react-router-dom'
-import { 
-  Building2, Edit2, Eye, MapPin, DollarSign, 
-  Users, TrendingUp, Clock, CheckCircle, XCircle, AlertCircle, Loader2 
+import {
+  Building2, Edit2, Eye, MapPin, DollarSign,
+  Users, TrendingUp, Clock, CheckCircle, XCircle, AlertCircle, Loader2, ClipboardList
 } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
+import { fetchJson, authHeader } from '../../lib/api'
+
+// ── Preliminary opportunity submissions (PropertyLead) — owner-facing labels ──
+// These are NOT approved properties. Owner-safe API excludes internal fields.
+const LEAD_STATUS = {
+  NEW:                   { label: 'جديد',                 cls: 'bg-blue-100 text-blue-700' },
+  UNDER_REVIEW:          { label: 'قيد المراجعة',         cls: 'bg-amber-100 text-amber-700' },
+  NEEDS_INFO:            { label: 'مطلوب معلومات إضافية', cls: 'bg-orange-100 text-orange-700' },
+  ACCEPTED:              { label: 'قبول مبدئي',           cls: 'bg-green-100 text-green-700' },
+  REJECTED:              { label: 'مرفوض',                cls: 'bg-red-100 text-red-700' },
+  CONVERTED_TO_PROPERTY: { label: 'تم تحويله لعقار',      cls: 'bg-teal-100 text-teal-700' },
+}
+const LEAD_PROPERTY_TYPES = { land: 'أرض', apartment: 'شقة', building: 'عمارة', villa: 'فيلا', warehouse: 'مستودع', farm: 'مزرعة', commercial: 'تجاري', other: 'أخرى' }
+const LEAD_CITIES = { riyadh: 'الرياض', jeddah: 'جدة', dammam: 'الدمام', khobar: 'الخبر', mecca: 'مكة المكرمة', medina: 'المدينة المنورة' }
+const leadType = (v) => v ? (LEAD_PROPERTY_TYPES[v] || v) : ''
+const leadCity = (v) => v ? (LEAD_CITIES[v] || v) : ''
+const fmtLeadSar = (n) => (n || n === 0) ? Number(n).toLocaleString('en-US') + ' ر.س' : '—'
+const fmtLeadDate = (d) => d ? new Date(d).toLocaleDateString('ar-SA', { year: 'numeric', month: 'short', day: 'numeric' }) : '—'
 
 export default function OwnerProperties() {
   const { t } = useTranslation('pages')
@@ -16,6 +34,8 @@ export default function OwnerProperties() {
   const [properties, setProperties] = useState([]) // Start with empty array
   const [loading, setLoading] = useState(true)
   const [successMessage, setSuccessMessage] = useState('')
+  const [leads, setLeads] = useState([])
+  const [leadsLoading, setLeadsLoading] = useState(true)
 
   useEffect(() => {
     // Check for success message from navigation state
@@ -28,9 +48,23 @@ export default function OwnerProperties() {
       // Clear the navigation state
       window.history.replaceState({}, document.title)
     }
-    
+
     loadProperties()
+    loadLeads()
   }, [location.state])
+
+  const loadLeads = async () => {
+    setLeadsLoading(true)
+    try {
+      const data = await fetchJson('/api/property-leads/mine', { headers: { ...authHeader() } })
+      setLeads(Array.isArray(data) ? data : [])
+    } catch (error) {
+      console.error('Failed to load property leads:', error)
+      setLeads([])
+    } finally {
+      setLeadsLoading(false)
+    }
+  }
 
   const loadProperties = async () => {
     setLoading(true)
@@ -316,6 +350,84 @@ export default function OwnerProperties() {
       )}
       </>
       )}
+
+      {/* Preliminary opportunity submissions (PropertyLead) — separate from approved properties */}
+      <div className="pt-6 border-t border-border-soft">
+        <div className="flex items-center gap-2 mb-1">
+          <ClipboardList size={22} className="text-brand-accent" />
+          <h2 className="text-xl font-bold text-brand-primary">طلبات التقديم المبدئي</h2>
+        </div>
+        <p className="text-sm text-text-muted mb-5">
+          طلبات الفرص المبدئية التي أرسلتها وهي قيد الدراسة من فريق الوسم. هذه ليست عقارات معتمدة بعد.
+        </p>
+
+        {leadsLoading ? (
+          <div className="flex items-center justify-center py-10">
+            <Loader2 className="animate-spin text-brand-accent" size={36} />
+          </div>
+        ) : leads.length === 0 ? (
+          <div className="text-center py-10 bg-surface-muted rounded-2xl border border-border-soft">
+            <ClipboardList className="mx-auto text-brand-coral/30 mb-4" size={48} />
+            <p className="text-text-muted mb-6">لا توجد طلبات تقديم مبدئي حتى الآن.</p>
+            <button
+              onClick={() => navigate('/owner/opportunities/new')}
+              className="inline-flex items-center gap-2 px-6 py-3 bg-brand-accent text-white rounded-xl font-semibold hover:bg-brand-accent/90 transition-all"
+            >
+              <Building2 size={18} />
+              طلب تقديم فرصة مبدئية
+            </button>
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+            {leads.map((lead) => {
+              const st = LEAD_STATUS[lead.status] || LEAD_STATUS.NEW
+              const place = [leadCity(lead.city), lead.district].filter(Boolean).join(' - ')
+              return (
+                <div key={lead.id} className="bg-white border border-border-soft rounded-2xl shadow-card p-5 space-y-3">
+                  <div className="flex items-start justify-between gap-3">
+                    <div>
+                      <h3 className="text-lg font-bold text-brand-primary">{lead.propertyName || '—'}</h3>
+                      <p className="text-sm text-text-muted mt-0.5 flex items-center gap-1 flex-wrap">
+                        {leadType(lead.propertyType) && <span>{leadType(lead.propertyType)}</span>}
+                        {leadType(lead.propertyType) && place && <span>•</span>}
+                        {place && (
+                          <span className="inline-flex items-center gap-1"><MapPin size={13} />{place}</span>
+                        )}
+                      </p>
+                    </div>
+                    <span className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold whitespace-nowrap ${st.cls}`}>
+                      {st.label}
+                    </span>
+                  </div>
+
+                  <div className="flex flex-wrap items-center gap-x-5 gap-y-2 text-sm border-t border-border-soft pt-3">
+                    <div className="flex items-center gap-1">
+                      <DollarSign size={15} className="text-brand-accent" />
+                      <span className="font-semibold text-brand-primary">{fmtLeadSar(lead.requestedPrice)}</span>
+                    </div>
+                    <div className="flex items-center gap-1 text-text-muted">
+                      <Clock size={14} />
+                      <span>{fmtLeadDate(lead.createdAt)}</span>
+                    </div>
+                  </div>
+
+                  {lead.reviewNotes && (
+                    <div className="flex items-start gap-2 p-3 bg-amber-50 rounded-lg">
+                      <AlertCircle size={16} className="text-amber-600 flex-shrink-0 mt-0.5" />
+                      <p className="text-xs text-amber-800">{lead.reviewNotes}</p>
+                    </div>
+                  )}
+
+                  <div className="flex items-center gap-1.5 text-xs text-text-muted pt-1">
+                    <Clock size={13} />
+                    قيد الدراسة من فريق الوسم — طلب تقديم مبدئي
+                  </div>
+                </div>
+              )
+            })}
+          </div>
+        )}
+      </div>
     </div>
   )
 }
