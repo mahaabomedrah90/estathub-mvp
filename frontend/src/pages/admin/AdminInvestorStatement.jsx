@@ -331,6 +331,30 @@ export default function AdminInvestorStatement() {
   const [showLedger, setShowLedger] = useState(true)
   const [showRecon, setShowRecon] = useState(true)
 
+  // Full report mode
+  const [fullReport, setFullReport]       = useState(null)
+  const [fullLoading, setFullLoading]     = useState(false)
+  const [fullError, setFullError]         = useState('')
+  const [showFullReport, setShowFullReport] = useState(false)
+  const [openInvestors, setOpenInvestors] = useState(new Set())
+
+  const loadFullReport = useCallback(async () => {
+    if (fullReport) { setShowFullReport(true); return }
+    setFullLoading(true); setFullError('')
+    try {
+      const r = await fetchJson('/api/admin/investor-statement/full-report', { headers: authHeader() })
+      setFullReport(r.data ?? [])
+      setShowFullReport(true)
+    } catch {
+      setFullError(lang === 'ar' ? 'فشل تحميل التقرير' : 'Failed to load report')
+    } finally {
+      setFullLoading(false)
+    }
+  }, [fullReport, lang])
+
+  const toggleInvestor = (id) =>
+    setOpenInvestors(prev => { const s = new Set(prev); s.has(id) ? s.delete(id) : s.add(id); return s })
+
   // ── Load investors list ──────────────────────────────────────────────────
   const loadInvestors = useCallback(async () => {
     setInvestorsLoading(true)
@@ -540,7 +564,19 @@ export default function AdminInvestorStatement() {
               </div>
             </div>
 
-            {s && (
+            <div className="flex items-center gap-2 flex-wrap">
+              <button
+                onClick={() => showFullReport ? setShowFullReport(false) : loadFullReport()}
+                className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-semibold transition-colors no-print ${showFullReport ? 'bg-white text-brand-primary' : 'bg-white/10 hover:bg-white/20 text-white'}`}
+              >
+                <BarChart3 size={14} />
+                {showFullReport
+                  ? (lang === 'ar' ? 'عرض فردي' : 'Single View')
+                  : (lang === 'ar' ? 'تقرير مجمّع' : 'Full Report')}
+              </button>
+            </div>
+
+            {s && !showFullReport && (
               <div className="flex items-center gap-2 flex-wrap">
                 <button onClick={handleSummaryPDF}
                   className="flex items-center gap-2 px-4 py-2.5 bg-brand-accent hover:bg-brand-accent/90 text-white rounded-xl text-sm font-semibold transition-colors">
@@ -564,6 +600,122 @@ export default function AdminInvestorStatement() {
             )}
           </div>
         </div>
+
+        {/* ═══ FULL REPORT MODE ═══════════════════════════════════════════════ */}
+        {showFullReport && (
+          <div className="space-y-3 no-print">
+            <div className="flex items-center justify-between">
+              <div>
+                <h2 className="text-lg font-bold text-gray-900">
+                  {lang === 'ar' ? 'التقرير المجمّع — جميع المستثمرين' : 'Full Portfolio Report — All Investors'}
+                </h2>
+                <p className="text-xs text-gray-400 mt-0.5">
+                  {lang === 'ar' ? 'انقر على أي مستثمر لعرض حصصه' : 'Click any investor to expand their holdings'}
+                </p>
+              </div>
+              {fullReport && (
+                <span className="text-xs bg-gray-100 text-gray-500 px-3 py-1.5 rounded-full">
+                  {fullReport.length} {lang === 'ar' ? 'مستثمر' : 'investors'}
+                </span>
+              )}
+            </div>
+
+            {fullLoading && (
+              <div className="bg-white rounded-2xl border border-gray-200 flex items-center justify-center py-16 gap-3">
+                <Loader2 className="animate-spin text-brand-accent" size={24} />
+                <span className="text-gray-500 text-sm">{lang === 'ar' ? 'جارٍ التحميل…' : 'Loading…'}</span>
+              </div>
+            )}
+            {fullError && !fullLoading && (
+              <div className="bg-white rounded-2xl border border-red-200 flex flex-col items-center py-12 gap-2">
+                <AlertCircle className="text-red-400" size={24} />
+                <p className="text-red-500 text-sm">{fullError}</p>
+                <button onClick={() => { setFullReport(null); loadFullReport() }} className="text-sm text-brand-accent hover:underline mt-1">
+                  {lang === 'ar' ? 'إعادة المحاولة' : 'Retry'}
+                </button>
+              </div>
+            )}
+            {!fullLoading && fullReport && fullReport.map(inv => (
+              <div key={inv.id} className="bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden">
+                <button
+                  onClick={() => toggleInvestor(inv.id)}
+                  className="w-full flex items-center justify-between px-5 py-4 hover:bg-gray-50 transition-colors text-start"
+                >
+                  <div className="flex items-center gap-3 min-w-0">
+                    <div className="w-9 h-9 rounded-full bg-brand-primary/10 flex items-center justify-center flex-shrink-0">
+                      <User size={15} className="text-brand-primary" />
+                    </div>
+                    <div className="min-w-0">
+                      <p className="font-bold text-gray-900 truncate">{inv.fullName}</p>
+                      <p className="text-xs text-gray-400 truncate">{inv.email}</p>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-5 flex-shrink-0 ms-4 text-end">
+                    <div className="hidden sm:block">
+                      <p className="text-xs text-gray-400">{lang === 'ar' ? 'الاستثمار' : 'Invested'}</p>
+                      <p className="font-bold text-gray-900 text-sm">{fmtSAR(inv.totalInvested)} SAR</p>
+                    </div>
+                    <div className="hidden md:block">
+                      <p className="text-xs text-gray-400">{lang === 'ar' ? 'الأرباح' : 'Profit'}</p>
+                      <p className="font-bold text-emerald-600 text-sm">{fmtSAR(inv.totalDistributed)} SAR</p>
+                    </div>
+                    <div className="hidden lg:block">
+                      <p className="text-xs text-gray-400">{lang === 'ar' ? 'الرصيد' : 'Cash'}</p>
+                      <p className="font-semibold text-gray-700 text-sm">{fmtSAR(inv.cashBalance)} SAR</p>
+                    </div>
+                    <ChevronDown size={16} className={`text-gray-400 transition-transform ${openInvestors.has(inv.id) ? 'rotate-180' : ''}`} />
+                  </div>
+                </button>
+                {openInvestors.has(inv.id) && (
+                  <div className="border-t border-gray-100">
+                    <div className="grid grid-cols-3 gap-px bg-gray-100">
+                      {[
+                        { label: lang === 'ar' ? 'الاستثمار الكلي' : 'Total Invested', val: `${fmtSAR(inv.totalInvested)} SAR`, cls: 'text-gray-900' },
+                        { label: lang === 'ar' ? 'الأرباح الموزعة' : 'Distributed',    val: `${fmtSAR(inv.totalDistributed)} SAR`, cls: 'text-emerald-600' },
+                        { label: lang === 'ar' ? 'الرصيد النقدي'   : 'Cash Balance',   val: `${fmtSAR(inv.cashBalance)} SAR`, cls: 'text-gray-700' },
+                      ].map(f => (
+                        <div key={f.label} className="bg-gray-50 px-4 py-3">
+                          <p className="text-xs text-gray-400">{f.label}</p>
+                          <p className={`font-bold text-sm mt-0.5 ${f.cls}`}>{f.val}</p>
+                        </div>
+                      ))}
+                    </div>
+                    <div className="overflow-x-auto">
+                      <table className="w-full text-sm">
+                        <thead>
+                          <tr className="border-b border-gray-100 bg-white">
+                            {[
+                              lang === 'ar' ? 'العقار' : 'Property',
+                              lang === 'ar' ? 'الحصص' : 'Tokens',
+                              lang === 'ar' ? 'الاستثمار' : 'Investment',
+                              lang === 'ar' ? 'الأرباح' : 'Profit',
+                            ].map(h => (
+                              <th key={h} className="px-4 py-2.5 text-start text-xs font-semibold text-gray-400 uppercase tracking-wide whitespace-nowrap">{h}</th>
+                            ))}
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {inv.holdings.map((h, i) => (
+                            <tr key={h.propertyId} className={`border-b border-gray-50 ${i % 2 === 0 ? '' : 'bg-gray-50/30'}`}>
+                              <td className="px-4 py-2.5 font-semibold text-gray-800">{h.propertyTitle}</td>
+                              <td className="px-4 py-2.5 font-bold text-gray-900">{h.tokens.toLocaleString()}</td>
+                              <td className="px-4 py-2.5 text-gray-900">{fmtSAR(h.investmentAmount)} SAR</td>
+                              <td className="px-4 py-2.5">
+                                {h.profitReceived > 0
+                                  ? <span className="font-semibold text-emerald-600">+{fmtSAR(h.profitReceived)} SAR</span>
+                                  : <span className="text-gray-300">—</span>}
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
+                )}
+              </div>
+            ))}
+          </div>
+        )}
 
         {/* ═══ INVESTOR SELECTOR ══════════════════════════════════════════════ */}
         <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-6 no-print">
