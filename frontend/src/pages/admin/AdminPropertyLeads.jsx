@@ -48,6 +48,9 @@ const ACTIONS = [
 ]
 
 const statusLabel = (k) => (k && STATUS[k]?.label) || k || '—'
+// A document ref may be a legacy local URL string, an S3 key string, or a { key } object.
+const isLegacyRef = (ref) => typeof ref === 'string' && ref.startsWith('/api/uploads')
+const refToKey = (ref) => (typeof ref === 'string' ? ref : (ref && ref.key) || '')
 const fmtSar = (n) => (n || n === 0) ? Number(n).toLocaleString('en-US') + ' ر.س' : '—'
 const fmtDate = (d) => d ? new Date(d).toLocaleDateString('ar-SA', { year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' }) : '—'
 
@@ -149,6 +152,18 @@ function DetailPanel({ id, onClose, onUpdated, showToast }) {
     }
   }
 
+  // Open a lead document: legacy URLs directly; S3 keys via a short-lived
+  // admin-scoped signed URL (admin endpoint enforces the key belongs to the lead).
+  const openDoc = async (ref) => {
+    if (isLegacyRef(ref)) { window.open(`${API_BASE}${ref}`, '_blank', 'noopener'); return }
+    const key = refToKey(ref)
+    if (!key) return
+    try {
+      const r = await fetchJson(`/api/admin/property-leads/${id}/documents/url?key=${encodeURIComponent(key)}`, { headers: authHeader() })
+      if (r?.url) window.open(r.url, '_blank', 'noopener')
+    } catch { /* keep UI simple */ }
+  }
+
   const imageUrls = Array.isArray(lead?.imageUrls) ? lead.imageUrls : []
 
   return (
@@ -218,17 +233,31 @@ function DetailPanel({ id, onClose, onUpdated, showToast }) {
                 {imageUrls.length > 0 && (
                   <div className="grid grid-cols-3 sm:grid-cols-4 gap-2 mb-3">
                     {imageUrls.map((u, i) => (
-                      <a key={i} href={`${API_BASE}${u}`} target="_blank" rel="noreferrer">
-                        <img src={`${API_BASE}${u}`} alt={`صورة ${i + 1}`} className="w-full h-24 object-cover rounded-lg border border-border-soft hover:opacity-90" />
-                      </a>
+                      isLegacyRef(u) ? (
+                        <a key={i} href={`${API_BASE}${u}`} target="_blank" rel="noreferrer">
+                          <img src={`${API_BASE}${u}`} alt={`صورة ${i + 1}`} className="w-full h-24 object-cover rounded-lg border border-border-soft hover:opacity-90" />
+                        </a>
+                      ) : (
+                        <button key={i} type="button" onClick={() => openDoc(u)}
+                          className="h-24 rounded-lg border border-border-soft bg-surface-muted flex flex-col items-center justify-center gap-1 text-brand-accent hover:border-brand-accent">
+                          <FileText size={18} /><span className="text-[10px] text-text-muted">عرض الصورة</span>
+                        </button>
+                      )
                     ))}
                   </div>
                 )}
                 {lead.deedImageUrl && (
-                  <a href={`${API_BASE}${lead.deedImageUrl}`} target="_blank" rel="noreferrer"
-                    className="inline-flex items-center gap-2 text-sm text-brand-accent hover:underline font-medium">
-                    <FileText size={16} /> عرض صورة الصك
-                  </a>
+                  isLegacyRef(lead.deedImageUrl) ? (
+                    <a href={`${API_BASE}${lead.deedImageUrl}`} target="_blank" rel="noreferrer"
+                      className="inline-flex items-center gap-2 text-sm text-brand-accent hover:underline font-medium">
+                      <FileText size={16} /> عرض صورة الصك
+                    </a>
+                  ) : (
+                    <button type="button" onClick={() => openDoc(lead.deedImageUrl)}
+                      className="inline-flex items-center gap-2 text-sm text-brand-accent hover:underline font-medium">
+                      <FileText size={16} /> عرض صورة الصك
+                    </button>
+                  )
                 )}
               </Section>
             )}

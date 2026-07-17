@@ -126,6 +126,7 @@ export default function OwnerOpportunityLeadForm() {
     403: 'ليست لديك صلاحية رفع هذا الملف. يرجى تسجيل الدخول كمالك أو التواصل مع الدعم.',
     413: `حجم الملف يتجاوز ${MAX_FILE_MB} ميجابايت.`,
     415: 'صيغة الملف غير مدعومة. المسموح: JPG أو PNG أو WEBP أو PDF.',
+    500: 'تعذر رفع الملف حاليًا. يرجى المحاولة لاحقًا.',
   }
   const uploadOne = async (file, documentType) => {
     const fd = new FormData()
@@ -143,8 +144,16 @@ export default function OwnerOpportunityLeadForm() {
       throw new Error(UPLOAD_ERROR_BY_STATUS[res.status] || 'تعذّر رفع الملف. حاول مرة أخرى.')
     }
     const json = await res.json().catch(() => ({}))
-    if (!json.fileUrl) throw new Error('تعذّر رفع الملف. حاول مرة أخرى.')
-    return { url: json.fileUrl, name: file.name }
+    // Phase 2a: backend returns an S3 document object (key, not a public URL).
+    if (!json.key) throw new Error('تعذّر رفع الملف. حاول مرة أخرى.')
+    return {
+      key: json.key,
+      filename: json.filename || file.name,
+      mimeType: json.mimeType || file.type,
+      size: json.size || file.size,
+      uploadedAt: json.uploadedAt || new Date().toISOString(),
+      name: json.filename || file.name,
+    }
   }
 
   const onPickImages = async (e) => {
@@ -226,8 +235,8 @@ export default function OwnerOpportunityLeadForm() {
     if (data.hasMortgage !== null) p.hasMortgage = data.hasMortgage
     if (data.hasOwnershipPartner !== null) p.hasOwnershipPartner = data.hasOwnershipPartner
     if (data.hasLegalDispute !== null) p.hasLegalDispute = data.hasLegalDispute
-    if (images.length) p.imageUrls = images.map(i => i.url)
-    if (deed) p.deedImageUrl = deed.url
+    if (images.length) p.imageUrls = images.map(i => ({ key: i.key, filename: i.filename, mimeType: i.mimeType, size: i.size, uploadedAt: i.uploadedAt }))
+    if (deed) p.deedImageUrl = deed.key
     return p
   }
 
@@ -552,8 +561,9 @@ function Step3({ images, deed, uploading, uploadError, onPickImages, onPickDeed,
         {images.length > 0 && (
           <div className="grid grid-cols-3 sm:grid-cols-4 gap-3 mt-3">
             {images.map((img, i) => (
-              <div key={i} className="relative group">
-                <img src={`${API_BASE}${img.url}`} alt={img.name} className="w-full h-24 object-cover rounded-xl border border-border-soft" />
+              <div key={i} className="relative group h-24 rounded-xl border border-border-soft bg-surface-muted flex flex-col items-center justify-center gap-1 px-2 text-center">
+                <ImageIcon size={22} className="text-brand-accent" />
+                <span className="text-[11px] text-text-muted truncate w-full">{img.name}</span>
                 <button type="button" onClick={() => removeImage(i)}
                   className="absolute top-2 left-2 p-1.5 bg-brand-primary/80 text-white rounded-full opacity-0 group-hover:opacity-100 transition-opacity">
                   <X size={14} />

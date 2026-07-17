@@ -1,12 +1,14 @@
 import { Router, Request, Response, NextFunction } from 'express'
 import multer from 'multer'
-import path from 'path'
-import crypto from 'crypto'
 import { prisma } from '../lib/prisma'
 import { auth } from '../middleware/auth'
-import { getFileUrl } from '../middleware/roles'
 import { scoreLead } from '../lib/propertyLeadScoring'
 import { logAdminAction, AuditAction } from '../lib/auditService'
+import {
+  buildPropertyLeadKey, uploadPropertyLeadDocument, getSignedPropertyLeadUrl,
+  detectMimeFromMagic, getDocsBucket, isLegacyLocalUrl, isS3Key,
+  SIGNED_URL_TTL_SECONDS, DocsNotConfiguredError,
+} from '../lib/propertyLeadS3'
 
 // ============================================================================
 // PropertyLead API — preliminary owner opportunity submissions
@@ -97,24 +99,32 @@ function requireAdmin(req: Request & { user?: any }, res: Response): boolean {
 }
 
 // ─── file upload (lead property images + deed) ──────────────────────────────
-// LOCAL to this controller so the legacy /api/properties/upload-document is not
-// modified. Accepts image or PDF (deed), 10 MB max, stored in the same
-// uploads/properties dir served via getFileUrl().
+// Phase 2a: memoryStorage → private S3 (NOT local disk). The buffer is
+// magic-byte validated then uploaded via propertyLeadS3. Client-declared mime is
+// only a first gate; detectMimeFromMagic is authoritative.
 const LEAD_UPLOAD_MIMES = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp', 'application/pdf']
 const leadUpload = multer({
-  storage: multer.diskStorage({
-    destination: (_req, _file, cb) => cb(null, 'uploads/properties/'),
-    filename: (_req, file, cb) => {
-      const suffix = `${Date.now()}-${crypto.randomBytes(6).toString('hex')}`
-      cb(null, `lead-${suffix}${path.extname(file.originalname)}`)
-    },
-  }),
+  storage: multer.memoryStorage(),
   limits: { fileSize: 10 * 1024 * 1024 }, // 10 MB
   fileFilter: (_req, file, cb) => {
     if (LEAD_UPLOAD_MIMES.includes(file.mimetype)) cb(null, true)
     else cb(new Error('Invalid file type'))
   },
 })
+
+// Collect every document reference stored on a lead (legacy URL strings AND new
+// S3-key strings/objects), so signed-URL endpoints can verify a requested key
+// actually belongs to the lead before signing it.
+function leadDocumentRefs(lead: { imageUrls?: unknown; deedImageUrl?: unknown }): string[] {
+  const refs: string[] = []
+  const imgs = Array.isArray(lead.imageUrls) ? lead.imageUrls : []
+  for (const it of imgs) {
+    if (typeof it === 'string') refs.push(it)
+    else if (it && typeof it === 'object' && typeof (it as any).key === 'string') refs.push((it as any).key)
+  }
+  if (typeof lead.deedImageUrl === 'string' && lead.deedImageUrl) refs.push(lead.deedImageUrl)
+  return refs
+}
 
 // ════════════════════════════════════════════════════════════════════════════
 // OWNER ROUTER  →  /api/property-leads
@@ -291,13 +301,75 @@ propertyLeadRouter.post(
       return res.status(400).json({ error: 'upload_error', message: 'تعذّر رفع الملف. حاول مرة أخرى.' })
     })
   },
-  (req: Request & { file?: any }, res: Response) => {
-    if (!req.file) {
+  async (req: Request & { file?: any; user?: any }, res: Response) => {
+    if (!req.file || !req.file.buffer) {
       return res.status(400).json({ error: 'no_file', message: 'لم يتم استلام أي ملف.' })
     }
-    return res.json({ fileUrl: getFileUrl(req.file.filename), fileName: req.file.originalname })
+    // Authoritative server-side content check (do not trust client mimetype).
+    const detected = detectMimeFromMagic(req.file.buffer)
+    if (!detected) {
+      return res.status(415).json({ error: 'unsupported_file_type', message: 'صيغة الملف غير مدعومة. المسموح: JPG أو PNG أو WEBP أو PDF.' })
+    }
+    if (!getDocsBucket()) {
+      return res.status(500).json({ error: 'storage_not_configured', message: 'Document storage is not configured' })
+    }
+    // Optional leadId: use the lead-scoped key prefix ONLY if the caller is
+    // authorized for that lead; otherwise fall back to the pending prefix.
+    let leadId: string | undefined = toStr(req.body?.leadId)
+    if (leadId) {
+      const role = normalizedRole(req)
+      const scope = role === 'ADMIN'
+        ? { id: leadId }
+        : { id: leadId, ownerId: req.user!.userId, tenantId: req.user!.tenantId }
+      const owns = await prisma.propertyLead.findFirst({ where: scope, select: { id: true } })
+      if (!owns) leadId = undefined
+    }
+    const key = buildPropertyLeadKey({ ownerId: req.user!.userId, leadId, originalName: req.file.originalname })
+    try {
+      await uploadPropertyLeadDocument({ buffer: req.file.buffer, key, contentType: detected })
+    } catch (e: any) {
+      if (e instanceof DocsNotConfiguredError) {
+        return res.status(500).json({ error: 'storage_not_configured', message: 'Document storage is not configured' })
+      }
+      console.error('❌ PropertyLead upload S3 error:', e?.message)
+      return res.status(500).json({ error: 'upload_failed', message: 'تعذّر رفع الملف. حاول مرة أخرى.' })
+    }
+    // New shape: store the KEY (never a public URL). fileUrl:null for BC.
+    return res.json({
+      key,
+      filename: req.file.originalname,
+      mimeType: detected,
+      size: req.file.size,
+      uploadedAt: new Date().toISOString(),
+      fileUrl: null,
+    })
   }
 )
+
+// GET /api/property-leads/:id/documents/url?key=<encodedKey> — owner gets a
+// short-lived signed URL for ONE of their own lead's documents. Legacy local
+// URLs are returned as-is (marked legacy). Arbitrary keys are never signed.
+propertyLeadRouter.get('/:id/documents/url', auth(true), async (req: Request & { user?: any }, res: Response) => {
+  if (!requireOwner(req, res)) return
+  try {
+    const key = typeof req.query.key === 'string' ? req.query.key : ''
+    if (!key) return res.status(400).json({ error: 'missing_key', message: 'المستند غير محدد.' })
+    const lead = await prisma.propertyLead.findFirst({
+      where: { id: req.params.id, ownerId: req.user!.userId, tenantId: req.user!.tenantId },
+      select: { imageUrls: true, deedImageUrl: true },
+    })
+    if (!lead) return res.status(404).json({ error: 'property_lead_not_found' })
+    if (!leadDocumentRefs(lead).includes(key)) return res.status(403).json({ error: 'document_not_on_lead' })
+    if (isLegacyLocalUrl(key)) return res.json({ url: key, legacy: true })
+    if (!isS3Key(key)) return res.status(400).json({ error: 'invalid_document_reference' })
+    const url = await getSignedPropertyLeadUrl(key)
+    return res.json({ url, expiresIn: SIGNED_URL_TTL_SECONDS })
+  } catch (e: any) {
+    if (e instanceof DocsNotConfiguredError) return res.status(500).json({ error: 'storage_not_configured', message: 'Document storage is not configured' })
+    console.error('❌ PropertyLead owner document url error:', e?.message)
+    return res.status(500).json({ error: 'document_url_failed', message: 'تعذّر فتح المستند. حاول مرة أخرى.' })
+  }
+})
 
 propertyLeadRouter.get('/mine', auth(true), async (req: Request & { user?: any }, res: Response) => {
   if (!requireOwner(req, res)) return
@@ -577,5 +649,30 @@ propertyLeadAdminRouter.get('/:id/audit-history', auth(true), async (req: Reques
   } catch (e: any) {
     console.error('❌ PropertyLead audit-history error:', e)
     return res.status(500).json({ error: 'property_lead_audit_history_failed' })
+  }
+})
+
+// GET /api/admin/property-leads/:id/documents/url?key=<encodedKey> — admin gets a
+// short-lived signed URL for ONE of a lead's documents. Key must belong to the
+// lead (never sign arbitrary keys). Legacy local URLs returned as-is.
+propertyLeadAdminRouter.get('/:id/documents/url', auth(true), async (req: Request & { user?: any }, res: Response) => {
+  if (!requireAdmin(req, res)) return
+  try {
+    const key = typeof req.query.key === 'string' ? req.query.key : ''
+    if (!key) return res.status(400).json({ error: 'missing_key', message: 'المستند غير محدد.' })
+    const lead = await prisma.propertyLead.findUnique({
+      where: { id: req.params.id },
+      select: { imageUrls: true, deedImageUrl: true },
+    })
+    if (!lead) return res.status(404).json({ error: 'property_lead_not_found' })
+    if (!leadDocumentRefs(lead).includes(key)) return res.status(403).json({ error: 'document_not_on_lead' })
+    if (isLegacyLocalUrl(key)) return res.json({ url: key, legacy: true })
+    if (!isS3Key(key)) return res.status(400).json({ error: 'invalid_document_reference' })
+    const url = await getSignedPropertyLeadUrl(key)
+    return res.json({ url, expiresIn: SIGNED_URL_TTL_SECONDS })
+  } catch (e: any) {
+    if (e instanceof DocsNotConfiguredError) return res.status(500).json({ error: 'storage_not_configured', message: 'Document storage is not configured' })
+    console.error('❌ PropertyLead admin document url error:', e?.message)
+    return res.status(500).json({ error: 'document_url_failed', message: 'تعذّر فتح المستند. حاول مرة أخرى.' })
   }
 })

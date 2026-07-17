@@ -22,6 +22,7 @@ const UPLOAD_ERROR_BY_STATUS = {
   403: 'ليست لديك صلاحية رفع هذا الملف. يرجى تسجيل الدخول كمالك أو التواصل مع الدعم.',
   413: 'حجم الملف يتجاوز 10 ميجابايت.',
   415: 'صيغة الملف غير مدعومة. المسموح: JPG أو PNG أو WEBP أو PDF.',
+  500: 'تعذر رفع الملف حاليًا. يرجى المحاولة لاحقًا.',
 }
 
 async function uploadOne(file) {
@@ -35,9 +36,15 @@ async function uploadOne(file) {
   }
   if (!res.ok) throw new Error(UPLOAD_ERROR_BY_STATUS[res.status] || 'تعذّر رفع الملف. حاول مرة أخرى.')
   const json = await res.json().catch(() => ({}))
-  if (!json.fileUrl) throw new Error('تعذّر رفع الملف. حاول مرة أخرى.')
-  return json.fileUrl
+  // Phase 2a: backend returns an S3 document object (key, not a public URL).
+  if (!json.key) throw new Error('تعذّر رفع الملف. حاول مرة أخرى.')
+  return { key: json.key, filename: json.filename || file.name, mimeType: json.mimeType, size: json.size, uploadedAt: json.uploadedAt, name: json.filename || file.name }
 }
+
+// A document ref may be: a legacy local URL string ("/api/uploads/..."), an S3
+// key string ("property-leads/..."), or a new upload object { key, name }.
+const isLegacyRef = (ref) => typeof ref === 'string' && ref.startsWith('/api/uploads')
+const refToKey = (ref) => (typeof ref === 'string' ? ref : (ref && ref.key) || '')
 
 // Owner may only edit/resubmit a lead that is currently NEEDS_INFO.
 const EDITABLE_STATUS = 'NEEDS_INFO'
@@ -113,8 +120,8 @@ export default function OwnerRequestEdit() {
     try {
       for (const file of files) {
         if (images.length >= MAX_IMAGES) { setUploadError(`الحد الأقصى ${MAX_IMAGES} صور.`); break }
-        const url = await uploadOne(file)
-        setImages(prev => (prev.length >= MAX_IMAGES ? prev : [...prev, url]))
+        const doc = await uploadOne(file)
+        setImages(prev => (prev.length >= MAX_IMAGES ? prev : [...prev, doc]))
       }
     } catch (err) {
       setUploadError(err.message)
@@ -128,9 +135,21 @@ export default function OwnerRequestEdit() {
     if (deedInput.current) deedInput.current.value = ''
     if (!file) return
     setUploadError(''); setUploading('deed')
-    try { setDeedUrl(await uploadOne(file)) }
+    try { const doc = await uploadOne(file); setDeedUrl(doc.key) }
     catch (err) { setUploadError(err.message) }
     finally { setUploading('') }
+  }
+
+  // Open a document: legacy URLs open directly; S3 keys are resolved to a
+  // short-lived owner-scoped signed URL first (owner endpoint enforces ownership).
+  const openDoc = async (ref) => {
+    if (isLegacyRef(ref)) { window.open(`${API_BASE}${ref}`, '_blank', 'noopener'); return }
+    const key = refToKey(ref)
+    if (!key) return
+    try {
+      const r = await fetchJson(`/api/property-leads/${id}/documents/url?key=${encodeURIComponent(key)}`, { headers: authHeader() })
+      if (r?.url) window.open(r.url, '_blank', 'noopener')
+    } catch { /* surfaced elsewhere; keep UI simple */ }
   }
 
   const onSubmit = async (e) => {
@@ -299,9 +318,16 @@ export default function OwnerRequestEdit() {
         <div>
           <label className={lbl}>صور العقار ({images.length}/{MAX_IMAGES})</label>
           <div className="flex flex-wrap gap-3">
-            {images.map((url, i) => (
+            {images.map((it, i) => (
               <div key={i} className="relative">
-                <img src={`${API_BASE}${url}`} alt="" className="w-24 h-24 object-cover rounded-xl border border-border-soft" />
+                {isLegacyRef(it) ? (
+                  <img src={`${API_BASE}${it}`} alt="" className="w-24 h-24 object-cover rounded-xl border border-border-soft" />
+                ) : (
+                  <button type="button" onClick={() => openDoc(it)}
+                    className="w-24 h-24 rounded-xl border border-border-soft bg-surface-muted flex flex-col items-center justify-center gap-1 text-brand-accent hover:border-brand-accent">
+                    <FileText size={20} /><span className="text-[10px] text-text-muted">عرض الصورة</span>
+                  </button>
+                )}
                 <button type="button" onClick={() => setImages(prev => prev.filter((_, j) => j !== i))}
                   className="absolute -top-2 -left-2 bg-red-600 text-white rounded-full p-0.5"><X size={14} /></button>
               </div>
@@ -320,9 +346,9 @@ export default function OwnerRequestEdit() {
           <label className={lbl}>صك الملكية</label>
           {deedUrl ? (
             <div className="flex items-center gap-3">
-              <a href={`${API_BASE}${deedUrl}`} target="_blank" rel="noreferrer" className="inline-flex items-center gap-2 text-brand-accent text-sm font-medium">
+              <button type="button" onClick={() => openDoc(deedUrl)} className="inline-flex items-center gap-2 text-brand-accent text-sm font-medium">
                 <FileText size={16} /> عرض الصك المرفوع
-              </a>
+              </button>
               <button type="button" onClick={() => setDeedUrl('')} className="text-red-600 text-sm">إزالة</button>
             </div>
           ) : (
