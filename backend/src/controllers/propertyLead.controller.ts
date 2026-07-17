@@ -313,6 +313,150 @@ propertyLeadRouter.get('/mine', auth(true), async (req: Request & { user?: any }
   }
 })
 
+// GET /api/property-leads/:id — owner views ONE of their OWN leads (to pre-fill the edit form).
+// Registered AFTER /mine and /upload so those literal routes still match first.
+// Owner-safe projection only (never exposes internal scores). Returns 404 if the lead
+// is missing OR not owned by the caller (do not leak existence of other owners' leads).
+propertyLeadRouter.get('/:id', auth(true), async (req: Request & { user?: any }, res: Response) => {
+  if (!requireOwner(req, res)) return
+  try {
+    const lead = await prisma.propertyLead.findFirst({
+      where: { id: req.params.id, ownerId: req.user!.userId, tenantId: req.user!.tenantId },
+      select: OWNER_SAFE_SELECT,
+    })
+    if (!lead) return res.status(404).json({ error: 'property_lead_not_found' })
+    return res.json(lead)
+  } catch (e: any) {
+    console.error('❌ PropertyLead owner detail error:', e)
+    return res.status(500).json({ error: 'property_lead_detail_failed' })
+  }
+})
+
+// PATCH /api/property-leads/:id/resubmit — owner updates a NEEDS_INFO lead and resubmits it.
+// Owner-only, own-lead-only, allowed ONLY when the lead is currently NEEDS_INFO.
+// Sets status/adminStatus back to UNDER_REVIEW (existing enum — NO migration).
+// STRICT field allowlist: owner can never touch ownerId, tenantId, status/adminStatus directly,
+// reviewNotes, reviewedBy, reviewedAt, or internal scores. Last admin reviewNotes is preserved
+// for context. Internal scores are recomputed server-side (owner never sees/controls them).
+propertyLeadRouter.patch('/:id/resubmit', auth(true), async (req: Request & { user?: any }, res: Response) => {
+  if (!requireOwner(req, res)) return
+  try {
+    const existing = await prisma.propertyLead.findFirst({
+      where: { id: req.params.id, ownerId: req.user!.userId, tenantId: req.user!.tenantId },
+      select: { id: true, status: true },
+    })
+    if (!existing) return res.status(404).json({ error: 'property_lead_not_found' })
+    if (existing.status !== 'NEEDS_INFO') {
+      return res.status(409).json({
+        error: 'lead_not_editable',
+        message: 'لا يمكن تعديل هذا الطلب في حالته الحالية. التعديل متاح فقط عندما يطلب فريق الوسم معلومات إضافية.',
+        currentStatus: existing.status,
+      })
+    }
+
+    const b = req.body || {}
+
+    // --- required string fields (same contract as create) ---
+    const requiredStr = ['applicantType', 'fullName', 'phone', 'propertyName', 'propertyType', 'city', 'district', 'googleMapsUrl', 'shortDescription']
+    const missing = requiredStr.filter(k => !toStr(b[k]))
+    const requestedPrice = toNum(b.requestedPrice)
+    if (requestedPrice === undefined) missing.push('requestedPrice')
+    if (missing.length > 0) {
+      return res.status(400).json({ error: 'missing_required_fields', message: 'يرجى تعبئة جميع الحقول المطلوبة.', fields: missing })
+    }
+    if (!Number.isFinite(requestedPrice as number) || (requestedPrice as number) <= 0) {
+      return res.status(400).json({ error: 'invalid_requested_price', message: 'السعر المطلوب يجب أن يكون رقماً موجباً.', field: 'requestedPrice' })
+    }
+    const email = toStr(b.email)
+    if (email && !EMAIL_RE.test(email)) {
+      return res.status(400).json({ error: 'invalid_email', message: 'صيغة البريد الإلكتروني غير صحيحة.', field: 'email' })
+    }
+    const annualRent = toNum(b.annualRent)
+    if (annualRent !== undefined && (!Number.isFinite(annualRent) || annualRent <= 0)) {
+      return res.status(400).json({ error: 'invalid_annual_rent', message: 'قيمة الإيجار السنوي يجب أن تكون رقماً موجباً.', field: 'annualRent' })
+    }
+    let imageUrls: string[] | undefined
+    if (b.imageUrls !== undefined && b.imageUrls !== null) {
+      if (!Array.isArray(b.imageUrls)) return res.status(400).json({ error: 'invalid_images', message: 'صيغة الصور غير صحيحة.', field: 'imageUrls' })
+      if (b.imageUrls.length > 5) return res.status(400).json({ error: 'too_many_images', message: 'الحد الأقصى 5 صور.', field: 'imageUrls' })
+      imageUrls = b.imageUrls.map((u: unknown) => String(u)).filter(Boolean)
+    }
+    const landArea = toNum(b.landArea)
+    const buildingArea = toNum(b.buildingArea)
+    const buildingYear = toNum(b.buildingYear)
+    for (const [k, v] of Object.entries({ landArea, buildingArea, buildingYear })) {
+      if (typeof v === 'number' && Number.isNaN(v)) {
+        return res.status(400).json({ error: 'invalid_number', message: `قيمة غير صحيحة للحقل ${k}.`, field: k })
+      }
+    }
+    let leaseExpiryDate: Date | undefined
+    if (toStr(b.leaseExpiryDate)) {
+      const d = new Date(b.leaseExpiryDate)
+      if (!Number.isNaN(d.getTime())) leaseExpiryDate = d
+    }
+
+    // --- STRICT owner-editable allowlist (mirrors the create form fields) ---
+    const leadInput = {
+      applicantType: toStr(b.applicantType),
+      fullName:      toStr(b.fullName),
+      companyName:   toStr(b.companyName),
+      phone:         toStr(b.phone),
+      email,
+      propertyName:  toStr(b.propertyName),
+      propertyType:  toStr(b.propertyType),
+      city:          toStr(b.city),
+      district:      toStr(b.district),
+      googleMapsUrl: toStr(b.googleMapsUrl),
+      landArea:      landArea ?? null,
+      buildingArea:  buildingArea ?? null,
+      buildingYear:  buildingYear != null ? Math.trunc(buildingYear as number) : null,
+      requestedPrice: requestedPrice as number,
+      isPriceNegotiable:   toBool(b.isPriceNegotiable) ?? null,
+      isLeased:            toBool(b.isLeased) ?? null,
+      annualRent:          annualRent ?? null,
+      leaseExpiryDate:     leaseExpiryDate ?? null,
+      hasMortgage:         toBool(b.hasMortgage) ?? null,
+      hasOwnershipPartner: toBool(b.hasOwnershipPartner) ?? null,
+      hasLegalDispute:     toBool(b.hasLegalDispute) ?? null,
+      noLegalIssues:       toBool(b.noLegalIssues) ?? null,
+      shortDescription:    toStr(b.shortDescription),
+      // Documents: skip when not sent (protect existing docs from accidental clearing).
+      imageUrls:           imageUrls ?? undefined,
+      deedImageUrl:        toStr(b.deedImageUrl) ?? undefined,
+    }
+
+    // Recompute internal scores server-side against the updated data. Admin-only; never returned.
+    const scores = scoreLead(leadInput)
+
+    const updated = await prisma.propertyLead.update({
+      where: { id: existing.id },
+      data: {
+        ...leadInput,
+        qualificationScore: scores.qualificationScore,
+        tokenizationSuitabilityScore: scores.tokenizationSuitabilityScore,
+        internalRecommendation: scores.internalRecommendation,
+        // Back into the review queue (kept in sync, mirrors create + admin status PATCH).
+        status: 'UNDER_REVIEW',
+        adminStatus: 'UNDER_REVIEW',
+        // reviewNotes / reviewedBy / reviewedAt intentionally NOT touched (preserve admin context).
+        // ownerId / tenantId never change. updatedAt auto-updates via @updatedAt.
+      },
+      select: { id: true, status: true, updatedAt: true },
+    })
+
+    return res.json({
+      success: true,
+      id: updated.id,
+      status: updated.status,
+      updatedAt: updated.updatedAt,
+      message: 'تم إعادة إرسال الطلب للمراجعة',
+    })
+  } catch (e: any) {
+    console.error('❌ PropertyLead resubmit error:', e)
+    return res.status(500).json({ error: 'property_lead_resubmit_failed' })
+  }
+})
+
 // ════════════════════════════════════════════════════════════════════════════
 // ADMIN ROUTER  →  /api/admin/property-leads
 // ════════════════════════════════════════════════════════════════════════════

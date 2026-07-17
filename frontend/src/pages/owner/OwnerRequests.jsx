@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { MapPin, DollarSign, Clock, AlertCircle, Loader2, ClipboardList, Plus } from 'lucide-react'
+import { MapPin, DollarSign, Clock, AlertCircle, Loader2, ClipboardList, Plus, Pencil } from 'lucide-react'
 import { fetchJson, authHeader } from '../../lib/api'
 
 // Preliminary opportunity submissions (PropertyLead) — owner-facing labels.
@@ -122,9 +122,9 @@ export default function OwnerRequests() {
                   </div>
                 </div>
 
-                {/* NEEDS_INFO — prominent box + review notes */}
+                {/* NEEDS_INFO — prominent box + review notes + update action */}
                 {statusKey === 'NEEDS_INFO' && (
-                  <div className="bg-orange-50 border border-orange-200 rounded-lg p-3 space-y-1">
+                  <div className="bg-orange-50 border border-orange-200 rounded-lg p-3 space-y-2">
                     <div className="flex items-center gap-2">
                       <AlertCircle size={16} className="text-orange-600 flex-shrink-0" />
                       <p className="text-sm font-bold text-orange-800">مطلوب معلومات إضافية من فريق الوسم</p>
@@ -132,6 +132,13 @@ export default function OwnerRequests() {
                     {lead.reviewNotes && (
                       <p className="text-xs text-orange-800 leading-relaxed pr-6">{lead.reviewNotes}</p>
                     )}
+                    <button
+                      onClick={() => navigate(`/owner/requests/${lead.id}/edit`)}
+                      className="mt-1 inline-flex items-center gap-2 px-4 py-2 bg-orange-600 text-white rounded-lg text-sm font-semibold hover:bg-orange-700 transition-colors"
+                    >
+                      <Pencil size={15} />
+                      تحديث الطلب
+                    </button>
                   </div>
                 )}
 
