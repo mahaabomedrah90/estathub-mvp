@@ -31,10 +31,12 @@ export default function AdminDistributions() {
     setError('')
     try {
       const [propsRes, payoutsRes] = await Promise.all([
-        fetchJson('/api/properties?status=ACTIVE&limit=200'),
+        fetchJson('/api/properties?status=APPROVED'),
         fetchJson('/api/admin/distributions'),
       ])
-      setProperties(Array.isArray(propsRes?.properties) ? propsRes.properties : (Array.isArray(propsRes) ? propsRes : []))
+      // Without limit param → plain array; with limit → { data: [...] }
+      const propsArr = Array.isArray(propsRes) ? propsRes : (Array.isArray(propsRes?.data) ? propsRes.data : [])
+      setProperties(propsArr)
       setPayouts(Array.isArray(payoutsRes?.payouts) ? payoutsRes.payouts : [])
     } catch (e) {
       setError(isAr ? 'فشل تحميل البيانات' : 'Failed to load data')
