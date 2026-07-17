@@ -6,6 +6,7 @@ import { prisma } from '../lib/prisma'
 import { auth } from '../middleware/auth'
 import { getFileUrl } from '../middleware/roles'
 import { scoreLead } from '../lib/propertyLeadScoring'
+import { logAdminAction, AuditAction } from '../lib/auditService'
 
 // ============================================================================
 // PropertyLead API — preliminary owner opportunity submissions
@@ -444,6 +445,18 @@ propertyLeadRouter.patch('/:id/resubmit', auth(true), async (req: Request & { us
       select: { id: true, status: true, updatedAt: true },
     })
 
+    // Record the owner resubmit in the shared audit trail so the admin review
+    // timeline is complete (NEEDS_INFO → UNDER_REVIEW). adminId is null (owner actor).
+    // Safe: logAdminAction never throws.
+    await logAdminAction({
+      admin:      null,
+      action:     AuditAction.PROPERTY_LEAD_RESUBMITTED,
+      targetType: 'PropertyLead',
+      targetId:   existing.id,
+      metadata:   { fromStatus: 'NEEDS_INFO', toStatus: 'UNDER_REVIEW', actor: 'owner', ownerId: req.user!.userId },
+      req,
+    })
+
     return res.json({
       success: true,
       id: updated.id,
@@ -506,7 +519,10 @@ propertyLeadAdminRouter.patch('/:id/status', auth(true), async (req: Request & {
       })
     }
 
-    const existing = await prisma.propertyLead.findUnique({ where: { id: req.params.id }, select: { id: true } })
+    const existing = await prisma.propertyLead.findUnique({
+      where: { id: req.params.id },
+      select: { id: true, status: true, propertyName: true, ownerId: true },
+    })
     if (!existing) return res.status(404).json({ error: 'property_lead_not_found' })
 
     const updated = await prisma.propertyLead.update({
@@ -519,9 +535,47 @@ propertyLeadAdminRouter.patch('/:id/status', auth(true), async (req: Request & {
         reviewedBy: req.user!.userId,
       },
     })
+
+    // Audit trail via the existing AdminAuditLog (no new table). Never blocks the
+    // response — logAdminAction swallows its own errors internally.
+    await logAdminAction({
+      admin:      { userId: req.user!.userId, email: req.user!.email },
+      action:     AuditAction.PROPERTY_LEAD_STATUS_CHANGE,
+      targetType: 'PropertyLead',
+      targetId:   existing.id,
+      metadata:   {
+        fromStatus: existing.status,
+        toStatus:   status,
+        note:       typeof reviewNotes === 'string' ? reviewNotes : null,
+        propertyName: existing.propertyName ?? null,
+        ownerId:    existing.ownerId ?? null,
+      },
+      req,
+    })
+
     return res.json({ success: true, lead: updated })
   } catch (e: any) {
     console.error('❌ PropertyLead status update error:', e)
     return res.status(500).json({ error: 'property_lead_status_update_failed' })
+  }
+})
+
+// GET /api/admin/property-leads/:id/audit-history — admin-only review timeline for one lead.
+// Reads from the existing AdminAuditLog (targetType='PropertyLead', targetId=leadId). No new table.
+propertyLeadAdminRouter.get('/:id/audit-history', auth(true), async (req: Request & { user?: any }, res: Response) => {
+  if (!requireAdmin(req, res)) return
+  try {
+    const entries = await prisma.adminAuditLog.findMany({
+      where: { targetType: 'PropertyLead', targetId: req.params.id },
+      orderBy: { createdAt: 'desc' },
+      select: {
+        id: true, action: true, adminId: true, adminEmail: true,
+        metadata: true, createdAt: true,
+      },
+    })
+    return res.json(entries)
+  } catch (e: any) {
+    console.error('❌ PropertyLead audit-history error:', e)
+    return res.status(500).json({ error: 'property_lead_audit_history_failed' })
   }
 })

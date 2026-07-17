@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react'
 import {
   Building2, User, MapPin, Coins, Loader2, AlertCircle, CheckCircle2,
-  XCircle, RefreshCw, X, Calendar, Eye, ClipboardList, Info, FileText, Gavel
+  XCircle, RefreshCw, X, Calendar, Eye, ClipboardList, Info, FileText, Gavel, Clock
 } from 'lucide-react'
 import { authHeader, fetchJson } from '../../lib/api'
 
@@ -47,6 +47,7 @@ const ACTIONS = [
   { status: 'REJECTED',     label: 'رفض',                icon: XCircle,       cls: 'bg-red-600 hover:bg-red-700',       hint: 'الفرصة غير مناسبة حاليًا وفق معايير الوسم' },
 ]
 
+const statusLabel = (k) => (k && STATUS[k]?.label) || k || '—'
 const fmtSar = (n) => (n || n === 0) ? Number(n).toLocaleString('en-US') + ' ر.س' : '—'
 const fmtDate = (d) => d ? new Date(d).toLocaleDateString('ar-SA', { year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' }) : '—'
 
@@ -100,6 +101,16 @@ function DetailPanel({ id, onClose, onUpdated, showToast }) {
   const [error, setError] = useState('')
   const [notes, setNotes] = useState('')
   const [saving, setSaving] = useState(null)
+  const [history, setHistory] = useState([])
+
+  const loadHistory = useCallback(async () => {
+    try {
+      const h = await fetchJson(`/api/admin/property-leads/${id}/audit-history`, { headers: authHeader() })
+      setHistory(Array.isArray(h) ? h : [])
+    } catch {
+      setHistory([])
+    }
+  }, [id])
 
   useEffect(() => {
     let alive = true
@@ -115,8 +126,9 @@ function DetailPanel({ id, onClose, onUpdated, showToast }) {
         if (alive) setLoading(false)
       }
     })()
+    loadHistory()
     return () => { alive = false }
-  }, [id])
+  }, [id, loadHistory])
 
   const updateStatus = async (status) => {
     setSaving(status)
@@ -128,6 +140,7 @@ function DetailPanel({ id, onClose, onUpdated, showToast }) {
       })
       setLead(res.lead)
       showToast('success', 'تم تحديث حالة الطلب بنجاح')
+      loadHistory()
       onUpdated()
     } catch {
       showToast('error', 'تعذّر تحديث حالة الطلب. حاول مرة أخرى.')
@@ -250,6 +263,35 @@ function DetailPanel({ id, onClose, onUpdated, showToast }) {
               <p className="text-[11px] text-text-muted mt-3 leading-relaxed">
                 القبول المبدئي يعني الانتقال إلى الدراسة التفصيلية فقط — ولا يعني إدراج العقار أو ترميزه أو اعتماده للمستثمرين.
               </p>
+            </div>
+
+            {/* review history / audit timeline (read-only, admin-only) */}
+            <div className="rounded-2xl border border-border-soft bg-surface-card p-5">
+              <h3 className="text-sm font-bold text-brand-primary flex items-center gap-2 mb-3"><Clock size={16} className="text-brand-accent" /> سجل المراجعة</h3>
+              {history.length === 0 ? (
+                <p className="text-xs text-text-muted">لا يوجد سجل مراجعة بعد.</p>
+              ) : (
+                <ol className="space-y-3">
+                  {history.map(h => {
+                    const m = h.metadata || {}
+                    const by = h.adminEmail || (m.actor === 'owner' ? 'المالك' : (h.adminId || '—'))
+                    return (
+                      <li key={h.id} className="border-r-2 border-brand-accent/40 pr-3">
+                        <div className="text-sm font-semibold text-brand-primary">
+                          تغيّر الحالة: <span className="font-normal text-text-muted">من</span> {statusLabel(m.fromStatus)} <span className="font-normal text-text-muted">إلى</span> {statusLabel(m.toStatus)}
+                        </div>
+                        {m.note && (
+                          <div className="text-xs text-text-body mt-0.5"><span className="text-text-muted">ملاحظة:</span> {m.note}</div>
+                        )}
+                        <div className="text-[11px] text-text-muted mt-1 flex flex-wrap gap-x-4 gap-y-0.5">
+                          <span>بواسطة: {by}</span>
+                          <span>التاريخ: {fmtDate(h.createdAt)}</span>
+                        </div>
+                      </li>
+                    )
+                  })}
+                </ol>
+              )}
             </div>
           </div>
         )}
