@@ -721,3 +721,166 @@ propertyLeadAdminRouter.get('/:id/documents/url', auth(true), async (req: Reques
     return res.status(500).json({ error: 'document_url_failed', message: 'تعذّر فتح المستند. حاول مرة أخرى.' })
   }
 })
+
+// ─── Phase 5: listing draft + fee snapshot (admin finalization) ──────────────
+const FINALIZATION_EDITABLE_STATUSES = ['ACCEPTED', 'READY_FOR_FINAL_REVIEW']
+const round2 = (n: number) => Math.round(n * 100) / 100
+
+// Validate + normalize the admin-entered tokenomics/listing draft.
+function validateListingDraft(input: any):
+  | { ok: false; error: string; field?: string }
+  | { ok: true; data: any; warnings: string[] } {
+  const b = input || {}
+  const totalValue = toNum(b.totalValue)
+  const tokenPrice = toNum(b.tokenPrice)
+  const totalTokens = toNum(b.totalTokens)
+  const monthlyYield = toNum(b.monthlyYield)
+  if (totalValue === undefined || !Number.isFinite(totalValue) || totalValue <= 0) return { ok: false, error: 'invalid_total_value', field: 'totalValue' }
+  if (tokenPrice === undefined || !Number.isFinite(tokenPrice) || tokenPrice <= 0) return { ok: false, error: 'invalid_token_price', field: 'tokenPrice' }
+  if (totalTokens === undefined || !Number.isFinite(totalTokens) || totalTokens <= 0 || !Number.isInteger(totalTokens)) return { ok: false, error: 'invalid_total_tokens', field: 'totalTokens' }
+  if (monthlyYield === undefined || !Number.isFinite(monthlyYield) || monthlyYield < 0) return { ok: false, error: 'invalid_monthly_yield', field: 'monthlyYield' }
+  let remainingTokens = toNum(b.remainingTokens)
+  if (remainingTokens === undefined) remainingTokens = totalTokens
+  else if (!Number.isFinite(remainingTokens) || !Number.isInteger(remainingTokens) || remainingTokens < 0 || remainingTokens > totalTokens) return { ok: false, error: 'invalid_remaining_tokens', field: 'remainingTokens' }
+  const expectedROI = toNum(b.expectedROI)
+  if (expectedROI !== undefined && (!Number.isFinite(expectedROI) || expectedROI < 0)) return { ok: false, error: 'invalid_expected_roi', field: 'expectedROI' }
+  const notes = toStr(b.notes)
+  const warnings: string[] = []
+  // Warning only (do not block): totalValue vs tokenPrice * totalTokens.
+  if (Math.abs(totalValue - tokenPrice * totalTokens) > 0.01) warnings.push('القيمة النهائية لا تساوي سعر الحصة × عدد الحصص.')
+  return {
+    ok: true,
+    data: { totalValue, tokenPrice, totalTokens, remainingTokens, monthlyYield, expectedROI: expectedROI ?? null, notes: notes ?? null },
+    warnings,
+  }
+}
+
+// Build the fee snapshot from admin input; amounts computed server-side from
+// totalValue (fees), VAT on the fees subtotal. Flexible Json — NOT a final
+// accounting rule (source: admin_manual_phase5), admin-confirmable.
+function buildFeeSnapshot(input: any, totalValue: number, admin: { userId?: string; email?: string }):
+  | { ok: false; error: string; field?: string }
+  | { ok: true; data: any } {
+  const b = input || {}
+  const platformFeePct = toNum(b.platformFeePct)
+  const managementFeePct = toNum(b.managementFeePct)
+  const tokenizationFeePct = toNum(b.tokenizationFeePct)
+  const vatPct = toNum(b.vatPct)
+  if (platformFeePct === undefined || !Number.isFinite(platformFeePct) || platformFeePct < 0 || platformFeePct > 100) {
+    return { ok: false, error: 'invalid_fee_percentage', field: 'platformFeePct' }
+  }
+  for (const [k, v] of Object.entries({ managementFeePct, tokenizationFeePct, vatPct })) {
+    if (v !== undefined && (!Number.isFinite(v) || v < 0 || v > 100)) return { ok: false, error: 'invalid_fee_percentage', field: k }
+  }
+  const platformFeeAmount = round2(totalValue * platformFeePct / 100)
+  const managementFeeAmount = managementFeePct !== undefined ? round2(totalValue * managementFeePct / 100) : undefined
+  const tokenizationFeeAmount = tokenizationFeePct !== undefined ? round2(totalValue * tokenizationFeePct / 100) : undefined
+  const feesSubtotal = platformFeeAmount + (managementFeeAmount ?? 0) + (tokenizationFeeAmount ?? 0)
+  const vatAmount = vatPct !== undefined ? round2(feesSubtotal * vatPct / 100) : undefined
+  const totalFeesAmount = round2(feesSubtotal + (vatAmount ?? 0))
+  const notes = toStr(b.notes)
+  const data: any = {
+    currency: 'SAR',
+    basis: 'totalValue',
+    vatBasis: 'feesSubtotal',
+    platformFeePct, platformFeeAmount,
+    totalFeesAmount,
+    source: 'admin_manual_phase5',
+    enteredBy: admin.userId ?? null,
+    enteredAt: new Date().toISOString(),
+  }
+  if (managementFeePct !== undefined) { data.managementFeePct = managementFeePct; data.managementFeeAmount = managementFeeAmount }
+  if (tokenizationFeePct !== undefined) { data.tokenizationFeePct = tokenizationFeePct; data.tokenizationFeeAmount = tokenizationFeeAmount }
+  if (vatPct !== undefined) { data.vatPct = vatPct; data.vatAmount = vatAmount }
+  if (notes) data.notes = notes
+  return { ok: true, data }
+}
+
+// GET /api/admin/property-leads/:id/finalization — admin reads current listing/fee
+// data + a default platform-fee input seeded from Settings.platformFee.
+propertyLeadAdminRouter.get('/:id/finalization', auth(true), async (req: Request & { user?: any }, res: Response) => {
+  if (!requireAdmin(req, res)) return
+  try {
+    const lead = await prisma.propertyLead.findUnique({
+      where: { id: req.params.id },
+      select: { id: true, status: true, adminStatus: true, propertyName: true, requestedPrice: true, listingDraft: true, feeSnapshot: true, feesLockedAt: true },
+    })
+    if (!lead) return res.status(404).json({ error: 'property_lead_not_found' })
+    let defaultPlatformFeePct: number | null = null
+    try {
+      const s = await prisma.settings.findUnique({ where: { key: 'platformFee' } })
+      if (s?.value) { const n = parseFloat(s.value); if (Number.isFinite(n)) defaultPlatformFeePct = n }
+    } catch { /* Settings optional */ }
+    return res.json({
+      lead: { id: lead.id, status: lead.status, adminStatus: lead.adminStatus, propertyName: lead.propertyName, requestedPrice: lead.requestedPrice },
+      listingDraft: lead.listingDraft,
+      feeSnapshot: lead.feeSnapshot,
+      feesLockedAt: lead.feesLockedAt,
+      defaultFeeInputs: { currency: 'SAR', platformFeePct: defaultPlatformFeePct },
+    })
+  } catch (e: any) {
+    console.error('❌ PropertyLead finalization get error:', e?.message)
+    return res.status(500).json({ error: 'finalization_get_failed' })
+  }
+})
+
+// PATCH /api/admin/property-leads/:id/finalization — admin saves the listing draft +
+// fee snapshot; sets feesLockedAt. Allowed only for ACCEPTED / READY_FOR_FINAL_REVIEW.
+// Does NOT create a Property and does NOT change status.
+propertyLeadAdminRouter.patch('/:id/finalization', auth(true), async (req: Request & { user?: any }, res: Response) => {
+  if (!requireAdmin(req, res)) return
+  try {
+    const existing = await prisma.propertyLead.findUnique({
+      where: { id: req.params.id },
+      select: { id: true, status: true, propertyName: true, ownerId: true },
+    })
+    if (!existing) return res.status(404).json({ error: 'property_lead_not_found' })
+    if (!FINALIZATION_EDITABLE_STATUSES.includes(existing.status)) {
+      return res.status(409).json({
+        error: 'finalization_not_allowed',
+        message: 'لا يمكن تعديل بيانات الإدراج والرسوم في حالة الطلب الحالية.',
+        currentStatus: existing.status,
+      })
+    }
+    const ld = validateListingDraft(req.body?.listingDraft)
+    if (!ld.ok) return res.status(400).json({ error: ld.error, field: ld.field, message: 'بيانات الإدراج غير صحيحة. تحقق من القيم المدخلة.' })
+    const fs = buildFeeSnapshot(req.body?.feeSnapshot, ld.data.totalValue, { userId: req.user!.userId, email: req.user!.email })
+    if (!fs.ok) return res.status(400).json({ error: fs.error, field: fs.field, message: 'بيانات الرسوم غير صحيحة. تحقق من النسب المدخلة (0–100).' })
+
+    const updated = await prisma.propertyLead.update({
+      where: { id: existing.id },
+      data: {
+        listingDraft: ld.data as any,
+        feeSnapshot: fs.data as any,
+        feesLockedAt: new Date(),
+      },
+      select: { id: true, status: true, listingDraft: true, feeSnapshot: true, feesLockedAt: true },
+    })
+
+    await logAdminAction({
+      admin:      { userId: req.user!.userId, email: req.user!.email },
+      action:     AuditAction.PROPERTY_LEAD_FINALIZATION_UPDATED,
+      targetType: 'PropertyLead',
+      targetId:   existing.id,
+      metadata:   {
+        totalValue: ld.data.totalValue,
+        totalTokens: ld.data.totalTokens,
+        totalFeesAmount: (fs.data as any).totalFeesAmount,
+        note: toStr(req.body?.note) ?? null,
+        propertyName: existing.propertyName ?? null,
+      },
+      req,
+    })
+
+    return res.json({
+      success: true,
+      listingDraft: updated.listingDraft,
+      feeSnapshot: updated.feeSnapshot,
+      feesLockedAt: updated.feesLockedAt,
+      warnings: ld.warnings,
+    })
+  } catch (e: any) {
+    console.error('❌ PropertyLead finalization update error:', e?.message)
+    return res.status(500).json({ error: 'finalization_update_failed' })
+  }
+})

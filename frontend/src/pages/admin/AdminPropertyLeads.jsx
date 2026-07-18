@@ -32,6 +32,21 @@ const PROPERTY_TYPES = { land: 'أرض', apartment: 'شقة', building: 'عما�
 const CITIES = { riyadh: 'الرياض', jeddah: 'جدة', dammam: 'الدمام', khobar: 'الخبر' }
 const APPLICANT = { owner: 'مالك', developer: 'مطوّر عقاري' }
 
+// Phase 5 — listing/tokenomics + fee inputs (admin finalization form)
+const FIN_LISTING_FIELDS = [
+  { k: 'totalValue',   label: 'القيمة النهائية للعقار (ر.س)' },
+  { k: 'tokenPrice',   label: 'سعر الحصة (ر.س)' },
+  { k: 'totalTokens',  label: 'عدد الحصص' },
+  { k: 'monthlyYield', label: 'العائد الشهري المتوقع (%)' },
+  { k: 'expectedROI',  label: 'العائد السنوي المتوقع (%) — اختياري' },
+]
+const FIN_FEE_FIELDS = [
+  { k: 'platformFeePct',     label: 'نسبة رسوم المنصة (%)' },
+  { k: 'managementFeePct',   label: 'نسبة رسوم الإدارة (%) — اختياري' },
+  { k: 'tokenizationFeePct', label: 'نسبة رسوم الترميز/الإعداد (%) — اختياري' },
+  { k: 'vatPct',             label: 'ضريبة القيمة المضافة (%) — اختياري' },
+]
+
 const FILTERS = [
   { value: 'all',                    label: 'الكل' },
   { value: 'NEW',                    label: 'تم استلام الطلب' },
@@ -129,6 +144,10 @@ function DetailPanel({ id, onClose, onUpdated, showToast }) {
   const [notes, setNotes] = useState('')
   const [saving, setSaving] = useState(null)
   const [history, setHistory] = useState([])
+  const [fin, setFin] = useState(null)        // GET /finalization response
+  const [finForm, setFinForm] = useState(null) // editable inputs
+  const [finSaving, setFinSaving] = useState(false)
+  const setFinField = (k, v) => setFinForm(f => ({ ...f, [k]: v }))
 
   const loadHistory = useCallback(async () => {
     try {
@@ -136,6 +155,24 @@ function DetailPanel({ id, onClose, onUpdated, showToast }) {
       setHistory(Array.isArray(h) ? h : [])
     } catch {
       setHistory([])
+    }
+  }, [id])
+
+  const loadFinalization = useCallback(async () => {
+    try {
+      const f = await fetchJson(`/api/admin/property-leads/${id}/finalization`, { headers: authHeader() })
+      setFin(f)
+      const ld = f.listingDraft || {}
+      const fs = f.feeSnapshot || {}
+      setFinForm({
+        totalValue: ld.totalValue ?? '', tokenPrice: ld.tokenPrice ?? '', totalTokens: ld.totalTokens ?? '',
+        monthlyYield: ld.monthlyYield ?? '', expectedROI: ld.expectedROI ?? '', listingNotes: ld.notes ?? '',
+        platformFeePct: fs.platformFeePct ?? (f.defaultFeeInputs?.platformFeePct ?? ''),
+        managementFeePct: fs.managementFeePct ?? '', tokenizationFeePct: fs.tokenizationFeePct ?? '', vatPct: fs.vatPct ?? '',
+        feeNotes: fs.notes ?? '',
+      })
+    } catch {
+      setFin(null); setFinForm(null)
     }
   }, [id])
 
@@ -154,8 +191,33 @@ function DetailPanel({ id, onClose, onUpdated, showToast }) {
       }
     })()
     loadHistory()
+    loadFinalization()
     return () => { alive = false }
-  }, [id, loadHistory])
+  }, [id, loadHistory, loadFinalization])
+
+  const saveFinalization = async () => {
+    setFinSaving(true)
+    try {
+      const f = finForm
+      const num = (v) => (v === '' || v === null || v === undefined ? undefined : Number(v))
+      const res = await fetchJson(`/api/admin/property-leads/${id}/finalization`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json', ...authHeader() },
+        body: JSON.stringify({
+          listingDraft: { totalValue: num(f.totalValue), tokenPrice: num(f.tokenPrice), totalTokens: num(f.totalTokens), monthlyYield: num(f.monthlyYield), expectedROI: num(f.expectedROI), notes: f.listingNotes || undefined },
+          feeSnapshot: { platformFeePct: num(f.platformFeePct), managementFeePct: num(f.managementFeePct), tokenizationFeePct: num(f.tokenizationFeePct), vatPct: num(f.vatPct), notes: f.feeNotes || undefined },
+        }),
+      })
+      showToast('success', 'تم حفظ بيانات الإدراج والرسوم')
+      if (Array.isArray(res?.warnings) && res.warnings.length) showToast('error', res.warnings[0])
+      loadFinalization()
+      loadHistory()
+    } catch (err) {
+      showToast('error', err?.data?.message || 'تعذّر حفظ بيانات الإدراج والرسوم.')
+    } finally {
+      setFinSaving(false)
+    }
+  }
 
   const updateStatus = async (status) => {
     setSaving(status)
@@ -294,6 +356,61 @@ function DetailPanel({ id, onClose, onUpdated, showToast }) {
               {lead.reviewedAt && <span className="flex items-center gap-1"><CheckCircle2 size={12} /> روجع: {fmtDate(lead.reviewedAt)}</span>}
               {lead.reviewedBy && <span>بواسطة: {lead.reviewedBy}</span>}
             </div>
+
+            {/* Phase 5 — listing draft + fee snapshot (admin only) */}
+            {['ACCEPTED', 'READY_FOR_FINAL_REVIEW'].includes(lead.status) && finForm && (() => {
+              const tv = Number(finForm.totalValue) || 0
+              const amt = (p) => { const n = Number(p); return Number.isFinite(n) && n > 0 ? Math.round(tv * n / 100 * 100) / 100 : 0 }
+              const platformAmt = amt(finForm.platformFeePct)
+              const mgmtAmt = finForm.managementFeePct !== '' ? amt(finForm.managementFeePct) : null
+              const tokAmt = finForm.tokenizationFeePct !== '' ? amt(finForm.tokenizationFeePct) : null
+              const feesSub = platformAmt + (mgmtAmt || 0) + (tokAmt || 0)
+              const vatAmt = finForm.vatPct !== '' ? Math.round(feesSub * Number(finForm.vatPct) / 100 * 100) / 100 : null
+              const totalFees = Math.round((feesSub + (vatAmt || 0)) * 100) / 100
+              const amtByKey = { platformFeePct: platformAmt, managementFeePct: mgmtAmt, tokenizationFeePct: tokAmt, vatPct: vatAmt }
+              const mismatch = finForm.totalValue && finForm.tokenPrice && finForm.totalTokens &&
+                Math.abs(Number(finForm.totalValue) - Number(finForm.tokenPrice) * Number(finForm.totalTokens)) > 0.01
+              const inputCls = 'w-full border border-border-soft rounded-lg px-2 py-1.5 text-sm focus:ring-1 focus:ring-brand-accent focus:border-brand-accent'
+              return (
+                <div className="rounded-2xl border border-border-soft bg-surface-card p-5 space-y-4">
+                  <h3 className="text-sm font-bold text-brand-primary flex items-center gap-2"><Coins size={16} className="text-brand-accent" /> بيانات الإدراج والرسوم</h3>
+                  {fin?.feesLockedAt && <p className="text-[11px] text-green-700">تم حفظ لقطة الرسوم بتاريخ {fmtDate(fin.feesLockedAt)}.</p>}
+
+                  <div className="grid grid-cols-2 gap-3">
+                    {FIN_LISTING_FIELDS.map(f => (
+                      <label key={f.k} className="block">
+                        <span className="block text-[11px] text-text-muted mb-0.5">{f.label}</span>
+                        <input type="number" value={finForm[f.k]} onChange={e => setFinField(f.k, e.target.value)} className={inputCls} />
+                      </label>
+                    ))}
+                  </div>
+                  <input type="text" placeholder="ملاحظات الإدراج (اختياري)" value={finForm.listingNotes} onChange={e => setFinField('listingNotes', e.target.value)} className={inputCls} />
+                  {mismatch && <p className="text-[11px] text-amber-600">تنبيه: القيمة النهائية لا تساوي سعر الحصة × عدد الحصص.</p>}
+
+                  <div className="border-t border-border-soft pt-3 space-y-3">
+                    <p className="text-xs font-bold text-brand-primary">رسوم الإدراج المعتمدة لهذا العقار (لقطة الرسوم)</p>
+                    <div className="grid grid-cols-2 gap-3">
+                      {FIN_FEE_FIELDS.map(f => (
+                        <div key={f.k}>
+                          <label className="block">
+                            <span className="block text-[11px] text-text-muted mb-0.5">{f.label}</span>
+                            <input type="number" value={finForm[f.k]} onChange={e => setFinField(f.k, e.target.value)} className={inputCls} />
+                          </label>
+                          <p className="text-[10px] text-text-muted mt-0.5">المبلغ: {amtByKey[f.k] != null ? fmtSar(amtByKey[f.k]) : '—'}</p>
+                        </div>
+                      ))}
+                    </div>
+                    <p className="text-sm font-bold text-brand-primary">إجمالي الرسوم: {fmtSar(totalFees)}</p>
+                    <input type="text" placeholder="ملاحظات الرسوم (اختياري)" value={finForm.feeNotes} onChange={e => setFinField('feeNotes', e.target.value)} className={inputCls} />
+                  </div>
+
+                  <button onClick={saveFinalization} disabled={finSaving}
+                    className="inline-flex items-center gap-2 px-5 py-2.5 bg-brand-accent text-white rounded-xl text-sm font-semibold hover:bg-brand-accent/90 transition-colors disabled:opacity-60">
+                    {finSaving ? <Loader2 size={14} className="animate-spin" /> : <Coins size={14} />} حفظ بيانات الإدراج والرسوم
+                  </button>
+                </div>
+              )
+            })()}
 
             {/* actions */}
             <div className="rounded-2xl border border-border-soft bg-surface-card p-5">
