@@ -10,8 +10,10 @@ const LEAD_STATUS = {
   UNDER_REVIEW:          { label: 'قيد المراجعة',         cls: 'bg-amber-100 text-amber-700' },
   NEEDS_INFO:            { label: 'مطلوب معلومات إضافية', cls: 'bg-orange-100 text-orange-700' },
   ACCEPTED:              { label: 'قبول مبدئي',           cls: 'bg-green-100 text-green-700' },
+  READY_FOR_FINAL_REVIEW:{ label: 'قيد التجهيز للاعتماد النهائي', cls: 'bg-teal-100 text-teal-700' },
+  FINAL_APPROVED:        { label: 'اعتماد نهائي',         cls: 'bg-emerald-100 text-emerald-700' },
   REJECTED:              { label: 'مرفوض',                cls: 'bg-red-100 text-red-700' },
-  CONVERTED_TO_PROPERTY: { label: 'تم تحويله لعقار',      cls: 'bg-teal-100 text-teal-700' },
+  CONVERTED_TO_PROPERTY: { label: 'تم تحويله إلى عقار',   cls: 'bg-indigo-100 text-indigo-700' },
 }
 const LEAD_PROPERTY_TYPES = { land: 'أرض', apartment: 'شقة', building: 'عمارة', villa: 'فيلا', warehouse: 'مستودع', farm: 'مزرعة', commercial: 'تجاري', other: 'أخرى' }
 const LEAD_CITIES = { riyadh: 'الرياض', jeddah: 'جدة', dammam: 'الدمام', khobar: 'الخبر', mecca: 'مكة المكرمة', medina: 'المدينة المنورة' }

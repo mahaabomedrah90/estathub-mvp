@@ -23,7 +23,21 @@ import {
 // ============================================================================
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
-const ALLOWED_STATUS_UPDATES = ['UNDER_REVIEW', 'NEEDS_INFO', 'ACCEPTED', 'REJECTED'] as const
+// Statuses an admin may set via the generic status PATCH. CONVERTED_TO_PROPERTY is
+// intentionally excluded — conversion happens on a separate path (Phase 6, not built).
+const ADMIN_SETTABLE_STATUSES = ['UNDER_REVIEW', 'NEEDS_INFO', 'ACCEPTED', 'REJECTED', 'READY_FOR_FINAL_REVIEW', 'FINAL_APPROVED'] as const
+// Allowed admin status transitions (from -> [to]). NEEDS_INFO leaves only via the
+// owner resubmit endpoint (Phase 1). FINAL_APPROVED/REJECTED/CONVERTED are terminal.
+const ADMIN_STATUS_TRANSITIONS: Record<string, string[]> = {
+  NEW:                    ['UNDER_REVIEW'],
+  UNDER_REVIEW:           ['NEEDS_INFO', 'ACCEPTED', 'REJECTED'],
+  NEEDS_INFO:             [], // exits only via owner resubmit (NEEDS_INFO -> UNDER_REVIEW)
+  ACCEPTED:               ['READY_FOR_FINAL_REVIEW', 'REJECTED'],
+  READY_FOR_FINAL_REVIEW: ['FINAL_APPROVED', 'ACCEPTED', 'NEEDS_INFO', 'REJECTED'],
+  FINAL_APPROVED:         [],
+  REJECTED:               [],
+  CONVERTED_TO_PROPERTY:  [],
+}
 
 // Owner-facing projection — exposes review feedback (adminStatus, reviewNotes,
 // reviewedAt) so owners see the team's decision, but deliberately EXCLUDES the
@@ -583,19 +597,50 @@ propertyLeadAdminRouter.patch('/:id/status', auth(true), async (req: Request & {
   if (!requireAdmin(req, res)) return
   try {
     const { status, reviewNotes } = req.body || {}
-    if (!ALLOWED_STATUS_UPDATES.includes(status)) {
+
+    // Conversion is never performed via the generic status PATCH (separate path, Phase 6).
+    if (status === 'CONVERTED_TO_PROPERTY') {
+      return res.status(409).json({ error: 'conversion_not_allowed_here', message: 'التحويل إلى عقار يتم من خلال مسار مستقل' })
+    }
+    if (!ADMIN_SETTABLE_STATUSES.includes(status)) {
       return res.status(400).json({
         error: 'invalid_status',
-        message: `الحالة غير مسموحة. المسموح: ${ALLOWED_STATUS_UPDATES.join(', ')}`,
-        allowed: ALLOWED_STATUS_UPDATES,
+        message: `الحالة غير مسموحة. المسموح: ${ADMIN_SETTABLE_STATUSES.join(', ')}`,
+        allowed: ADMIN_SETTABLE_STATUSES,
       })
     }
 
     const existing = await prisma.propertyLead.findUnique({
       where: { id: req.params.id },
-      select: { id: true, status: true, propertyName: true, ownerId: true },
+      select: {
+        id: true, status: true, propertyName: true, ownerId: true,
+        listingDraft: true, feeSnapshot: true, feesLockedAt: true,
+      },
     })
     if (!existing) return res.status(404).json({ error: 'property_lead_not_found' })
+
+    // Enforce the allowed transition map for the lead's current status.
+    const allowedTo = ADMIN_STATUS_TRANSITIONS[existing.status] || []
+    if (!allowedTo.includes(status)) {
+      return res.status(409).json({
+        error: 'invalid_status_transition',
+        message: `لا يمكن تغيير الحالة من "${existing.status}" إلى "${status}".`,
+        from: existing.status,
+        to: status,
+        allowed: allowedTo,
+      })
+    }
+
+    // FINAL_APPROVED requires listing + fee data. Phase 5/6 not built yet, so this
+    // blocks until listingDraft + feeSnapshot + feesLockedAt are all present.
+    if (status === 'FINAL_APPROVED') {
+      if (!existing.listingDraft || !existing.feeSnapshot || !existing.feesLockedAt) {
+        return res.status(409).json({
+          error: 'final_approval_requirements_missing',
+          message: 'لا يمكن الاعتماد النهائي قبل استكمال بيانات الإدراج والرسوم',
+        })
+      }
+    }
 
     const updated = await prisma.propertyLead.update({
       where: { id: req.params.id },

@@ -14,12 +14,14 @@ import { authHeader, fetchJson } from '../../lib/api'
 const API_BASE = import.meta.env.VITE_API_BASE || ''
 
 const STATUS = {
-  NEW:                   { label: 'جديد',            cls: 'bg-blue-100 text-blue-800 border-blue-200',       dot: 'bg-blue-500' },
-  UNDER_REVIEW:          { label: 'قيد المراجعة',    cls: 'bg-amber-100 text-amber-800 border-amber-200',    dot: 'bg-amber-500' },
-  NEEDS_INFO:            { label: 'بحاجة لمعلومات',  cls: 'bg-orange-100 text-orange-800 border-orange-200', dot: 'bg-orange-500' },
-  ACCEPTED:              { label: 'مقبول مبدئيًا',   cls: 'bg-green-100 text-green-800 border-green-200',     dot: 'bg-green-500' },
-  REJECTED:              { label: 'مرفوض',           cls: 'bg-red-100 text-red-800 border-red-200',          dot: 'bg-red-500' },
-  CONVERTED_TO_PROPERTY: { label: 'مُحوّل إلى عقار', cls: 'bg-indigo-100 text-indigo-800 border-indigo-200', dot: 'bg-indigo-500' },
+  NEW:                    { label: 'تم استلام الطلب',      cls: 'bg-blue-100 text-blue-800 border-blue-200',         dot: 'bg-blue-500' },
+  UNDER_REVIEW:           { label: 'قيد الدراسة',          cls: 'bg-amber-100 text-amber-800 border-amber-200',      dot: 'bg-amber-500' },
+  NEEDS_INFO:             { label: 'مطلوب معلومات إضافية', cls: 'bg-orange-100 text-orange-800 border-orange-200',   dot: 'bg-orange-500' },
+  ACCEPTED:               { label: 'قبول مبدئي',           cls: 'bg-green-100 text-green-800 border-green-200',       dot: 'bg-green-500' },
+  READY_FOR_FINAL_REVIEW: { label: 'جاهز للاعتماد النهائي', cls: 'bg-teal-100 text-teal-800 border-teal-200',         dot: 'bg-teal-500' },
+  FINAL_APPROVED:         { label: 'اعتماد نهائي',         cls: 'bg-emerald-100 text-emerald-800 border-emerald-200', dot: 'bg-emerald-500' },
+  REJECTED:               { label: 'مرفوض',               cls: 'bg-red-100 text-red-800 border-red-200',            dot: 'bg-red-500' },
+  CONVERTED_TO_PROPERTY:  { label: 'تم تحويله إلى عقار',   cls: 'bg-indigo-100 text-indigo-800 border-indigo-200',   dot: 'bg-indigo-500' },
 }
 const REC = {
   PROCEED:               { label: 'المضي قدمًا',      cls: 'bg-green-50 text-green-700 border-green-200' },
@@ -31,21 +33,43 @@ const CITIES = { riyadh: 'الرياض', jeddah: 'جدة', dammam: 'الدمام
 const APPLICANT = { owner: 'مالك', developer: 'مطوّر عقاري' }
 
 const FILTERS = [
-  { value: 'all',          label: 'الكل' },
-  { value: 'NEW',          label: 'جديد' },
-  { value: 'UNDER_REVIEW', label: 'قيد المراجعة' },
-  { value: 'NEEDS_INFO',   label: 'بحاجة لمعلومات' },
-  { value: 'ACCEPTED',     label: 'مقبول مبدئيًا' },
-  { value: 'REJECTED',     label: 'مرفوض' },
+  { value: 'all',                    label: 'الكل' },
+  { value: 'NEW',                    label: 'تم استلام الطلب' },
+  { value: 'UNDER_REVIEW',           label: 'قيد الدراسة' },
+  { value: 'NEEDS_INFO',             label: 'مطلوب معلومات إضافية' },
+  { value: 'ACCEPTED',               label: 'قبول مبدئي' },
+  { value: 'READY_FOR_FINAL_REVIEW', label: 'جاهز للاعتماد النهائي' },
+  { value: 'FINAL_APPROVED',         label: 'اعتماد نهائي' },
+  { value: 'REJECTED',               label: 'مرفوض' },
 ]
 
 // Owner-facing meaning of each admin action (product copy)
-const ACTIONS = [
-  { status: 'UNDER_REVIEW', label: 'بدء المراجعة',       icon: ClipboardList, cls: 'bg-amber-500 hover:bg-amber-600',  hint: 'الطلب قيد المراجعة من فريق الوسم' },
-  { status: 'NEEDS_INFO',   label: 'طلب معلومات إضافية', icon: Info,          cls: 'bg-orange-500 hover:bg-orange-600', hint: 'نحتاج معلومات إضافية قبل اتخاذ القرار' },
-  { status: 'ACCEPTED',     label: 'قبول مبدئي',         icon: CheckCircle2,  cls: 'bg-green-600 hover:bg-green-700',   hint: 'تم قبول الطلب مبدئيًا للانتقال إلى الدراسة التفصيلية' },
-  { status: 'REJECTED',     label: 'رفض',                icon: XCircle,       cls: 'bg-red-600 hover:bg-red-700',       hint: 'الفرصة غير مناسبة حاليًا وفق معايير الوسم' },
-]
+// Admin actions available FROM each status (mirrors the backend transition map).
+// CONVERTED_TO_PROPERTY is never offered here — conversion is a separate path (Phase 6).
+const ADMIN_ACTIONS = {
+  NEW: [
+    { to: 'UNDER_REVIEW', label: 'بدء الدراسة', icon: ClipboardList, cls: 'bg-amber-500 hover:bg-amber-600' },
+  ],
+  UNDER_REVIEW: [
+    { to: 'NEEDS_INFO', label: 'طلب معلومات إضافية', icon: Info,         cls: 'bg-orange-500 hover:bg-orange-600' },
+    { to: 'ACCEPTED',   label: 'قبول مبدئي',         icon: CheckCircle2, cls: 'bg-green-600 hover:bg-green-700' },
+    { to: 'REJECTED',   label: 'رفض',                icon: XCircle,      cls: 'bg-red-600 hover:bg-red-700' },
+  ],
+  ACCEPTED: [
+    { to: 'READY_FOR_FINAL_REVIEW', label: 'تجهيز للاعتماد النهائي', icon: ClipboardList, cls: 'bg-teal-600 hover:bg-teal-700' },
+    { to: 'REJECTED',               label: 'رفض',                    icon: XCircle,       cls: 'bg-red-600 hover:bg-red-700' },
+  ],
+  READY_FOR_FINAL_REVIEW: [
+    { to: 'FINAL_APPROVED', label: 'اعتماد نهائي',         icon: CheckCircle2, cls: 'bg-emerald-700 hover:bg-emerald-800' },
+    { to: 'NEEDS_INFO',     label: 'طلب معلومات إضافية',   icon: Info,         cls: 'bg-orange-500 hover:bg-orange-600' },
+    { to: 'ACCEPTED',       label: 'إرجاع لقبول مبدئي',    icon: RefreshCw,    cls: 'bg-gray-500 hover:bg-gray-600' },
+    { to: 'REJECTED',       label: 'رفض',                  icon: XCircle,      cls: 'bg-red-600 hover:bg-red-700' },
+  ],
+  NEEDS_INFO: [],             // exits only via owner resubmit
+  FINAL_APPROVED: [],         // terminal
+  REJECTED: [],               // terminal
+  CONVERTED_TO_PROPERTY: [],  // terminal
+}
 
 const statusLabel = (k) => (k && STATUS[k]?.label) || k || '—'
 // A document ref may be a legacy local URL string, an S3 key string, or a { key } object.
@@ -145,8 +169,10 @@ function DetailPanel({ id, onClose, onUpdated, showToast }) {
       showToast('success', 'تم تحديث حالة الطلب بنجاح')
       loadHistory()
       onUpdated()
-    } catch {
-      showToast('error', 'تعذّر تحديث حالة الطلب. حاول مرة أخرى.')
+    } catch (err) {
+      // Surface the backend's Arabic message when present (e.g. the FINAL_APPROVED
+      // requirements guard or an invalid transition), otherwise a generic message.
+      showToast('error', err?.data?.message || 'تعذّر تحديث حالة الطلب. حاول مرة أخرى.')
     } finally {
       setSaving(null)
     }
@@ -277,18 +303,24 @@ function DetailPanel({ id, onClose, onUpdated, showToast }) {
                 placeholder="اكتب ملاحظاتك للمالك أو للأرشيف الداخلي..."
                 className="w-full border border-border-soft rounded-xl px-3 py-2 text-sm focus:ring-2 focus:ring-brand-accent focus:border-brand-accent resize-none mb-4" />
               <div className="grid grid-cols-2 gap-2">
-                {ACTIONS.map(a => {
+                {(ADMIN_ACTIONS[lead.status] || []).map(a => {
                   const Icon = a.icon
-                  const active = lead.status === a.status
                   return (
-                    <button key={a.status} onClick={() => updateStatus(a.status)} disabled={!!saving || active} title={a.hint}
+                    <button key={a.to} onClick={() => updateStatus(a.to)} disabled={!!saving}
                       className={`flex items-center justify-center gap-2 px-3 py-2.5 rounded-xl text-white text-sm font-semibold transition-colors disabled:opacity-50 disabled:cursor-not-allowed ${a.cls}`}>
-                      {saving === a.status ? <Loader2 size={14} className="animate-spin" /> : <Icon size={14} />}
-                      {active ? 'الحالة الحالية' : a.label}
+                      {saving === a.to ? <Loader2 size={14} className="animate-spin" /> : <Icon size={14} />}
+                      {a.label}
                     </button>
                   )
                 })}
               </div>
+              {(ADMIN_ACTIONS[lead.status] || []).length === 0 && (
+                <p className="text-xs text-text-muted">
+                  {lead.status === 'NEEDS_INFO'
+                    ? 'بانتظار تحديث المالك وإعادة إرسال الطلب.'
+                    : 'لا توجد إجراءات متاحة لهذه الحالة.'}
+                </p>
+              )}
               <p className="text-[11px] text-text-muted mt-3 leading-relaxed">
                 القبول المبدئي يعني الانتقال إلى الدراسة التفصيلية فقط — ولا يعني إدراج العقار أو ترميزه أو اعتماده للمستثمرين.
               </p>
