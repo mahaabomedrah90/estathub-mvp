@@ -239,6 +239,10 @@ model Property {
   isDraft                 Boolean   @default(true)
   submissionCompletedAt   DateTime?
   
+  // Finalization fee snapshot (Phase 4a) — nullable, additive; copied from the
+  // PropertyLead at conversion time so it stays immutable if global fees change.
+  feeSnapshot     Json?
+
   // Relations
   deeds           DigitalDeed[]
   documents       DeedDocument[]
@@ -630,6 +634,8 @@ enum PropertyLeadStatus {
   UNDER_REVIEW
   NEEDS_INFO
   ACCEPTED
+  READY_FOR_FINAL_REVIEW
+  FINAL_APPROVED
   REJECTED
   CONVERTED_TO_PROPERTY
 }
@@ -696,6 +702,14 @@ model PropertyLead {
   reviewedAt                     DateTime?
   reviewedBy                     String?
   reviewNotes                    String?
+
+  // Finalization (Phase 4a) — nullable, additive; no controller logic yet.
+  // feeSnapshot/listingDraft hold entered values before conversion; feesLockedAt
+  // marks the fee snapshot immutable; convertedPropertyId links the created Property.
+  convertedPropertyId            String?   @unique
+  feeSnapshot                    Json?
+  feesLockedAt                   DateTime?
+  listingDraft                   Json?
 
   @@index([tenantId])
   @@index([ownerId])
