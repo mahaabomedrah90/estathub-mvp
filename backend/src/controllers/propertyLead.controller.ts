@@ -129,14 +129,37 @@ const leadUpload = multer({
 // Collect every document reference stored on a lead (legacy URL strings AND new
 // S3-key strings/objects), so signed-URL endpoints can verify a requested key
 // actually belongs to the lead before signing it.
-function leadDocumentRefs(lead: { imageUrls?: unknown; deedImageUrl?: unknown }): string[] {
-  const refs: string[] = []
-  const imgs = Array.isArray(lead.imageUrls) ? lead.imageUrls : []
-  for (const it of imgs) {
-    if (typeof it === 'string') refs.push(it)
-    else if (it && typeof it === 'object' && typeof (it as any).key === 'string') refs.push((it as any).key)
+// Normalize raw image-refs (from a client body or a stored lead field) into
+// clean string refs — S3 keys or legacy/public URLs. Handles both the correct
+// shape (upload returns { key, fileUrl, ... } objects) and legacy string refs,
+// and drops junk: "[object Object]" (produced by earlier String(obj) mistakes),
+// empty/whitespace, null/undefined, and objects without a usable key/URL.
+// Never includes deed/document refs (those live in deedImageUrl).
+function normalizeImageRefs(input: unknown): string[] {
+  if (!Array.isArray(input)) return []
+  const out: string[] = []
+  for (const item of input) {
+    let ref: string | null = null
+    if (typeof item === 'string') {
+      ref = item.trim()
+    } else if (item && typeof item === 'object') {
+      const key = (item as any).key
+      const fileUrl = (item as any).fileUrl
+      if (typeof key === 'string' && key.trim()) {
+        ref = key.trim()
+      } else if (typeof fileUrl === 'string' && /^(https?:\/\/|\/api\/uploads\/)/.test(fileUrl.trim())) {
+        ref = fileUrl.trim()
+      }
+    }
+    if (!ref || ref === '[object Object]') continue
+    out.push(ref)
   }
-  if (typeof lead.deedImageUrl === 'string' && lead.deedImageUrl) refs.push(lead.deedImageUrl)
+  return out
+}
+
+function leadDocumentRefs(lead: { imageUrls?: unknown; deedImageUrl?: unknown }): string[] {
+  const refs = normalizeImageRefs(lead.imageUrls)
+  if (typeof lead.deedImageUrl === 'string' && lead.deedImageUrl.trim()) refs.push(lead.deedImageUrl.trim())
   return refs
 }
 
@@ -203,7 +226,9 @@ propertyLeadRouter.post('/', auth(true), async (req: Request & { user?: any }, r
       if (b.imageUrls.length > 5) {
         return res.status(400).json({ error: 'too_many_images', message: 'الحد الأقصى 5 صور.', field: 'imageUrls' })
       }
-      imageUrls = b.imageUrls.map((u: unknown) => String(u)).filter(Boolean)
+      // Store S3 keys / URLs only — extract .key from upload-result objects and
+      // drop junk like "[object Object]" (never store the stringified object).
+      imageUrls = normalizeImageRefs(b.imageUrls)
     }
 
     const landArea     = toNum(b.landArea)
@@ -466,7 +491,9 @@ propertyLeadRouter.patch('/:id/resubmit', auth(true), async (req: Request & { us
     if (b.imageUrls !== undefined && b.imageUrls !== null) {
       if (!Array.isArray(b.imageUrls)) return res.status(400).json({ error: 'invalid_images', message: 'صيغة الصور غير صحيحة.', field: 'imageUrls' })
       if (b.imageUrls.length > 5) return res.status(400).json({ error: 'too_many_images', message: 'الحد الأقصى 5 صور.', field: 'imageUrls' })
-      imageUrls = b.imageUrls.map((u: unknown) => String(u)).filter(Boolean)
+      // Store S3 keys / URLs only — extract .key from upload-result objects and
+      // drop junk like "[object Object]" (never store the stringified object).
+      imageUrls = normalizeImageRefs(b.imageUrls)
     }
     const landArea = toNum(b.landArea)
     const buildingArea = toNum(b.buildingArea)

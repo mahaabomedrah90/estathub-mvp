@@ -3,7 +3,7 @@ import { prisma } from '../lib/prisma'
 import { submitInitProperty, submitTxn, isFabricEnabled } from '../lib/fabric'
 import { uploadMultiplePropertyImages, getFileUrl, errorHandler, validateRequired, throwApiError, requireRole } from '../middleware/roles'
 import { auth } from '../middleware/auth'
-import { getSignedPropertyLeadUrl, isS3Key } from '../lib/propertyLeadS3'
+import { getSignedPropertyLeadUrl, isS3Key, isLegacyLocalUrl } from '../lib/propertyLeadS3'
 import multer from 'multer'
 import path from 'path'
 import crypto from 'crypto'
@@ -16,25 +16,30 @@ export const propertyRouter = Router()
 //   visible (allowSignedS3 = status === 'APPROVED'). For PENDING/other statuses
 //   the key is skipped entirely — never signed, never returned — so private
 //   marketing photos of non-approved properties are not exposed via the public API.
-// - Everything else (absolute http(s) URLs, legacy "/api/uploads/…") → passed
+// - Public/legacy URLs (absolute http(s), legacy "/api/uploads/…") → passed
 //   through unchanged (already public) so existing wizard-submitted images work.
+// - Junk refs — "[object Object]" (from an earlier String(obj) bug), empties,
+//   and any string that is neither an S3 key nor a URL → dropped.
 // Only marketing photos (mainImagesUrls) are ever passed here — deed/legal
 // documents are NEVER signed for public property responses.
 async function resolvePropertyImageUrls(refs: unknown, allowSignedS3: boolean): Promise<string[]> {
   if (!Array.isArray(refs)) return []
   const out: string[] = []
   for (const ref of refs) {
-    if (typeof ref !== 'string' || !ref) continue
-    if (isS3Key(ref)) {
+    if (typeof ref !== 'string') continue
+    const r = ref.trim()
+    if (!r || r === '[object Object]') continue
+    if (isS3Key(r)) {
       if (!allowSignedS3) continue
       try {
-        out.push(await getSignedPropertyLeadUrl(ref))
+        out.push(await getSignedPropertyLeadUrl(r))
       } catch {
         // Skip keys we cannot sign (e.g. bucket not configured); never leak a raw key.
       }
-    } else {
-      out.push(ref)
+    } else if (/^https?:\/\//.test(r) || isLegacyLocalUrl(r)) {
+      out.push(r)
     }
+    // else: not a key, not a URL → junk, dropped.
   }
   return out
 }
