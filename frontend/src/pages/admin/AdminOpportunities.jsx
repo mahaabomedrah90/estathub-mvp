@@ -252,7 +252,7 @@ description: p.description || t('admin.opportunities.defaults.description'),
                   </td>
                   <td className="px-6 py-4">
                     <span className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold ${getStatusBadge(property.status)}`}>
-                      {t(`admin.opportunities.status.${property.status}`)}
+                      {property.status === 'pending' ? 'بانتظار اعتماد النشر' : t(`admin.opportunities.status.${property.status}`)}
                     </span>
                   </td>
                   <td className="px-6 py-4">
@@ -339,7 +339,7 @@ description: p.description || t('admin.opportunities.defaults.description'),
   {t('admin.opportunities.fields.status')}
 </label>
                   <span className={`inline-flex items-center px-3 py-1 rounded-full text-sm font-semibold mt-1 ${getStatusBadge(selectedProperty.status)}`}>
-                    {t(`admin.opportunities.status.${selectedProperty.status}`)}
+                    {selectedProperty.status === 'pending' ? 'بانتظار اعتماد النشر' : t(`admin.opportunities.status.${selectedProperty.status}`)}
                   </span>
                 </div>
                 <div>
@@ -360,24 +360,29 @@ description: p.description || t('admin.opportunities.defaults.description'),
                 <p className="text-gray-700 mt-2 leading-relaxed">{selectedProperty.description}</p>
               </div>
 
-              {/* Actions */}
+              {/* Actions — this is publication (investor-listing) approval, NOT owner-request approval */}
               {selectedProperty.status === 'pending' && (
-                <div className="flex gap-3 pt-4">
-                  <button
-                    onClick={() => handleApprove(selectedProperty.id)}
-                    className="flex-1 flex items-center justify-center gap-2 px-6 py-3 bg-green-600 text-white rounded-xl hover:bg-green-700 transition-colors font-semibold"
-                  >
-                    <CheckCircle size={20} />
-                    {t('admin.opportunities.actions.approve')}
-                  </button>
-                  <button
-                    onClick={() => handleReject(selectedProperty.id)}
-                    className="flex-1 flex items-center justify-center gap-2 px-6 py-3 bg-red-600 text-white rounded-xl hover:bg-red-700 transition-colors font-semibold"
-                  >
-                    <X size={20} />
-                    {t('admin.opportunities.actions.reject')}
-                  </button>
-                </div>
+                <>
+                  <div className="bg-blue-50 border border-blue-200 rounded-xl p-3 text-sm text-blue-800 leading-relaxed">
+                    هذا العقار تم تحويله من طلب مالك، لكنه غير ظاهر للمستثمرين حتى اعتماد نشر الفرصة.
+                  </div>
+                  <div className="flex gap-3 pt-4">
+                    <button
+                      onClick={() => handleApprove(selectedProperty.id)}
+                      className="flex-1 flex items-center justify-center gap-2 px-6 py-3 bg-green-600 text-white rounded-xl hover:bg-green-700 transition-colors font-semibold"
+                    >
+                      <CheckCircle size={20} />
+                      اعتماد نشر الفرصة للمستثمرين
+                    </button>
+                    <button
+                      onClick={() => handleReject(selectedProperty.id)}
+                      className="flex-1 flex items-center justify-center gap-2 px-6 py-3 bg-red-600 text-white rounded-xl hover:bg-red-700 transition-colors font-semibold"
+                    >
+                      <X size={20} />
+                      رفض نشر الفرصة
+                    </button>
+                  </div>
+                </>
               )}
             </div>
           </div>

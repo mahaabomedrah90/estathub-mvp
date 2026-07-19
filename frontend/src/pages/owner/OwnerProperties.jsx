@@ -172,7 +172,7 @@ export default function OwnerProperties() {
                 <div className="absolute top-4 right-4">
                   <span className={`inline-flex items-center gap-1 px-3 py-1.5 rounded-full text-xs font-semibold backdrop-blur-sm ${getStatusBadge(property.status)}`}>
                     {getStatusIcon(property.status)}
-                    {property.status}
+                    {property.status === 'Pending' ? 'قيد تجهيز الإدراج' : property.status === 'Approved' ? 'معتمد' : property.status === 'Rejected' ? 'مرفوض' : property.status}
                   </span>
                 </div>
               </div>
@@ -247,11 +247,11 @@ export default function OwnerProperties() {
 
                 {/* Status Messages */}
                 {property.status === 'Pending' && (
-                  <div className="flex items-center gap-2 p-3 bg-yellow-50 rounded-lg">
-                    <AlertCircle size={18} className="text-yellow-600" />
+                  <div className="flex items-start gap-2 p-3 bg-yellow-50 rounded-lg">
+                    <AlertCircle size={18} className="text-yellow-600 flex-shrink-0 mt-0.5" />
                     <div className="flex-1">
-                      <p className="text-sm font-medium text-yellow-900">{t('owner.properties.statusMessages.pending.title')}</p>
-                      <p className="text-xs text-yellow-700">{t('owner.properties.statusMessages.pending.subtitle', { date: property.submittedDate })}</p>
+                      <p className="text-sm font-medium text-yellow-900">قيد تجهيز الإدراج</p>
+                      <p className="text-xs text-yellow-700">تم تحويل طلبك إلى عقار داخليًا، وسيظهر للمستثمرين بعد اعتماد النشر.</p>
                     </div>
                   </div>
                 )}
@@ -296,10 +296,10 @@ export default function OwnerProperties() {
         <div className="text-center py-16">
           <Building2 className="mx-auto text-brand-coral/30 mb-6" size={64} />
           <h3 className="text-xl font-semibold text-brand-primary mb-3">
-            لا توجد عقارات معتمدة بعد
+            لا توجد عقارات بعد
           </h3>
           <p className="text-text-muted mb-8 max-w-md mx-auto">
-            ستظهر هنا العقارات التي تم قبولها وتحويلها بعد الدراسة.
+            ستظهر هنا عقاراتك بعد تحويل طلباتك المعتمدة إلى عقارات، بما في ذلك العقارات قيد تجهيز الإدراج.
           </p>
           <button
             onClick={() => navigate('/owner/requests')}

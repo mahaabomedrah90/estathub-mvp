@@ -884,3 +884,124 @@ propertyLeadAdminRouter.patch('/:id/finalization', auth(true), async (req: Reque
     return res.status(500).json({ error: 'finalization_update_failed' })
   }
 })
+
+// POST /api/admin/property-leads/:id/convert — admin converts a FINAL_APPROVED lead
+// into an actual Property (status PENDING, isDraft=false → NOT investor-visible).
+// Idempotent (convertedPropertyId link), transactional. No minting/payment/listing.
+propertyLeadAdminRouter.post('/:id/convert', auth(true), async (req: Request & { user?: any }, res: Response) => {
+  if (!requireAdmin(req, res)) return
+  try {
+    const result = await prisma.$transaction(async (tx) => {
+      const lead = await tx.propertyLead.findUnique({
+        where: { id: req.params.id },
+        select: {
+          id: true, status: true, convertedPropertyId: true,
+          propertyName: true, shortDescription: true, propertyType: true, city: true, district: true,
+          landArea: true, buildingArea: true, buildingYear: true,
+          ownerId: true, fullName: true, phone: true, email: true, tenantId: true,
+          imageUrls: true, deedImageUrl: true,
+          listingDraft: true, feeSnapshot: true, feesLockedAt: true,
+        },
+      })
+      if (!lead) return { kind: 'not_found' as const }
+      // Idempotency: already converted → return the linked Property, never create another.
+      if (lead.convertedPropertyId) {
+        const existing = await tx.property.findUnique({ where: { id: lead.convertedPropertyId } })
+        return { kind: 'already' as const, propertyId: lead.convertedPropertyId, property: existing }
+      }
+      if (lead.status !== 'FINAL_APPROVED') return { kind: 'not_final' as const, status: lead.status }
+      if (!lead.listingDraft || !lead.feeSnapshot || !lead.feesLockedAt) return { kind: 'missing_finalization' as const }
+
+      const ld: any = lead.listingDraft
+      const tv = Number(ld?.totalValue), tp = Number(ld?.tokenPrice), tt = Number(ld?.totalTokens), my = Number(ld?.monthlyYield)
+      const rt = ld?.remainingTokens != null ? Number(ld.remainingTokens) : tt
+      const roi = ld?.expectedROI != null ? Number(ld.expectedROI) : 0
+      if (!(tv > 0) || !(tp > 0) || !Number.isInteger(tt) || !(tt > 0) || !(my >= 0) ||
+          !Number.isInteger(rt) || rt < 0 || rt > tt || !(roi >= 0)) {
+        return { kind: 'bad_tokenomics' as const }
+      }
+      if (!lead.propertyName) return { kind: 'missing_property_name' as const }
+
+      // Image references (S3 keys or legacy URLs) carried over as metadata; deed goes to deedDocumentUrl.
+      const imageRefs = leadDocumentRefs({ imageUrls: lead.imageUrls, deedImageUrl: null })
+
+      const property = await tx.property.create({
+        data: {
+          title: lead.propertyName,
+          description: lead.shortDescription ?? '',
+          propertyDescription: lead.shortDescription ?? undefined,
+          totalValue: tv, tokenPrice: tp, totalTokens: tt, remainingTokens: rt, monthlyYield: my, expectedROI: roi,
+          status: 'PENDING',   // NOT investor-visible (investors see APPROVED only)
+          isDraft: false,
+          ownerId: lead.ownerId ?? undefined,
+          ownerName: lead.fullName ?? '',
+          ownerPhone: lead.phone ?? undefined,
+          ownerEmail: lead.email ?? undefined,
+          tenantId: lead.tenantId,
+          city: lead.city ?? undefined,
+          district: lead.district ?? '',
+          propertyTypeDetailed: lead.propertyType ?? undefined,
+          landArea: lead.landArea ?? undefined,
+          builtArea: lead.buildingArea ?? undefined,
+          buildingAge: lead.buildingYear ?? undefined,
+          mainImagesUrls: imageRefs,
+          deedDocumentUrl: typeof lead.deedImageUrl === 'string' ? lead.deedImageUrl : undefined,
+          feeSnapshot: lead.feeSnapshot as any,
+        },
+      })
+
+      await tx.propertyLead.update({
+        where: { id: lead.id },
+        data: { status: 'CONVERTED_TO_PROPERTY', adminStatus: 'CONVERTED_TO_PROPERTY', convertedPropertyId: property.id },
+      })
+
+      return { kind: 'created' as const, property, fromStatus: lead.status, propertyName: lead.propertyName, totalValue: tv, totalTokens: tt, tokenPrice: tp }
+    })
+
+    if (result.kind === 'not_found') return res.status(404).json({ error: 'property_lead_not_found' })
+    if (result.kind === 'already') {
+      return res.json({ success: true, alreadyConverted: true, propertyId: result.propertyId, property: result.property, message: 'الطلب محوّل إلى عقار مسبقًا.' })
+    }
+    if (result.kind === 'not_final') {
+      return res.status(409).json({ error: 'not_final_approved', message: 'لا يمكن تحويل الطلب إلى عقار قبل الاعتماد النهائي', currentStatus: result.status })
+    }
+    if (result.kind === 'missing_finalization') {
+      return res.status(409).json({ error: 'finalization_missing', message: 'لا يمكن تحويل الطلب قبل استكمال بيانات الإدراج والرسوم' })
+    }
+    if (result.kind === 'bad_tokenomics') {
+      return res.status(400).json({ error: 'invalid_listing_tokenomics', message: 'بيانات الإدراج (الترميز) غير مكتملة أو غير صحيحة. راجع بيانات الإدراج ثم أعد المحاولة.' })
+    }
+    if (result.kind === 'missing_property_name') {
+      return res.status(400).json({ error: 'missing_property_name', message: 'اسم العقار مطلوب للتحويل.' })
+    }
+
+    // created
+    await logAdminAction({
+      admin:      { userId: req.user!.userId, email: req.user!.email },
+      action:     AuditAction.PROPERTY_LEAD_CONVERTED_TO_PROPERTY,
+      targetType: 'PropertyLead',
+      targetId:   req.params.id,
+      metadata:   {
+        leadId: req.params.id,
+        propertyId: result.property.id,
+        fromStatus: result.fromStatus,
+        toStatus: 'CONVERTED_TO_PROPERTY',
+        propertyName: result.propertyName,
+        totalValue: result.totalValue,
+        totalTokens: result.totalTokens,
+        tokenPrice: result.tokenPrice,
+      },
+      req,
+    })
+
+    return res.status(201).json({
+      success: true,
+      propertyId: result.property.id,
+      property: { id: result.property.id, title: result.property.title, status: result.property.status, isDraft: result.property.isDraft },
+      message: 'تم تحويل الطلب إلى عقار',
+    })
+  } catch (e: any) {
+    console.error('❌ PropertyLead convert error:', e?.message)
+    return res.status(500).json({ error: 'property_lead_convert_failed', message: 'تعذّر تحويل الطلب إلى عقار. حاول مرة أخرى.' })
+  }
+})

@@ -147,6 +147,7 @@ function DetailPanel({ id, onClose, onUpdated, showToast }) {
   const [fin, setFin] = useState(null)        // GET /finalization response
   const [finForm, setFinForm] = useState(null) // editable inputs
   const [finSaving, setFinSaving] = useState(false)
+  const [converting, setConverting] = useState(false)
   const setFinField = (k, v) => setFinForm(f => ({ ...f, [k]: v }))
 
   const loadHistory = useCallback(async () => {
@@ -216,6 +217,28 @@ function DetailPanel({ id, onClose, onUpdated, showToast }) {
       showToast('error', err?.data?.message || 'تعذّر حفظ بيانات الإدراج والرسوم.')
     } finally {
       setFinSaving(false)
+    }
+  }
+
+  // Phase 6 — convert a FINAL_APPROVED lead into an actual Property (admin only).
+  const convertLead = async () => {
+    setConverting(true)
+    try {
+      const res = await fetchJson(`/api/admin/property-leads/${id}/convert`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', ...authHeader() },
+      })
+      showToast('success', res?.message || 'تم تحويل الطلب إلى عقار')
+      try {
+        const data = await fetchJson(`/api/admin/property-leads/${id}`, { headers: authHeader() })
+        setLead(data)
+      } catch { /* keep current lead */ }
+      loadHistory()
+      onUpdated()
+    } catch (err) {
+      showToast('error', err?.data?.message || 'تعذّر تحويل الطلب إلى عقار.')
+    } finally {
+      setConverting(false)
     }
   }
 
@@ -431,12 +454,21 @@ function DetailPanel({ id, onClose, onUpdated, showToast }) {
                   )
                 })}
               </div>
-              {(ADMIN_ACTIONS[lead.status] || []).length === 0 && (
+              {(ADMIN_ACTIONS[lead.status] || []).length === 0 && lead.status !== 'FINAL_APPROVED' && (
                 <p className="text-xs text-text-muted">
                   {lead.status === 'NEEDS_INFO'
                     ? 'بانتظار تحديث المالك وإعادة إرسال الطلب.'
                     : 'لا توجد إجراءات متاحة لهذه الحالة.'}
                 </p>
+              )}
+              {lead.status === 'FINAL_APPROVED' && (
+                <div className="mt-1">
+                  <button onClick={convertLead} disabled={converting}
+                    className="w-full inline-flex items-center justify-center gap-2 px-4 py-2.5 bg-indigo-600 text-white rounded-xl text-sm font-semibold hover:bg-indigo-700 transition-colors disabled:opacity-60">
+                    {converting ? <Loader2 size={14} className="animate-spin" /> : <Building2 size={14} />} تحويل إلى عقار
+                  </button>
+                  <p className="text-[11px] text-text-muted mt-2">يُنشئ عقارًا بحالة مبدئية غير مرئية للمستثمرين حتى اعتماد الإدراج لاحقًا.</p>
+                </div>
               )}
               <p className="text-[11px] text-text-muted mt-3 leading-relaxed">
                 القبول المبدئي يعني الانتقال إلى الدراسة التفصيلية فقط — ولا يعني إدراج العقار أو ترميزه أو اعتماده للمستثمرين.
