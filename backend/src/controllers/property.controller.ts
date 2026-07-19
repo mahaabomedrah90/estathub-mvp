@@ -3,11 +3,41 @@ import { prisma } from '../lib/prisma'
 import { submitInitProperty, submitTxn, isFabricEnabled } from '../lib/fabric'
 import { uploadMultiplePropertyImages, getFileUrl, errorHandler, validateRequired, throwApiError, requireRole } from '../middleware/roles'
 import { auth } from '../middleware/auth'
+import { getSignedPropertyLeadUrl, isS3Key } from '../lib/propertyLeadS3'
 import multer from 'multer'
 import path from 'path'
 import crypto from 'crypto'
 
 export const propertyRouter = Router()
+
+// Resolve stored property image refs to browser-usable URLs for PUBLIC responses.
+// - Private S3 keys ("property-leads/…", produced by converting a PropertyLead)
+//   → short-lived pre-signed GET URLs, but ONLY when the property is publicly
+//   visible (allowSignedS3 = status === 'APPROVED'). For PENDING/other statuses
+//   the key is skipped entirely — never signed, never returned — so private
+//   marketing photos of non-approved properties are not exposed via the public API.
+// - Everything else (absolute http(s) URLs, legacy "/api/uploads/…") → passed
+//   through unchanged (already public) so existing wizard-submitted images work.
+// Only marketing photos (mainImagesUrls) are ever passed here — deed/legal
+// documents are NEVER signed for public property responses.
+async function resolvePropertyImageUrls(refs: unknown, allowSignedS3: boolean): Promise<string[]> {
+  if (!Array.isArray(refs)) return []
+  const out: string[] = []
+  for (const ref of refs) {
+    if (typeof ref !== 'string' || !ref) continue
+    if (isS3Key(ref)) {
+      if (!allowSignedS3) continue
+      try {
+        out.push(await getSignedPropertyLeadUrl(ref))
+      } catch {
+        // Skip keys we cannot sign (e.g. bucket not configured); never leak a raw key.
+      }
+    } else {
+      out.push(ref)
+    }
+  }
+  return out
+}
 
 // ============================================================================
 // FILE UPLOAD CONFIGURATION
@@ -67,15 +97,17 @@ propertyRouter.get('/', async (req: Request, res: Response) => {
         ])
       : [0, await prisma.property.findMany({ where, orderBy: { id: 'desc' } })]
     
-    const mapped = list.map((p: any) => ({
+    const mapped = await Promise.all(list.map(async (p: any) => {
+      const resolvedMainImages = await resolvePropertyImageUrls(p.mainImagesUrls, p.status === 'APPROVED')
+      return {
       // Basic fields
       id: p.id,
       name: p.title,
       title: p.title,
       location: p.location,
       description: p.description,
-      imageUrl: p.imageUrl,
-      images: p.images || [],
+      imageUrl: p.imageUrl || resolvedMainImages[0] || null,
+      images: (Array.isArray(p.images) && p.images.length) ? p.images : resolvedMainImages,
       totalValue: p.totalValue,
       tokenPrice: p.tokenPrice,
       totalTokens: p.totalTokens,
@@ -116,7 +148,7 @@ propertyRouter.get('/', async (req: Request, res: Response) => {
       district: p.district,
       municipality: p.municipality,
       propertyDescription: p.propertyDescription,
-      mainImagesUrls: p.mainImagesUrls || [],
+      mainImagesUrls: resolvedMainImages,
       
       // Step 3: Financial & Tokenization
       marketValue: p.marketValue,
@@ -137,6 +169,7 @@ propertyRouter.get('/', async (req: Request, res: Response) => {
       // Metadata
       isDraft: p.isDraft,
       submissionCompletedAt: p.submissionCompletedAt
+      }
     }))
 
     if (hasPagination) {
@@ -170,7 +203,13 @@ propertyRouter.get('/:id', async (req: Request, res: Response) => {
     if (!property) {
       return res.status(404).json({ error: 'property_not_found' })
     }
-    
+
+    // Converted-lead properties store their marketing photos as private S3 keys
+    // in mainImagesUrls; resolve them to signed URLs (APPROVED only) and derive a
+    // hero imageUrl when the (legacy) single imageUrl field is empty. Private keys
+    // are never signed for non-APPROVED (e.g. PENDING) properties.
+    const resolvedMainImages = await resolvePropertyImageUrls(property.mainImagesUrls, property.status === 'APPROVED')
+
     // Map to frontend format with ALL fields
     const mapped = {
       // Basic fields
@@ -179,8 +218,8 @@ propertyRouter.get('/:id', async (req: Request, res: Response) => {
       title: property.title,
       location: property.location,
       description: property.description,
-      imageUrl: property.imageUrl,
-      images: property.images || [],
+      imageUrl: property.imageUrl || resolvedMainImages[0] || null,
+      images: (Array.isArray(property.images) && property.images.length) ? property.images : resolvedMainImages,
       totalValue: property.totalValue,
       tokenPrice: property.tokenPrice,
       totalTokens: property.totalTokens,
@@ -221,7 +260,7 @@ propertyRouter.get('/:id', async (req: Request, res: Response) => {
       district: property.district,
       municipality: property.municipality,
       propertyDescription: property.propertyDescription,
-      mainImagesUrls: property.mainImagesUrls || [],
+      mainImagesUrls: resolvedMainImages,
       
       // Step 3: Financial & Tokenization
       marketValue: property.marketValue,

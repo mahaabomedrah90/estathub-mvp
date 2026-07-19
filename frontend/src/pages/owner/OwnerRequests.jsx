@@ -46,6 +46,12 @@ export default function OwnerRequests() {
     }
   }
 
+  // Once a lead is converted to a Property it should leave the active "طلباتي"
+  // list (the owner follows it from "عقاراتي"); we still show it in a small
+  // completed section for history — records are never deleted.
+  const activeLeads = leads.filter((l) => leadStatusOf(l) !== 'CONVERTED_TO_PROPERTY')
+  const convertedLeads = leads.filter((l) => leadStatusOf(l) === 'CONVERTED_TO_PROPERTY')
+
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -90,8 +96,14 @@ export default function OwnerRequests() {
           </button>
         </div>
       ) : (
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-          {leads.map((lead) => {
+        <>
+          {activeLeads.length === 0 ? (
+            <div className="text-center py-10 bg-surface-muted rounded-2xl border border-border-soft">
+              <p className="text-text-muted">لا توجد طلبات قيد المتابعة حالياً.</p>
+            </div>
+          ) : (
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+          {activeLeads.map((lead) => {
             const statusKey = leadStatusOf(lead)
             const st = LEAD_STATUS[statusKey] || LEAD_STATUS.NEW
             const place = [leadCity(lead.city), lead.district].filter(Boolean).join(' - ')
@@ -161,7 +173,50 @@ export default function OwnerRequests() {
               </div>
             )
           })}
-        </div>
+          </div>
+          )}
+
+          {convertedLeads.length > 0 && (
+            <div className="mt-8 space-y-4">
+              <div>
+                <h2 className="text-lg font-bold text-brand-primary">طلبات تم تحويلها إلى عقارات</h2>
+                <p className="text-sm text-text-muted mt-1">
+                  تم تحويل هذه الطلبات إلى عقارات ويمكنك متابعتها من صفحة عقاراتي.
+                </p>
+              </div>
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+                {convertedLeads.map((lead) => {
+                  const place = [leadCity(lead.city), lead.district].filter(Boolean).join(' - ')
+                  return (
+                    <div key={lead.id} className="bg-white border border-border-soft rounded-2xl shadow-card p-5 opacity-90">
+                      <div className="flex items-start justify-between gap-3">
+                        <div>
+                          <h3 className="text-lg font-bold text-brand-primary">{lead.propertyName || '—'}</h3>
+                          <p className="text-sm text-text-muted mt-0.5 flex items-center gap-1 flex-wrap">
+                            {leadType(lead.propertyType) && <span>{leadType(lead.propertyType)}</span>}
+                            {leadType(lead.propertyType) && place && <span>•</span>}
+                            {place && (
+                              <span className="inline-flex items-center gap-1"><MapPin size={13} />{place}</span>
+                            )}
+                          </p>
+                        </div>
+                        <span className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold whitespace-nowrap ${LEAD_STATUS.CONVERTED_TO_PROPERTY.cls}`}>
+                          {LEAD_STATUS.CONVERTED_TO_PROPERTY.label}
+                        </span>
+                      </div>
+                    </div>
+                  )
+                })}
+              </div>
+              <button
+                onClick={() => navigate('/owner/properties')}
+                className="inline-flex items-center gap-2 px-6 py-3 bg-brand-primary text-white rounded-xl font-semibold hover:bg-brand-primary/90 transition-colors"
+              >
+                عرض عقاراتي
+              </button>
+            </div>
+          )}
+        </>
       )}
     </div>
   )

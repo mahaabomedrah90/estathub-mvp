@@ -195,6 +195,8 @@ export default function OwnerDashboard() {
   ]
 
   const needsInfoLeads = leads.filter(l => leadStatusOf(l) === 'NEEDS_INFO')
+  // Converted leads move to "عقاراتي" — exclude them from the active requests summary.
+  const activeLeads = leads.filter(l => leadStatusOf(l) !== 'CONVERTED_TO_PROPERTY')
 
   return (
     <div className="space-y-6">
@@ -239,7 +241,7 @@ export default function OwnerDashboard() {
       )}
 
       {/* Preliminary opportunity submissions (PropertyLead) — not approved properties */}
-      {leads.length > 0 && (
+      {activeLeads.length > 0 && (
         <div className="bg-surface-card rounded-2xl p-6 border border-border-soft shadow-card">
           <div className="flex items-center justify-between mb-4">
             <div className="flex items-center gap-2">
@@ -257,7 +259,7 @@ export default function OwnerDashboard() {
           <div className="flex flex-wrap gap-3 mb-5">
             <div className="px-4 py-3 rounded-xl bg-surface-muted border border-border-soft">
               <p className="text-xs text-text-muted">إجمالي الطلبات المبدئية</p>
-              <p className="text-2xl font-bold text-brand-primary">{leads.length}</p>
+              <p className="text-2xl font-bold text-brand-primary">{activeLeads.length}</p>
             </div>
             <div className="px-4 py-3 rounded-xl bg-orange-50 border border-orange-200">
               <p className="text-xs text-orange-700">تحتاج معلومات إضافية</p>
@@ -266,7 +268,7 @@ export default function OwnerDashboard() {
           </div>
 
           <div className="space-y-3">
-            {leads.slice(0, 3).map((lead) => {
+            {activeLeads.slice(0, 3).map((lead) => {
               const st = LEAD_STATUS[leadStatusOf(lead)] || LEAD_STATUS.NEW
               return (
                 <div key={lead.id} className="flex items-center justify-between gap-3 p-3 bg-surface-muted rounded-xl">
