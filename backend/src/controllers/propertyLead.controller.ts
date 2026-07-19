@@ -460,13 +460,20 @@ propertyLeadRouter.patch('/:id/resubmit', auth(true), async (req: Request & { us
       select: { id: true, status: true },
     })
     if (!existing) return res.status(404).json({ error: 'property_lead_not_found' })
-    if (existing.status !== 'NEEDS_INFO') {
+    // Owner may update via this endpoint when the lead is NEEDS_INFO (respond to an
+    // info request) or READY_FOR_FINAL_REVIEW (supplement info during final review).
+    const OWNER_EDITABLE_STATUSES = ['NEEDS_INFO', 'READY_FOR_FINAL_REVIEW']
+    if (!OWNER_EDITABLE_STATUSES.includes(existing.status)) {
       return res.status(409).json({
         error: 'lead_not_editable',
-        message: 'لا يمكن تعديل هذا الطلب في حالته الحالية. التعديل متاح فقط عندما يطلب فريق الوسم معلومات إضافية.',
+        message: 'لا يمكن تعديل هذا الطلب في حالته الحالية.',
         currentStatus: existing.status,
       })
     }
+    // READY_FOR_FINAL_REVIEW supplement stays put (never moves the lead backward and
+    // never touches finalization). NEEDS_INFO resubmit returns to the review queue.
+    const isFinalReviewSupplement = existing.status === 'READY_FOR_FINAL_REVIEW'
+    const nextStatus = isFinalReviewSupplement ? 'READY_FOR_FINAL_REVIEW' : 'UNDER_REVIEW'
 
     const b = req.body || {}
 
@@ -562,24 +569,24 @@ propertyLeadRouter.patch('/:id/resubmit', auth(true), async (req: Request & { us
         qualificationScore: scores.qualificationScore,
         tokenizationSuitabilityScore: scores.tokenizationSuitabilityScore,
         internalRecommendation: scores.internalRecommendation,
-        // Back into the review queue (kept in sync, mirrors create + admin status PATCH).
-        status: 'UNDER_REVIEW',
-        adminStatus: 'UNDER_REVIEW',
+        // NEEDS_INFO → UNDER_REVIEW (back to queue); READY_FOR_FINAL_REVIEW → unchanged.
+        // listingDraft / feeSnapshot / feesLockedAt intentionally NOT touched.
+        status: nextStatus,
+        adminStatus: nextStatus,
         // reviewNotes / reviewedBy / reviewedAt intentionally NOT touched (preserve admin context).
         // ownerId / tenantId never change. updatedAt auto-updates via @updatedAt.
       },
       select: { id: true, status: true, updatedAt: true },
     })
 
-    // Record the owner resubmit in the shared audit trail so the admin review
-    // timeline is complete (NEEDS_INFO → UNDER_REVIEW). adminId is null (owner actor).
-    // Safe: logAdminAction never throws.
+    // Record the owner action in the shared audit trail so the admin review timeline
+    // is complete. adminId is null (owner actor). Safe: logAdminAction never throws.
     await logAdminAction({
       admin:      null,
-      action:     AuditAction.PROPERTY_LEAD_RESUBMITTED,
+      action:     isFinalReviewSupplement ? AuditAction.PROPERTY_LEAD_OWNER_SUPPLEMENTED : AuditAction.PROPERTY_LEAD_RESUBMITTED,
       targetType: 'PropertyLead',
       targetId:   existing.id,
-      metadata:   { fromStatus: 'NEEDS_INFO', toStatus: 'UNDER_REVIEW', actor: 'owner', ownerId: req.user!.userId, ...(ownerResponseNote ? { ownerResponseNote } : {}) },
+      metadata:   { fromStatus: existing.status, toStatus: nextStatus, actor: 'owner', ownerId: req.user!.userId, ...(ownerResponseNote ? { ownerResponseNote } : {}) },
       req,
     })
 
@@ -588,7 +595,7 @@ propertyLeadRouter.patch('/:id/resubmit', auth(true), async (req: Request & { us
       id: updated.id,
       status: updated.status,
       updatedAt: updated.updatedAt,
-      message: 'تم إعادة إرسال الطلب للمراجعة',
+      message: isFinalReviewSupplement ? 'تم إرسال معلومات الاعتماد النهائي' : 'تم إعادة إرسال الطلب للمراجعة',
     })
   } catch (e: any) {
     console.error('❌ PropertyLead resubmit error:', e)

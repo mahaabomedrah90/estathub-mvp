@@ -60,6 +60,7 @@ export default function AdminOpportunities() {
   ]) */
 
   const [selectedProperty, setSelectedProperty] = useState(null)
+  const [publishSuccess, setPublishSuccess] = useState(null) // { id, title } after publication approval
 
   useEffect(() => {
     loadProperties()
@@ -108,11 +109,15 @@ description: p.description || t('admin.opportunities.defaults.description'),
         method: 'PUT',
         headers: { 'Content-Type': 'application/json', ...authHeader() },
       })
+      const approvedProp = (selectedProperty && selectedProperty.id === id)
+        ? selectedProperty
+        : properties.find(p => p.id === id)
       setProperties(properties.map(p =>
         p.id === id ? { ...p, status: 'approved' } : p
       ))
       setSelectedProperty(null)
-      alert(t('admin.opportunities.messages.approveSuccess'))
+      // Branded success modal instead of a native alert.
+      setPublishSuccess({ id, title: approvedProp?.name || approvedProp?.title || '' })
       loadProperties()
     } catch (error) {
       console.error('Approve error:', error)
@@ -384,6 +389,38 @@ description: p.description || t('admin.opportunities.defaults.description'),
                   </div>
                 </>
               )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Branded publication-approval success modal (replaces native alert) */}
+      {publishSuccess && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4" dir="rtl">
+          <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full p-6 text-center">
+            <div className="mx-auto w-16 h-16 rounded-full bg-green-100 flex items-center justify-center mb-4">
+              <CheckCircle size={36} className="text-green-600" />
+            </div>
+            <h3 className="text-xl font-bold text-brand-primary mb-2">تم اعتماد نشر الفرصة بنجاح</h3>
+            <p className="text-sm text-text-muted leading-relaxed mb-3">
+              أصبحت الفرصة العقارية الآن منشورة ومتاحة للمستثمرين على منصة الوسم. يمكنك متابعة حالة العقار وإدارته من لوحة التحكم.
+            </p>
+            <p className="text-xs text-brand-accent bg-brand-accent/5 border border-brand-accent/20 rounded-lg p-2 mb-5">
+              سيظهر العقار الآن ضمن الفرص الاستثمارية المتاحة للمستثمرين.
+            </p>
+            <div className="flex items-center gap-3">
+              <button
+                onClick={() => { const pid = publishSuccess.id; setPublishSuccess(null); navigate(`/properties/${pid}`) }}
+                className="flex-1 inline-flex items-center justify-center gap-2 px-5 py-3 bg-brand-accent text-white rounded-xl font-semibold hover:bg-brand-accent/90 transition-colors"
+              >
+                <Eye size={18} /> عرض الفرصة
+              </button>
+              <button
+                onClick={() => setPublishSuccess(null)}
+                className="px-5 py-3 text-text-muted font-medium rounded-xl hover:bg-surface-muted transition-colors"
+              >
+                إغلاق
+              </button>
             </div>
           </div>
         </div>

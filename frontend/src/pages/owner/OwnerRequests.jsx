@@ -156,8 +156,28 @@ export default function OwnerRequests() {
                   </div>
                 )}
 
-                {/* Review notes for non-NEEDS_INFO statuses */}
-                {statusKey !== 'NEEDS_INFO' && lead.reviewNotes && (
+                {/* READY_FOR_FINAL_REVIEW — owner may supplement info/documents during final review */}
+                {statusKey === 'READY_FOR_FINAL_REVIEW' && (
+                  <div className="bg-teal-50 border border-teal-200 rounded-lg p-3 space-y-2">
+                    <div className="flex items-center gap-2">
+                      <AlertCircle size={16} className="text-teal-600 flex-shrink-0" />
+                      <p className="text-sm font-bold text-teal-800">قيد التجهيز للاعتماد النهائي</p>
+                    </div>
+                    {lead.reviewNotes && (
+                      <p className="text-xs text-teal-800 leading-relaxed pr-6">{lead.reviewNotes}</p>
+                    )}
+                    <button
+                      onClick={() => navigate(`/owner/requests/${lead.id}/edit`)}
+                      className="mt-1 inline-flex items-center gap-2 px-4 py-2 bg-teal-600 text-white rounded-lg text-sm font-semibold hover:bg-teal-700 transition-colors"
+                    >
+                      <Pencil size={15} />
+                      إضافة معلومات للاعتماد النهائي
+                    </button>
+                  </div>
+                )}
+
+                {/* Review notes for other statuses (NEEDS_INFO & READY_FOR_FINAL_REVIEW handle their own) */}
+                {statusKey !== 'NEEDS_INFO' && statusKey !== 'READY_FOR_FINAL_REVIEW' && lead.reviewNotes && (
                   <div className="flex items-start gap-2 p-3 bg-amber-50 rounded-lg">
                     <AlertCircle size={16} className="text-amber-600 flex-shrink-0 mt-0.5" />
                     <p className="text-xs text-amber-800">{lead.reviewNotes}</p>

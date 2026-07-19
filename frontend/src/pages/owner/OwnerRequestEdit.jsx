@@ -46,8 +46,9 @@ async function uploadOne(file) {
 const isLegacyRef = (ref) => typeof ref === 'string' && ref.startsWith('/api/uploads')
 const refToKey = (ref) => (typeof ref === 'string' ? ref : (ref && ref.key) || '')
 
-// Owner may only edit/resubmit a lead that is currently NEEDS_INFO.
-const EDITABLE_STATUS = 'NEEDS_INFO'
+// Owner may edit/resubmit a lead that is NEEDS_INFO (respond to an info request) or
+// READY_FOR_FINAL_REVIEW (supplement info/documents during final-review preparation).
+const EDITABLE_STATUSES = ['NEEDS_INFO', 'READY_FOR_FINAL_REVIEW']
 
 export default function OwnerRequestEdit() {
   const navigate = useNavigate()
@@ -167,7 +168,7 @@ export default function OwnerRequestEdit() {
           ownerResponseNote: ownerResponseNote.trim() || undefined,
         }),
       })
-      navigate('/owner/requests', { state: { message: 'تم إعادة إرسال الطلب للمراجعة' } })
+      navigate('/owner/requests', { state: { message: isFinalReview ? 'تم إرسال معلومات الاعتماد النهائي' : 'تم إعادة إرسال الطلب للمراجعة' } })
     } catch (err) {
       setSubmitError(err?.message || 'تعذّر إعادة إرسال الطلب. حاول مرة أخرى.')
       setSubmitting(false)
@@ -188,16 +189,15 @@ export default function OwnerRequestEdit() {
     )
   }
 
-  // Guard: only NEEDS_INFO leads are editable.
+  // Guard: only NEEDS_INFO or READY_FOR_FINAL_REVIEW leads are editable.
   const statusKey = lead?.adminStatus || lead?.status
-  if (statusKey !== EDITABLE_STATUS) {
+  const isFinalReview = statusKey === 'READY_FOR_FINAL_REVIEW'
+  if (!EDITABLE_STATUSES.includes(statusKey)) {
     return (
       <div className="space-y-4 max-w-xl">
         <div className="bg-amber-50 border border-amber-200 rounded-xl p-5">
           <p className="font-bold text-amber-800 mb-1">لا يمكن تعديل هذا الطلب حالياً</p>
-          <p className="text-sm text-amber-700">
-            التعديل متاح فقط عندما يطلب فريق الوسم معلومات إضافية. الطلب حالياً قيد الدراسة أو تمّت معالجته.
-          </p>
+          <p className="text-sm text-amber-700">لا يمكن تعديل هذا الطلب في حالته الحالية.</p>
         </div>
         <button onClick={() => navigate('/owner/requests')} className="inline-flex items-center gap-2 text-brand-accent font-semibold">
           <ArrowRight size={16} /> العودة إلى طلباتي
@@ -219,20 +219,28 @@ export default function OwnerRequestEdit() {
     <form onSubmit={onSubmit} className="space-y-6 max-w-3xl">
       {/* Header */}
       <div>
-        <h1 className="text-2xl font-bold text-brand-primary">تحديث طلب التقديم</h1>
-        <p className="text-text-muted mt-1">عدّل البيانات المطلوبة وأعد إرسال الطلب لفريق الوسم.</p>
-      </div>
-
-      {/* Admin note */}
-      <div className="bg-orange-50 border border-orange-200 rounded-xl p-4">
-        <div className="flex items-center gap-2 mb-1">
-          <AlertCircle size={18} className="text-orange-600" />
-          <p className="font-bold text-orange-800">ملاحظات فريق الوسم</p>
-        </div>
-        <p className="text-sm text-orange-800 whitespace-pre-line">
-          {lead.reviewNotes || 'طُلبت معلومات إضافية. يرجى مراجعة بيانات الطلب واستكمال ما ينقص ثم إعادة الإرسال.'}
+        <h1 className="text-2xl font-bold text-brand-primary">
+          {isFinalReview ? 'إضافة معلومات للاعتماد النهائي' : 'تحديث الطلب'}
+        </h1>
+        <p className="text-text-muted mt-1">
+          {isFinalReview
+            ? 'يمكنك إضافة التوضيحات أو المستندات المطلوبة أثناء دراسة الفرصة للاعتماد النهائي.'
+            : 'عدّل البيانات المطلوبة وأعد إرسال الطلب لفريق الوسم.'}
         </p>
       </div>
+
+      {/* Admin note (shown when there is a note, or always for the NEEDS_INFO flow) */}
+      {(lead.reviewNotes || !isFinalReview) && (
+        <div className="bg-orange-50 border border-orange-200 rounded-xl p-4">
+          <div className="flex items-center gap-2 mb-1">
+            <AlertCircle size={18} className="text-orange-600" />
+            <p className="font-bold text-orange-800">ملاحظات فريق الوسم</p>
+          </div>
+          <p className="text-sm text-orange-800 whitespace-pre-line">
+            {lead.reviewNotes || 'طُلبت معلومات إضافية. يرجى مراجعة بيانات الطلب واستكمال ما ينقص ثم إعادة الإرسال.'}
+          </p>
+        </div>
+      )}
 
       {/* Owner response to the admin note */}
       <div className="bg-white border border-border-soft rounded-2xl shadow-card p-5 space-y-2">
@@ -386,7 +394,8 @@ export default function OwnerRequestEdit() {
       <div className="flex items-center gap-3">
         <button type="submit" disabled={submitting || uploading}
           className="inline-flex items-center gap-2 px-7 py-3 bg-brand-accent text-white rounded-xl font-semibold hover:bg-brand-accent/90 transition-all disabled:opacity-60">
-          {submitting ? <Loader2 size={18} className="animate-spin" /> : <Send size={18} />} إرسال الرد والتحديث
+          {submitting ? <Loader2 size={18} className="animate-spin" /> : <Send size={18} />}
+          {isFinalReview ? 'إرسال معلومات الاعتماد النهائي' : 'إرسال الرد والتحديث'}
         </button>
         <button type="button" onClick={() => navigate('/owner/requests')} className="px-5 py-3 text-text-muted font-medium">إلغاء</button>
       </div>

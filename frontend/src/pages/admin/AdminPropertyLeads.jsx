@@ -500,7 +500,9 @@ function DetailPanel({ id, onClose, onUpdated, showToast }) {
                         )}
                         {m.ownerResponseNote && (
                           <div className="text-xs text-text-body mt-1 bg-orange-50 border border-orange-200 rounded-lg p-2 whitespace-pre-line">
-                            <span className="font-semibold text-orange-800">رد المالك:</span> {m.ownerResponseNote}
+                            <span className="font-semibold text-orange-800">
+                              {h.action === 'PROPERTY_LEAD_OWNER_SUPPLEMENTED' ? 'إضافة من المالك:' : 'رد المالك:'}
+                            </span> {m.ownerResponseNote}
                           </div>
                         )}
                         <div className="text-[11px] text-text-muted mt-1 flex flex-wrap gap-x-4 gap-y-0.5">
