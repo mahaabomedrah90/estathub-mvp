@@ -51,6 +51,7 @@ async function buildPnL(opts: {
 }) {
   const { from, to, propertyId, revenueType, expenseCategory } = opts
 
+  // Current fee rate — kept for display only; revenue uses recorded PlatformRevenue entries
   const feeRate = await getPlatformFeeRate()
 
   const dateFilter = {
@@ -58,7 +59,7 @@ async function buildPnL(opts: {
     ...(to && { lte: endOfDay(to) }),
   }
 
-  // ── 1. Orders → derived investment fee revenue ─────────────────────────────
+  // ── 1. Orders — kept for investor/property counts only ─────────────────────
   const orders = await prisma.order.findMany({
     where: {
       status: { in: ['PAID', 'ISSUED'] },
@@ -72,31 +73,30 @@ async function buildPnL(opts: {
     orderBy: { createdAt: 'asc' },
   })
 
-  const derivedInvestmentFees = orders.reduce((s, o) => s + o.amount * (feeRate / 100), 0)
-
-  // ── 2. Manual revenue entries ──────────────────────────────────────────────
-  const manualRevWhere: any = {}
-  if (from || to) manualRevWhere.date = dateFilter
-  if (propertyId) manualRevWhere.propertyId = propertyId
-  if (revenueType && revenueType !== 'INVESTMENT_FEE') manualRevWhere.type = revenueType as any
+  // ── 2. All platform revenue entries (including INVESTMENT_FEE records) ─────
+  const revWhere: any = {}
+  if (from || to) revWhere.date = dateFilter
+  if (propertyId) revWhere.propertyId = propertyId
+  // When filtering by a specific type, apply it to DB query; otherwise fetch all
+  if (revenueType && revenueType !== 'ALL') revWhere.type = revenueType as any
 
   const manualRevenues = await prisma.platformRevenue.findMany({
-    where: manualRevWhere,
+    where: revWhere,
     orderBy: { date: 'desc' },
   })
 
   const sum = (type: string) =>
     manualRevenues.filter((r: any) => r.type === type).reduce((s: number, r: any) => s + r.amount, 0)
 
-  const ownerFees       = sum('OWNER_FEE')
-  const managementFees  = sum('MANAGEMENT_FEE')
-  const subscriptions   = sum('SUBSCRIPTION')
-  const otherRevenue    = sum('OTHER')
+  const recordedInvestmentFees = sum('INVESTMENT_FEE')
+  const ownerFees              = sum('OWNER_FEE')
+  const managementFees         = sum('MANAGEMENT_FEE')
+  const subscriptions          = sum('SUBSCRIPTION')
+  const otherRevenue           = sum('OTHER')
 
-  // Filter for display when revenueType filter is active
   const investmentFeeRevenue = revenueType && revenueType !== 'ALL' && revenueType !== 'INVESTMENT_FEE'
     ? 0
-    : derivedInvestmentFees
+    : recordedInvestmentFees
 
   const totalRevenue = investmentFeeRevenue + ownerFees + managementFees + subscriptions + otherRevenue
 
@@ -157,18 +157,11 @@ async function buildPnL(opts: {
   // ── 5. Monthly trend (last 12 months) ─────────────────────────────────────
   const months = last12Months()
 
-  // Group order fees by month
-  const orderFeeByMonth: Record<string, number> = {}
-  for (const o of orders as any[]) {
-    const key = new Date(o.createdAt).toISOString().slice(0, 7)
-    orderFeeByMonth[key] = (orderFeeByMonth[key] ?? 0) + o.amount * (feeRate / 100)
-  }
-
-  // Group manual revenues by month
-  const manualRevByMonth: Record<string, number> = {}
+  // Group all PlatformRevenue by month (INVESTMENT_FEE records included)
+  const revByMonth: Record<string, number> = {}
   for (const r of manualRevenues as any[]) {
     const key = new Date(r.date).toISOString().slice(0, 7)
-    manualRevByMonth[key] = (manualRevByMonth[key] ?? 0) + r.amount
+    revByMonth[key] = (revByMonth[key] ?? 0) + r.amount
   }
 
   // Group expenses by month
@@ -179,7 +172,7 @@ async function buildPnL(opts: {
   }
 
   const monthlyTrend = months.map(month => {
-    const revenue = +((orderFeeByMonth[month] ?? 0) + (manualRevByMonth[month] ?? 0)).toFixed(2)
+    const revenue = +(revByMonth[month] ?? 0).toFixed(2)
     const exp     = +(expByMonth[month] ?? 0).toFixed(2)
     return { month, revenue, expenses: exp, netProfit: +(revenue - exp).toFixed(2) }
   })
@@ -194,13 +187,15 @@ async function buildPnL(opts: {
     const entry = propMap.get(pid)!
     entry.orders += 1
     entry.investors.add(o.userId)
-    entry.revenue += o.amount * (feeRate / 100)
   }
-  // Add manual revenue linked to properties
+  // Revenue per property comes from recorded PlatformRevenue entries only
   for (const r of manualRevenues as any[]) {
-    if (r.propertyId && propMap.has(r.propertyId)) {
-      propMap.get(r.propertyId)!.revenue += r.amount
+    const pid = r.propertyId
+    if (!pid) continue
+    if (!propMap.has(pid)) {
+      propMap.set(pid, { id: pid, title: pid, orders: 0, investors: new Set(), revenue: 0 })
     }
+    propMap.get(pid)!.revenue += r.amount
   }
 
   const propertyProfitability = [...propMap.values()].map(p => ({

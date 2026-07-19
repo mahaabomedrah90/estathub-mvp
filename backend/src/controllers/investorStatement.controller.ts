@@ -244,6 +244,7 @@ async function buildStatement(userId: string) {
   const totalDeposits = depositRequests.reduce((s: number, d: any) => s + d.amount, 0)
   const totalWithdrawals = withdrawalRequests.reduce((s: number, w: any) => s + w.amount, 0)
   const totalInvestments = orders.reduce((s: number, o: any) => s + o.amount, 0)
+  const totalFeesPaid = orders.reduce((s: number, o: any) => s + ((o as any).feeAmountSnapshot ?? 0), 0)
   const totalProfitDistributions = distributions.reduce((s: number, d: any) => s + d.amount, 0)
   const cashBalance = wallet?.cashBalance ?? 0
   const currentInvestmentValue = holdingsData.reduce((s, h) => s + h.bookValue, 0)
@@ -255,8 +256,9 @@ async function buildStatement(userId: string) {
     : 0
 
   // ── Reconciliation ────────────────────────────────────────────────────────
+  // expectedBalance = deposits − withdrawals − (investment + fees) + distributions
   const expectedBalance = +(
-    totalDeposits - totalWithdrawals - totalInvestments + totalProfitDistributions
+    totalDeposits - totalWithdrawals - totalInvestments - totalFeesPaid + totalProfitDistributions
   ).toFixed(2)
   const discrepancy = +(cashBalance - expectedBalance).toFixed(2)
 
@@ -275,6 +277,7 @@ async function buildStatement(userId: string) {
       totalWithdrawals,
       cashBalance,
       totalInvested: totalInvestments,
+      totalFeesPaid: +totalFeesPaid.toFixed(2),
       totalProfitDistributions,
       currentInvestmentValue,
       totalPortfolioValue,
@@ -290,6 +293,7 @@ async function buildStatement(userId: string) {
       totalDeposits,
       totalWithdrawals,
       totalInvestments,
+      totalFeesPaid: +totalFeesPaid.toFixed(2),
       totalProfitDistributions,
       expectedBalance,
       actualBalance: cashBalance,

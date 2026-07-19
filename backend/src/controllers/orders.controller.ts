@@ -151,7 +151,12 @@ ordersRouter.post('/', purchaseGate, auth(true), async (req: Request & { user?: 
     const totalPayable = parseFloat((investmentAmount + platformFeeAmount).toFixed(2))
 
     const order = await prisma.order.create({
-      data: { userId, propertyId: pid, tokens: qty, amount: investmentAmount, status: 'PENDING' },
+      data: {
+        userId, propertyId: pid, tokens: qty, amount: investmentAmount, status: 'PENDING',
+        feeRateSnapshot:   platformFeePercent,
+        feeAmountSnapshot: platformFeeAmount,
+        totalPayable,
+      },
     })
 
     console.log(`💳 Order created: investor=${userId} property=${pid} tokens=${qty} investmentAmount=${investmentAmount} fee=${platformFeePercent}%=${platformFeeAmount} totalPayable=${totalPayable}`)
@@ -253,12 +258,15 @@ ordersRouter.post('/confirm', purchaseGate, auth(true), async (req: Request & { 
         throw new Error('order_not_confirmable')
       }
 
-      // Recalculate payment amounts — must match order creation logic
+      // Use the fee snapshot stored at order creation time to guarantee
+      // the rate charged equals the rate the investor was quoted.
       const investmentAmount = (order.property?.tokenPrice || 0) * (order.tokens || 0)
-      const platformFeeStr = await getSetting('platformFee', '5')
-      const platformFeePercent = parseFloat(platformFeeStr)
-      const platformFeeAmount = parseFloat((investmentAmount * platformFeePercent / 100).toFixed(2))
-      const totalPayable = parseFloat((investmentAmount + platformFeeAmount).toFixed(2))
+      const platformFeePercent = (order as any).feeRateSnapshot
+        ?? parseFloat(await getSetting('platformFee', '5'))
+      const platformFeeAmount = (order as any).feeAmountSnapshot
+        ?? parseFloat((investmentAmount * platformFeePercent / 100).toFixed(2))
+      const totalPayable = (order as any).totalPayable
+        ?? parseFloat((investmentAmount + platformFeeAmount).toFixed(2))
       confirmedTotalPayable = totalPayable
 
       // Get user's tenantId for wallet creation
@@ -294,6 +302,20 @@ ordersRouter.post('/confirm', purchaseGate, auth(true), async (req: Request & { 
           ref:      String(oid),
         },
       })
+
+      // Record investment fee as an immutable platform revenue event
+      if (platformFeeAmount > 0) {
+        await (tx as any).platformRevenue.create({
+          data: {
+            type:        'INVESTMENT_FEE',
+            description: `Investment fee — order ${oid}`,
+            amount:      platformFeeAmount,
+            propertyId:  order.propertyId,
+            userId:      order.userId,
+            date:        new Date(),
+          },
+        })
+      }
 
       // Re-read remainingTokens inside the transaction before decrementing.
       // Prevents overselling when two orders for the same property confirm concurrently.

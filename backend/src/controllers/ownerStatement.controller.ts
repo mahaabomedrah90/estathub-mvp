@@ -28,7 +28,7 @@ async function buildOwnerStatement(ownerId: string) {
   const propertyIds = properties.map((p: any) => p.id)
 
   // 3. Parallel queries on owner's data
-  const [wallet, orders, payouts, withdrawalRequests] = await Promise.all([
+  const [wallet, orders, payouts, withdrawalRequests, investmentFeeRecords] = await Promise.all([
     prisma.wallet.findUnique({ where: { userId: ownerId } }),
 
     propertyIds.length > 0
@@ -57,6 +57,13 @@ async function buildOwnerStatement(ownerId: string) {
       where: { userId: ownerId },
       orderBy: { createdAt: 'asc' },
     }),
+
+    propertyIds.length > 0
+      ? (prisma as any).platformRevenue.findMany({
+          where: { propertyId: { in: propertyIds }, type: 'INVESTMENT_FEE' },
+          select: { amount: true, propertyId: true },
+        })
+      : Promise.resolve([]),
   ])
 
   // ── Per-property aggregations ─────────────────────────────────────────────
@@ -277,7 +284,7 @@ async function buildOwnerStatement(ownerId: string) {
       availableBalance,
       pendingSettlements,
       transferredToOwner,
-      platformFeesPaid: 0,      // Not tracked — no PlatformFee table in current schema
+      platformFeesPaid: (investmentFeeRecords as any[]).reduce((s: number, r: any) => s + r.amount, 0),
       ownerReceivableBalance,   // Capital + Rental − Transferred (what owner is owed)
       platformLiabilityToOwner, // ALWSM's creditor payable to this owner (same formula)
       totalRentalIncome,
@@ -300,7 +307,7 @@ async function buildOwnerStatement(ownerId: string) {
       totalCapitalRaised,
       totalRentalIncome,
       totalSettlements: transferredToOwner,
-      platformFeesPaid: 0,
+      platformFeesPaid: (investmentFeeRecords as any[]).reduce((s: number, r: any) => s + r.amount, 0),
       expectedOwnerLiability: expectedBalance, // = Capital + Rental − Transferred
       expectedBalance,                          // kept for backward compat
       actualBalance: availableBalance,
