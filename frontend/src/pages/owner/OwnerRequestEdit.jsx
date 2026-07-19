@@ -59,6 +59,7 @@ export default function OwnerRequestEdit() {
   const [form, setForm] = useState(null)
   const [images, setImages] = useState([])       // array of url strings
   const [deedUrl, setDeedUrl] = useState('')
+  const [ownerResponseNote, setOwnerResponseNote] = useState('')
   const [uploading, setUploading] = useState('')  // '' | 'images' | 'deed'
   const [uploadError, setUploadError] = useState('')
   const [submitting, setSubmitting] = useState(false)
@@ -163,6 +164,7 @@ export default function OwnerRequestEdit() {
           ...form,
           imageUrls: images,
           deedImageUrl: deedUrl || undefined,
+          ownerResponseNote: ownerResponseNote.trim() || undefined,
         }),
       })
       navigate('/owner/requests', { state: { message: 'تم إعادة إرسال الطلب للمراجعة' } })
@@ -230,6 +232,20 @@ export default function OwnerRequestEdit() {
         <p className="text-sm text-orange-800 whitespace-pre-line">
           {lead.reviewNotes || 'طُلبت معلومات إضافية. يرجى مراجعة بيانات الطلب واستكمال ما ينقص ثم إعادة الإرسال.'}
         </p>
+      </div>
+
+      {/* Owner response to the admin note */}
+      <div className="bg-white border border-border-soft rounded-2xl shadow-card p-5 space-y-2">
+        <label className="block text-sm font-bold text-brand-primary">ردك على ملاحظة فريق الوسم</label>
+        <textarea
+          rows={3}
+          maxLength={1000}
+          className="w-full px-3 py-2.5 rounded-xl border border-border-soft focus:border-brand-accent focus:outline-none text-sm"
+          placeholder="اكتب التوضيح أو المعلومات المطلوبة..."
+          value={ownerResponseNote}
+          onChange={e => setOwnerResponseNote(e.target.value)}
+        />
+        <p className="text-xs text-text-muted text-left">{ownerResponseNote.length}/1000</p>
       </div>
 
       {/* Property basics */}
@@ -370,7 +386,7 @@ export default function OwnerRequestEdit() {
       <div className="flex items-center gap-3">
         <button type="submit" disabled={submitting || uploading}
           className="inline-flex items-center gap-2 px-7 py-3 bg-brand-accent text-white rounded-xl font-semibold hover:bg-brand-accent/90 transition-all disabled:opacity-60">
-          {submitting ? <Loader2 size={18} className="animate-spin" /> : <Send size={18} />} إعادة إرسال الطلب
+          {submitting ? <Loader2 size={18} className="animate-spin" /> : <Send size={18} />} إرسال الرد والتحديث
         </button>
         <button type="button" onClick={() => navigate('/owner/requests')} className="px-5 py-3 text-text-muted font-medium">إلغاء</button>
       </div>

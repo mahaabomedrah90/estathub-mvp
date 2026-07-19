@@ -80,7 +80,11 @@ const ADMIN_ACTIONS = {
     { to: 'ACCEPTED',       label: 'إرجاع لقبول مبدئي',    icon: RefreshCw,    cls: 'bg-gray-500 hover:bg-gray-600' },
     { to: 'REJECTED',       label: 'رفض',                  icon: XCircle,      cls: 'bg-red-600 hover:bg-red-700' },
   ],
-  NEEDS_INFO: [],             // exits only via owner resubmit
+  NEEDS_INFO: [               // owner can resubmit, and admin can also progress it manually
+    { to: 'UNDER_REVIEW', label: 'بدء المراجعة', icon: ClipboardList, cls: 'bg-amber-500 hover:bg-amber-600' },
+    { to: 'ACCEPTED',     label: 'قبول مبدئي',    icon: CheckCircle2,  cls: 'bg-green-600 hover:bg-green-700' },
+    { to: 'REJECTED',     label: 'رفض',           icon: XCircle,       cls: 'bg-red-600 hover:bg-red-700' },
+  ],
   FINAL_APPROVED: [],         // terminal
   REJECTED: [],               // terminal
   CONVERTED_TO_PROPERTY: [],  // terminal
@@ -454,12 +458,13 @@ function DetailPanel({ id, onClose, onUpdated, showToast }) {
                   )
                 })}
               </div>
-              {(ADMIN_ACTIONS[lead.status] || []).length === 0 && lead.status !== 'FINAL_APPROVED' && (
-                <p className="text-xs text-text-muted">
-                  {lead.status === 'NEEDS_INFO'
-                    ? 'بانتظار تحديث المالك وإعادة إرسال الطلب.'
-                    : 'لا توجد إجراءات متاحة لهذه الحالة.'}
+              {lead.status === 'NEEDS_INFO' && (
+                <p className="text-xs text-text-muted mt-2">
+                  يمكنك انتظار تحديث المالك أو متابعة المراجعة يدويًا.
                 </p>
+              )}
+              {(ADMIN_ACTIONS[lead.status] || []).length === 0 && lead.status !== 'FINAL_APPROVED' && (
+                <p className="text-xs text-text-muted">لا توجد إجراءات متاحة لهذه الحالة.</p>
               )}
               {lead.status === 'FINAL_APPROVED' && (
                 <div className="mt-1">
@@ -492,6 +497,11 @@ function DetailPanel({ id, onClose, onUpdated, showToast }) {
                         </div>
                         {m.note && (
                           <div className="text-xs text-text-body mt-0.5"><span className="text-text-muted">ملاحظة:</span> {m.note}</div>
+                        )}
+                        {m.ownerResponseNote && (
+                          <div className="text-xs text-text-body mt-1 bg-orange-50 border border-orange-200 rounded-lg p-2 whitespace-pre-line">
+                            <span className="font-semibold text-orange-800">رد المالك:</span> {m.ownerResponseNote}
+                          </div>
                         )}
                         <div className="text-[11px] text-text-muted mt-1 flex flex-wrap gap-x-4 gap-y-0.5">
                           <span>بواسطة: {by}</span>

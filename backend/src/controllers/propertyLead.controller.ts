@@ -26,12 +26,14 @@ const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
 // Statuses an admin may set via the generic status PATCH. CONVERTED_TO_PROPERTY is
 // intentionally excluded — conversion happens on a separate path (Phase 6, not built).
 const ADMIN_SETTABLE_STATUSES = ['UNDER_REVIEW', 'NEEDS_INFO', 'ACCEPTED', 'REJECTED', 'READY_FOR_FINAL_REVIEW', 'FINAL_APPROVED'] as const
-// Allowed admin status transitions (from -> [to]). NEEDS_INFO leaves only via the
-// owner resubmit endpoint (Phase 1). FINAL_APPROVED/REJECTED/CONVERTED are terminal.
+// Allowed admin status transitions (from -> [to]). NEEDS_INFO can also progress
+// via the owner resubmit endpoint (NEEDS_INFO -> UNDER_REVIEW); admins may drive it
+// forward manually too (wait for the owner or continue review).
+// FINAL_APPROVED/REJECTED/CONVERTED are terminal.
 const ADMIN_STATUS_TRANSITIONS: Record<string, string[]> = {
   NEW:                    ['UNDER_REVIEW'],
   UNDER_REVIEW:           ['NEEDS_INFO', 'ACCEPTED', 'REJECTED'],
-  NEEDS_INFO:             [], // exits only via owner resubmit (NEEDS_INFO -> UNDER_REVIEW)
+  NEEDS_INFO:             ['UNDER_REVIEW', 'ACCEPTED', 'REJECTED'], // no longer a dead-end for admin
   ACCEPTED:               ['READY_FOR_FINAL_REVIEW', 'REJECTED'],
   READY_FOR_FINAL_REVIEW: ['FINAL_APPROVED', 'ACCEPTED', 'NEEDS_INFO', 'REJECTED'],
   FINAL_APPROVED:         [],
@@ -509,6 +511,17 @@ propertyLeadRouter.patch('/:id/resubmit', auth(true), async (req: Request & { us
       if (!Number.isNaN(d.getTime())) leaseExpiryDate = d
     }
 
+    // Optional owner response to the admin's request for info. Stored ONLY in the
+    // audit metadata (no schema change) and never overwrites admin reviewNotes.
+    let ownerResponseNote: string | undefined
+    if (b.ownerResponseNote !== undefined && b.ownerResponseNote !== null) {
+      const note = String(b.ownerResponseNote).trim()
+      if (note.length > 1000) {
+        return res.status(400).json({ error: 'note_too_long', message: 'الرد يجب ألا يتجاوز 1000 حرف.', field: 'ownerResponseNote' })
+      }
+      if (note) ownerResponseNote = note
+    }
+
     // --- STRICT owner-editable allowlist (mirrors the create form fields) ---
     const leadInput = {
       applicantType: toStr(b.applicantType),
@@ -566,7 +579,7 @@ propertyLeadRouter.patch('/:id/resubmit', auth(true), async (req: Request & { us
       action:     AuditAction.PROPERTY_LEAD_RESUBMITTED,
       targetType: 'PropertyLead',
       targetId:   existing.id,
-      metadata:   { fromStatus: 'NEEDS_INFO', toStatus: 'UNDER_REVIEW', actor: 'owner', ownerId: req.user!.userId },
+      metadata:   { fromStatus: 'NEEDS_INFO', toStatus: 'UNDER_REVIEW', actor: 'owner', ownerId: req.user!.userId, ...(ownerResponseNote ? { ownerResponseNote } : {}) },
       req,
     })
 
