@@ -4,6 +4,7 @@ import { submitInitProperty, submitTxn, isFabricEnabled } from '../lib/fabric'
 import { uploadMultiplePropertyImages, getFileUrl, errorHandler, validateRequired, throwApiError, requireRole } from '../middleware/roles'
 import { auth } from '../middleware/auth'
 import { getSetting } from './settings.controller'
+import { buildPropertyFeeSnapshot } from '../lib/fees'
 import multer from 'multer'
 import path from 'path'
 import crypto from 'crypto'
@@ -570,39 +571,7 @@ if (!allowedStatuses.includes(status)) {
     
     if (status === 'APPROVED') {
       updateData.approvedAt = new Date()
-      // Capture global fee settings as an immutable snapshot on the property
-      const [platformFee, ownerFeeEnabled, ownerFeeMode, ownerFeeRate, ownerFeeFlat,
-             managementFeeEnabled, managementFeeRate, reserveRate,
-             withdrawalFeeEnabled, withdrawalFeeMode, withdrawalFeeFlat, withdrawalFeeRate] =
-        await Promise.all([
-          getSetting('platformFee', '5'),
-          getSetting('ownerFeeEnabled', 'false'),
-          getSetting('ownerFeeMode', 'PERCENTAGE'),
-          getSetting('ownerFeeRate', '0'),
-          getSetting('ownerFeeFlat', '0'),
-          getSetting('managementFeeEnabled', 'false'),
-          getSetting('managementFeeRate', '8'),
-          getSetting('reserveRate', '3'),
-          getSetting('withdrawalFeeEnabled', 'false'),
-          getSetting('withdrawalFeeMode', 'FLAT'),
-          getSetting('withdrawalFeeFlat', '0'),
-          getSetting('withdrawalFeeRate', '0'),
-        ])
-      ;(updateData as any).feeSnapshot = {
-        investorFeeRate:      parseFloat(platformFee) || 5,
-        ownerFeeEnabled:      ownerFeeEnabled === 'true',
-        ownerFeeMode,
-        ownerFeeRate:         parseFloat(ownerFeeRate) || 0,
-        ownerFeeFlat:         parseFloat(ownerFeeFlat) || 0,
-        managementFeeEnabled: managementFeeEnabled === 'true',
-        managementFeeRate:    parseFloat(managementFeeRate) || 8,
-        reserveRate:          parseFloat(reserveRate) || 3,
-        withdrawalFeeEnabled: withdrawalFeeEnabled === 'true',
-        withdrawalFeeMode,
-        withdrawalFeeFlat:    parseFloat(withdrawalFeeFlat) || 0,
-        withdrawalFeeRate:    parseFloat(withdrawalFeeRate) || 0,
-        lockedAt:             new Date().toISOString(),
-      }
+      ;(updateData as any).feeSnapshot = await buildPropertyFeeSnapshot()
     } else if (status === 'REJECTED') {
       updateData.rejectedAt = new Date()
       updateData.rejectionReason = req.body.reason || 'No reason provided'
@@ -709,39 +678,7 @@ propertyRouter.put('/:id/approve', auth(true), requireRole(['ADMIN']), async (re
   try {
     const { id } = req.params
 
-    const [platformFee, ownerFeeEnabled, ownerFeeMode, ownerFeeRate, ownerFeeFlat,
-           managementFeeEnabled, managementFeeRate, reserveRate,
-           withdrawalFeeEnabled, withdrawalFeeMode, withdrawalFeeFlat, withdrawalFeeRate] =
-      await Promise.all([
-        getSetting('platformFee', '5'),
-        getSetting('ownerFeeEnabled', 'false'),
-        getSetting('ownerFeeMode', 'PERCENTAGE'),
-        getSetting('ownerFeeRate', '0'),
-        getSetting('ownerFeeFlat', '0'),
-        getSetting('managementFeeEnabled', 'false'),
-        getSetting('managementFeeRate', '8'),
-        getSetting('reserveRate', '3'),
-        getSetting('withdrawalFeeEnabled', 'false'),
-        getSetting('withdrawalFeeMode', 'FLAT'),
-        getSetting('withdrawalFeeFlat', '0'),
-        getSetting('withdrawalFeeRate', '0'),
-      ])
-
-    const feeSnapshot = {
-      investorFeeRate:      parseFloat(platformFee) || 5,
-      ownerFeeEnabled:      ownerFeeEnabled === 'true',
-      ownerFeeMode,
-      ownerFeeRate:         parseFloat(ownerFeeRate) || 0,
-      ownerFeeFlat:         parseFloat(ownerFeeFlat) || 0,
-      managementFeeEnabled: managementFeeEnabled === 'true',
-      managementFeeRate:    parseFloat(managementFeeRate) || 8,
-      reserveRate:          parseFloat(reserveRate) || 3,
-      withdrawalFeeEnabled: withdrawalFeeEnabled === 'true',
-      withdrawalFeeMode,
-      withdrawalFeeFlat:    parseFloat(withdrawalFeeFlat) || 0,
-      withdrawalFeeRate:    parseFloat(withdrawalFeeRate) || 0,
-      lockedAt:             new Date().toISOString(),
-    }
+    const feeSnapshot = await buildPropertyFeeSnapshot()
 
     const updated = await prisma.property.update({
       where: { id },
