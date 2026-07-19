@@ -238,6 +238,9 @@ model Property {
   // Metadata
   isDraft                 Boolean   @default(true)
   submissionCompletedAt   DateTime?
+
+  // Fee snapshot — locked when property is approved or first order placed
+  feeSnapshot             Json?     // copy of global fee settings at lock time
   
   // Relations
   deeds           DigitalDeed[]
@@ -246,13 +249,18 @@ model Property {
 }
 
 model Order {
-  id         String      @id @default(cuid())
-  userId     String
-  propertyId String
-  tokens     Int
-  amount     Float
-  status     OrderStatus @default(PENDING)
-  createdAt  DateTime    @default(now())
+  id                String      @id @default(cuid())
+  userId            String
+  propertyId        String
+  tokens            Int
+  amount            Float
+  status            OrderStatus @default(PENDING)
+  createdAt         DateTime    @default(now())
+
+  // Fee snapshot — locked at order creation, used at confirmation
+  feeRateSnapshot   Float?      // e.g. 5.0 for 5%
+  feeAmountSnapshot Float?      // e.g. 500.00
+  totalPayable      Float?      // amount + feeAmountSnapshot
 
   user        User          @relation(fields: [userId], references: [id], onDelete: Cascade)
   property    Property      @relation(fields: [propertyId], references: [id], onDelete: Cascade)

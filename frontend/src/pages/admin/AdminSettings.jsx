@@ -20,6 +20,22 @@ export default function AdminSettings() {
     notificationsEnabled: false,
     maintenanceMode: false,
   })
+  const [fees, setFees] = useState({
+    investorFeeEnabled: true,
+    investorFeeRate: 5,
+    ownerFeeEnabled: false,
+    ownerFeeMode: 'PERCENTAGE',
+    ownerFeeRate: 0,
+    ownerFeeFlat: 0,
+    managementFeeEnabled: false,
+    managementFeeRate: 8,
+    reserveRate: 3,
+    withdrawalFeeEnabled: false,
+    withdrawalFeeMode: 'FLAT',
+    withdrawalFeeFlat: 0,
+    withdrawalFeeRate: 0,
+  })
+
   const [settings, setSettings] = useState({
     general: {
       platformName: 'ALWASM',
@@ -58,9 +74,10 @@ export default function AdminSettings() {
   const loadSettings = async () => {
     try {
       const data = await fetchJson('/api/settings', { headers: authHeader() })
-      const { services: srv, ...rest } = data
+      const { services: srv, fees: feesData, ...rest } = data
       setSettings(rest)
       if (srv) setServices(srv)
+      if (feesData) setFees(f => ({ ...f, ...feesData }))
       console.log('✅ Settings loaded from database:', data)
     } catch (error) {
       console.error('❌ Failed to load settings:', error)
@@ -91,7 +108,7 @@ export default function AdminSettings() {
       await fetchJson('/api/settings', {
         method: 'PUT',
         headers: { ...authHeader(), 'Content-Type': 'application/json' },
-        body: JSON.stringify(settings)
+        body: JSON.stringify({ ...settings, fees })
       })
       console.log('✅ Settings saved to database')
       showMessage('success', t('admin.settings.saveSuccess'))
@@ -596,6 +613,152 @@ export default function AdminSettings() {
                 />
               </button>
             </div>
+          </div>
+        </div>
+
+        {/* Fees & Financial Policies — الرسوم والسياسات المالية */}
+        <div className="bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden">
+          <div className="px-8 py-6 border-b border-gray-200">
+            <div className="flex items-center">
+              <div className="p-3 bg-[#1E1958]/10 rounded-xl mr-3">
+                <Settings className="text-[#1E1958]" size={24} />
+              </div>
+              <div>
+                <h2 className="text-2xl font-bold text-[#1E1958]">الرسوم والسياسات المالية</h2>
+                <p className="text-sm text-gray-500 mt-1">تؤثر فقط على الفرص والعمليات الجديدة. العمليات التاريخية المسجلة لا تتغير.</p>
+              </div>
+            </div>
+          </div>
+          <div className="p-8 space-y-8">
+
+            {/* Investor Fee */}
+            <div className="border border-gray-100 rounded-xl p-5 space-y-4">
+              <div className="flex items-center justify-between">
+                <h3 className="font-semibold text-gray-800">رسوم الاستثمار (المستثمر)</h3>
+                <span className="text-xs bg-green-50 text-green-700 px-2 py-0.5 rounded-full">مُفعّل دائمًا</span>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-600 mb-1">نسبة الرسوم (%)</label>
+                <input type="number" min="0" max="100" step="0.1"
+                  value={fees.investorFeeRate}
+                  onChange={e => setFees(f => ({ ...f, investorFeeRate: parseFloat(e.target.value) || 0 }))}
+                  className="w-48 px-3 py-2 border-2 border-gray-200 rounded-xl text-sm focus:border-[#41EAD4] focus:ring-2 focus:ring-[#41EAD4]/20"
+                />
+                <p className="text-xs text-gray-400 mt-1">رسوم تُحصَّل من المستثمر عند الاستثمار وتُسجَّل إيرادًا فوريًا للمنصة.</p>
+              </div>
+            </div>
+
+            {/* Owner Fee */}
+            <div className="border border-gray-100 rounded-xl p-5 space-y-4">
+              <div className="flex items-center justify-between">
+                <h3 className="font-semibold text-gray-800">رسوم المالك</h3>
+                <button onClick={() => setFees(f => ({ ...f, ownerFeeEnabled: !f.ownerFeeEnabled }))}
+                  className={`relative inline-flex h-7 w-12 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors ${fees.ownerFeeEnabled ? 'bg-[#41EAD4]' : 'bg-gray-300'}`}>
+                  <span className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ${fees.ownerFeeEnabled ? 'translate-x-5' : 'translate-x-0'}`} />
+                </button>
+              </div>
+              {fees.ownerFeeEnabled && (
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-600 mb-1">النوع</label>
+                    <select value={fees.ownerFeeMode} onChange={e => setFees(f => ({ ...f, ownerFeeMode: e.target.value }))}
+                      className="w-full px-3 py-2 border-2 border-gray-200 rounded-xl text-sm focus:border-[#41EAD4]">
+                      <option value="PERCENTAGE">نسبة مئوية (%)</option>
+                      <option value="FLAT">مبلغ ثابت (ر.س)</option>
+                    </select>
+                  </div>
+                  {fees.ownerFeeMode === 'PERCENTAGE' ? (
+                    <div>
+                      <label className="block text-sm font-medium text-gray-600 mb-1">النسبة (%)</label>
+                      <input type="number" min="0" max="100" step="0.1" value={fees.ownerFeeRate}
+                        onChange={e => setFees(f => ({ ...f, ownerFeeRate: parseFloat(e.target.value) || 0 }))}
+                        className="w-full px-3 py-2 border-2 border-gray-200 rounded-xl text-sm focus:border-[#41EAD4]" />
+                    </div>
+                  ) : (
+                    <div>
+                      <label className="block text-sm font-medium text-gray-600 mb-1">المبلغ الثابت (ر.س)</label>
+                      <input type="number" min="0" step="1" value={fees.ownerFeeFlat}
+                        onChange={e => setFees(f => ({ ...f, ownerFeeFlat: parseFloat(e.target.value) || 0 }))}
+                        className="w-full px-3 py-2 border-2 border-gray-200 rounded-xl text-sm focus:border-[#41EAD4]" />
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+
+            {/* Management Fee */}
+            <div className="border border-gray-100 rounded-xl p-5 space-y-4">
+              <div className="flex items-center justify-between">
+                <h3 className="font-semibold text-gray-800">رسوم الإدارة</h3>
+                <button onClick={() => setFees(f => ({ ...f, managementFeeEnabled: !f.managementFeeEnabled }))}
+                  className={`relative inline-flex h-7 w-12 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors ${fees.managementFeeEnabled ? 'bg-[#41EAD4]' : 'bg-gray-300'}`}>
+                  <span className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ${fees.managementFeeEnabled ? 'translate-x-5' : 'translate-x-0'}`} />
+                </button>
+              </div>
+              {fees.managementFeeEnabled && (
+                <div>
+                  <label className="block text-sm font-medium text-gray-600 mb-1">نسبة رسوم الإدارة (%)</label>
+                  <input type="number" min="0" max="100" step="0.1" value={fees.managementFeeRate}
+                    onChange={e => setFees(f => ({ ...f, managementFeeRate: parseFloat(e.target.value) || 0 }))}
+                    className="w-48 px-3 py-2 border-2 border-gray-200 rounded-xl text-sm focus:border-[#41EAD4]" />
+                  <p className="text-xs text-gray-400 mt-1">تُحسَب من إيرادات الإيجار — تُسجَّل إيرادًا للمنصة فقط عند التوزيع.</p>
+                </div>
+              )}
+            </div>
+
+            {/* Reserve Rate */}
+            <div className="border border-gray-100 rounded-xl p-5 space-y-4">
+              <div className="flex items-center justify-between">
+                <h3 className="font-semibold text-gray-800">نسبة الاحتياطي</h3>
+                <span className="text-xs bg-yellow-50 text-yellow-700 px-2 py-0.5 rounded-full">ليست إيرادًا</span>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-600 mb-1">نسبة الاحتياطي (%)</label>
+                <input type="number" min="0" max="100" step="0.1" value={fees.reserveRate}
+                  onChange={e => setFees(f => ({ ...f, reserveRate: parseFloat(e.target.value) || 0 }))}
+                  className="w-48 px-3 py-2 border-2 border-gray-200 rounded-xl text-sm focus:border-[#41EAD4]" />
+                <p className="text-xs text-gray-400 mt-1">مبلغ يُحجز من التوزيع لصيانة العقار. لا يُسجَّل إيرادًا للمنصة.</p>
+              </div>
+            </div>
+
+            {/* Withdrawal Fee */}
+            <div className="border border-gray-100 rounded-xl p-5 space-y-4">
+              <div className="flex items-center justify-between">
+                <h3 className="font-semibold text-gray-800">رسوم السحب</h3>
+                <button onClick={() => setFees(f => ({ ...f, withdrawalFeeEnabled: !f.withdrawalFeeEnabled }))}
+                  className={`relative inline-flex h-7 w-12 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors ${fees.withdrawalFeeEnabled ? 'bg-[#41EAD4]' : 'bg-gray-300'}`}>
+                  <span className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ${fees.withdrawalFeeEnabled ? 'translate-x-5' : 'translate-x-0'}`} />
+                </button>
+              </div>
+              {fees.withdrawalFeeEnabled && (
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-600 mb-1">النوع</label>
+                    <select value={fees.withdrawalFeeMode} onChange={e => setFees(f => ({ ...f, withdrawalFeeMode: e.target.value }))}
+                      className="w-full px-3 py-2 border-2 border-gray-200 rounded-xl text-sm focus:border-[#41EAD4]">
+                      <option value="FLAT">مبلغ ثابت (ر.س)</option>
+                      <option value="PERCENTAGE">نسبة مئوية (%)</option>
+                    </select>
+                  </div>
+                  {fees.withdrawalFeeMode === 'FLAT' ? (
+                    <div>
+                      <label className="block text-sm font-medium text-gray-600 mb-1">المبلغ الثابت (ر.س)</label>
+                      <input type="number" min="0" step="1" value={fees.withdrawalFeeFlat}
+                        onChange={e => setFees(f => ({ ...f, withdrawalFeeFlat: parseFloat(e.target.value) || 0 }))}
+                        className="w-full px-3 py-2 border-2 border-gray-200 rounded-xl text-sm focus:border-[#41EAD4]" />
+                    </div>
+                  ) : (
+                    <div>
+                      <label className="block text-sm font-medium text-gray-600 mb-1">النسبة (%)</label>
+                      <input type="number" min="0" max="100" step="0.1" value={fees.withdrawalFeeRate}
+                        onChange={e => setFees(f => ({ ...f, withdrawalFeeRate: parseFloat(e.target.value) || 0 }))}
+                        className="w-full px-3 py-2 border-2 border-gray-200 rounded-xl text-sm focus:border-[#41EAD4]" />
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+
           </div>
         </div>
 
