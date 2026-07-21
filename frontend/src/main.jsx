@@ -52,6 +52,7 @@ import AdminDepositRequests from './pages/admin/AdminDepositRequests.jsx'
 import AdminAuditLog from './pages/admin/AdminAuditLog.jsx'
 import AdminFinancialReports from './pages/admin/AdminFinancialReports.jsx'
 import AdminWithdrawalRequests from './pages/admin/AdminWithdrawalRequests.jsx'
+import AdminDistributions from './pages/admin/AdminDistributions.jsx'
 import AdminInvestorStatement from './pages/admin/AdminInvestorStatement.jsx'
 import AdminOwnerStatement from './pages/admin/AdminOwnerStatement.jsx'
 import AdminPlatformPnL from './pages/admin/AdminPlatformPnL.jsx'
@@ -174,6 +175,7 @@ const router = createBrowserRouter([
   { path: 'audit', element: <AdminAuditLog /> },
   { path: 'financial-reports', element: <AdminFinancialReports /> },
   { path: 'withdrawals', element: <AdminWithdrawalRequests /> },
+  { path: 'distributions', element: <AdminDistributions /> },
   { path: 'investor-statement', element: <AdminInvestorStatement /> },
   { path: 'owner-statement', element: <AdminOwnerStatement /> },
   { path: 'platform-pnl', element: <AdminPlatformPnL /> },

@@ -23,6 +23,7 @@
     "auditLogs": "Audit Logs",
     "financialReports": "Financial Reports",
     "withdrawals": "Withdrawal Requests",
+    "distributions": "Rental Distribution",
     "investorStatement": "Investor Statement",
     "ownerStatement": "Owner Statement",
     "platformPnl": "Platform P&L"

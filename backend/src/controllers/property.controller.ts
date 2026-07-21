@@ -4,6 +4,8 @@ import { submitInitProperty, submitTxn, isFabricEnabled } from '../lib/fabric'
 import { uploadMultiplePropertyImages, getFileUrl, errorHandler, validateRequired, throwApiError, requireRole } from '../middleware/roles'
 import { auth } from '../middleware/auth'
 import { getSignedPropertyLeadUrl, isS3Key, isLegacyLocalUrl } from '../lib/propertyLeadS3'
+import { getSetting } from './settings.controller'
+import { buildPropertyFeeSnapshot } from '../lib/fees'
 import multer from 'multer'
 import path from 'path'
 import crypto from 'crypto'
@@ -613,16 +615,17 @@ if (!allowedStatuses.includes(status)) {
     
     if (status === 'APPROVED') {
       updateData.approvedAt = new Date()
+      ;(updateData as any).feeSnapshot = await buildPropertyFeeSnapshot()
     } else if (status === 'REJECTED') {
       updateData.rejectedAt = new Date()
       updateData.rejectionReason = req.body.reason || 'No reason provided'
     }
-    
+
     const updated = await prisma.property.update({
       where: { id },
       data: updateData,
     })
-    
+
     // Register property on blockchain when approved
     if (status === 'APPROVED' && isFabricEnabled()) {
       try {
@@ -718,15 +721,18 @@ if (!allowedStatuses.includes(status)) {
 propertyRouter.put('/:id/approve', auth(true), requireRole(['ADMIN']), async (req: Request, res: Response) => {
   try {
     const { id } = req.params
-    
+
+    const feeSnapshot = await buildPropertyFeeSnapshot()
+
     const updated = await prisma.property.update({
       where: { id },
       data: {
         status: 'APPROVED',
         approvedAt: new Date(),
+        feeSnapshot: feeSnapshot as any,
       },
     })
-    
+
     // Register property on blockchain when approved
     if (isFabricEnabled()) {
       try {

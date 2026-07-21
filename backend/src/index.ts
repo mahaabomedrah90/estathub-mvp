@@ -29,6 +29,7 @@ import { investorStatementRouter } from './controllers/investorStatement.control
 import { ownerStatementRouter } from './controllers/ownerStatement.controller'
 import { platformPnlRouter } from './controllers/platformPnl.controller'
 import { propertyLeadRouter, propertyLeadAdminRouter } from './controllers/propertyLead.controller'
+import { distributionRouter } from './controllers/distribution.controller'
 
 dotenv.config()
 
@@ -355,6 +356,7 @@ app.use('/api/holdings', holdingsRouter)
 app.use('/api', investorStatementRouter)
 app.use('/api', ownerStatementRouter)
 app.use('/api', platformPnlRouter)
+app.use('/api', distributionRouter)
 
 /**
  * ================================
