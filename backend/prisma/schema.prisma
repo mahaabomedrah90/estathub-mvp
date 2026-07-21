@@ -240,11 +240,8 @@ model Property {
   submissionCompletedAt   DateTime?
 
   // Fee snapshot — locked when property is approved or first order placed
+  // Copied from global fee settings at lock time; stays immutable if global fees change.
   feeSnapshot             Json?     // copy of global fee settings at lock time
-  
-  // Finalization fee snapshot (Phase 4a) — nullable, additive; copied from the
-  // PropertyLead at conversion time so it stays immutable if global fees change.
-  feeSnapshot     Json?
 
   // Relations
   deeds           DigitalDeed[]
