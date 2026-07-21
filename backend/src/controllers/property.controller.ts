@@ -259,13 +259,22 @@ propertyRouter.get('/:id', async (req: Request, res: Response) => {
 
 // POST /api/properties/upload-document
 // Upload a single document (deed, permit, valuation report, etc.)
-propertyRouter.post('/upload-document', auth(true), upload.single('file'), async (req: Request & { user?: any }, res: Response) => {
+propertyRouter.post('/upload-document', auth(true), requireRole(['OWNER', 'ADMIN']), upload.single('file'), async (req: Request & { user?: any }, res: Response) => {
   try {
     if (!req.file) {
       return res.status(400).json({ error: 'No file uploaded' })
     }
 
-    const { documentType } = req.body
+    const { documentType, propertyId } = req.body
+
+    // OWNER may upload only to a property they own; propertyId is optional (e.g. new unsaved drafts)
+    if (req.user?.role === 'OWNER' && propertyId) {
+      const property = await prisma.property.findUnique({ where: { id: propertyId }, select: { ownerId: true } })
+      if (!property || property.ownerId !== req.user.userId) {
+        return res.status(403).json({ error: 'forbidden', message: 'You can only upload documents for your own properties' })
+      }
+    }
+
     const fileUrl = getFileUrl(req.file.filename)
     
     // Calculate file hash for integrity
@@ -570,6 +579,17 @@ if (!allowedStatuses.includes(status)) {
 } = { status }
     
     if (status === 'APPROVED') {
+      const current = await prisma.property.findUnique({ where: { id }, select: { status: true, feeSnapshot: true } })
+      if (current?.status === 'APPROVED') {
+        if (current.feeSnapshot != null) {
+          const full = await prisma.property.findUnique({ where: { id } })
+          return res.json({ success: true, message: 'Property already approved — fee snapshot preserved', property: full })
+        }
+        return res.status(409).json({
+          error: 'fee_snapshot_missing',
+          message: 'Property is APPROVED but feeSnapshot is absent. Explicit admin remediation required — do not re-approve.',
+        })
+      }
       updateData.approvedAt = new Date()
       ;(updateData as any).feeSnapshot = await buildPropertyFeeSnapshot()
     } else if (status === 'REJECTED') {
@@ -677,6 +697,18 @@ if (!allowedStatuses.includes(status)) {
 propertyRouter.put('/:id/approve', auth(true), requireRole(['ADMIN']), async (req: Request, res: Response) => {
   try {
     const { id } = req.params
+
+    const current = await prisma.property.findUnique({ where: { id }, select: { status: true, feeSnapshot: true } })
+    if (current?.status === 'APPROVED') {
+      if (current.feeSnapshot != null) {
+        const full = await prisma.property.findUnique({ where: { id } })
+        return res.json({ success: true, message: 'Property already approved — fee snapshot preserved', property: full })
+      }
+      return res.status(409).json({
+        error: 'fee_snapshot_missing',
+        message: 'Property is APPROVED but feeSnapshot is absent. Explicit admin remediation required — do not re-approve.',
+      })
+    }
 
     const feeSnapshot = await buildPropertyFeeSnapshot()
 
