@@ -30,9 +30,11 @@ import VerifyEmail from './pages/VerifyEmail.jsx'
 import InvestorDashboard from './pages/investor/InvestorDashboard.jsx'
 import Portfolio from './pages/Investor/Portfolio.jsx'
 import MyDeeds from './pages/Investor/MyDeeds.jsx'
+import ViewAllHoldings from './pages/Investor/ViewAllHoldings.jsx'
 // Owner Pages
 import OwnerDashboard from './pages/owner/OwnerDashboard.jsx'
 import OwnerProperties from './pages/owner/OwnerProperties.jsx'
+import ViewAllProperties from './pages/owner/ViewAllProperties.jsx'
 import PropertySubmissionWizard from './pages/owner/PropertySubmissionWizard.jsx'
 import OwnerOpportunityLeadForm from './pages/owner/OwnerOpportunityLeadForm.jsx'
 import OwnerRequests from './pages/owner/OwnerRequests.jsx'
@@ -126,6 +128,7 @@ const router = createBrowserRouter([
       { index: true, element: <Navigate to="/investor/dashboard" replace /> },
       { path: 'dashboard', element: <InvestorDashboard /> },
       { path: 'wallet', element: <Portfolio /> },
+      { path: 'wallet/view-all', element: <ViewAllHoldings /> },
       { path: 'deeds', element: <MyDeeds /> },
       { path: 'opportunities', element: <Opportunities /> },
       { path: 'properties/:id', element: <PropertyDetail /> },
@@ -145,6 +148,7 @@ const router = createBrowserRouter([
  { path: 'requests', element: <OwnerRequests /> },
  { path: 'requests/:id/edit', element: <OwnerRequestEdit /> },
  { path: 'properties', element: <OwnerProperties /> },
+ { path: 'properties/view-all', element: <ViewAllProperties /> },
  { path: 'properties/new', element: <PropertySubmissionWizard /> },
  { path: 'properties/new-legacy', element: <PropertySubmissionWizard /> },
  { path: 'opportunities/new', element: <OwnerOpportunityLeadForm /> },
