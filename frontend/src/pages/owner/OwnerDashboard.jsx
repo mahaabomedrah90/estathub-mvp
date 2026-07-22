@@ -337,7 +337,7 @@ export default function OwnerDashboard() {
             </div>
         ) : (
           <div className="space-y-4">
-            {properties.map((property) => {
+            {properties.slice(0, 4).map((property) => {
               const status = property.status || 'PENDING'
               const totalTokens = property.totalTokens || 0
               const remainingTokens = property.remainingTokens ?? property.tokensAvailable ?? 0

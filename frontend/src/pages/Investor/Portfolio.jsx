@@ -780,13 +780,23 @@ export default function Portfolio() {
 
       {/* Holdings */}
       <div className="bg-surface-card border border-border-soft rounded-lg shadow-card p-6">
-        <div className="flex items-center gap-2 mb-4">
-          <Building2 size={24} className="text-text-muted" />
-          <h2 className="text-xl font-semibold text-text-strong">{t('investor.wallet.myHoldingsTitle')}</h2>
+        <div className="flex items-center justify-between mb-4">
+          <div className="flex items-center gap-2">
+            <Building2 size={24} className="text-text-muted" />
+            <h2 className="text-xl font-semibold text-text-strong">{t('investor.wallet.myHoldingsTitle')}</h2>
+          </div>
+          {safeWallet.holdings?.length > 4 && (
+            <button
+              onClick={() => navigate('/investor/wallet/view-all')}
+              className="text-sm text-brand-accent hover:text-brand-accent/80 font-medium transition-colors"
+            >
+              {isRtl ? `عرض الكل (${safeWallet.holdings.length})` : `View All (${safeWallet.holdings.length})`}
+            </button>
+          )}
         </div>
         {safeWallet.holdings?.length ? (
           <div className="space-y-3">
-            {safeWallet.holdings.map(h => (
+            {safeWallet.holdings.slice(0, 4).map(h => (
               <div key={h.propertyId} className="bg-surface-muted rounded-lg p-4 hover:bg-surface-base transition-colors">
                 <div className="flex justify-between items-start mb-2">
                   <div className="font-semibold text-text-strong">{h.title}</div>
