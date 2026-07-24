@@ -37,6 +37,9 @@ const DEFAULT_SETTINGS = {
   enableMessaging: 'true',
 
   // MVP Fee Settings
+  // Four approved fee values (MVP four-fee model). preparationFee is a fixed SAR
+  // amount; the other three are percentages sourced from existing keys below.
+  propertyPreparationFee: '0',
   ownerFeeEnabled:     'false',
   ownerFeeMode:        'PERCENTAGE',  // PERCENTAGE | FLAT
   ownerFeeRate:        '0',
@@ -121,6 +124,8 @@ settingsRouter.get('/', auth(true), async (req: Request & { user?: any }, res: R
         enableMessaging: s.enableMessaging === 'true',
       },
       fees: {
+        // Four approved MVP fee values (preparationFee is fixed SAR; rest are %).
+        propertyPreparationFee: parseFloat(s.propertyPreparationFee) || 0,
         investorFeeEnabled: true, // platformFee is always active once purchaseEnabled
         investorFeeRate: parseFloat(s.platformFee) || 5,
         ownerFeeEnabled: s.ownerFeeEnabled === 'true',
@@ -220,6 +225,7 @@ settingsRouter.put('/', auth(true), async (req: Request & { user?: any }, res: R
         const n = parseFloat(String(v))
         return Number.isFinite(n) && n >= 0 ? String(n) : fallback
       }
+      if ('propertyPreparationFee' in fees) flatSettings.propertyPreparationFee = safeNum(fees.propertyPreparationFee, '0')
       if ('investorFeeRate' in fees) flatSettings.platformFee = safeNum(fees.investorFeeRate, '5')
       if ('ownerFeeEnabled' in fees) flatSettings.ownerFeeEnabled = String(!!fees.ownerFeeEnabled)
       if ('ownerFeeMode' in fees) flatSettings.ownerFeeMode = fees.ownerFeeMode === 'FLAT' ? 'FLAT' : 'PERCENTAGE'

@@ -40,11 +40,13 @@ const FIN_LISTING_FIELDS = [
   { k: 'monthlyYield', label: 'العائد الشهري المتوقع (%)' },
   { k: 'expectedROI',  label: 'العائد السنوي المتوقع (%) — اختياري' },
 ]
+// Four approved MVP fee values. preparationFee is a fixed SAR amount; the rest
+// are percentages. Field keys are the accounting snapshot field names.
 const FIN_FEE_FIELDS = [
-  { k: 'platformFeePct',     label: 'نسبة رسوم المنصة (%)' },
-  { k: 'managementFeePct',   label: 'نسبة رسوم الإدارة (%) — اختياري' },
-  { k: 'tokenizationFeePct', label: 'نسبة رسوم الترميز/الإعداد (%) — اختياري' },
-  { k: 'vatPct',             label: 'ضريبة القيمة المضافة (%) — اختياري' },
+  { k: 'investorFeeRate',   label: 'رسوم خدمة المنصة عند الاستثمار (%)', unit: '%' },
+  { k: 'managementFeeRate', label: 'رسوم إدارة العقار من دخل الإيجار (%)', unit: '%' },
+  { k: 'preparationFee',    label: 'رسوم تجهيز العقار (ر.س)', unit: 'ر.س' },
+  { k: 'reserveRate',       label: 'احتياطي العقار (%)', unit: '%' },
 ]
 
 const FILTERS = [
@@ -172,8 +174,13 @@ function DetailPanel({ id, onClose, onUpdated, showToast }) {
       setFinForm({
         totalValue: ld.totalValue ?? '', tokenPrice: ld.tokenPrice ?? '', totalTokens: ld.totalTokens ?? '',
         monthlyYield: ld.monthlyYield ?? '', expectedROI: ld.expectedROI ?? '', listingNotes: ld.notes ?? '',
-        platformFeePct: fs.platformFeePct ?? (f.defaultFeeInputs?.platformFeePct ?? ''),
-        managementFeePct: fs.managementFeePct ?? '', tokenizationFeePct: fs.tokenizationFeePct ?? '', vatPct: fs.vatPct ?? '',
+        // Prefer stored snapshot values; fall back to legacy pct keys, then to
+        // the Settings-seeded defaults. preparationFee/reserveRate have no legacy
+        // equivalent (were tokenization/VAT) so they start from defaults.
+        investorFeeRate:   fs.investorFeeRate   ?? fs.platformFeePct   ?? (f.defaultFeeInputs?.investorFeeRate ?? ''),
+        managementFeeRate: fs.managementFeeRate ?? fs.managementFeePct ?? (f.defaultFeeInputs?.managementFeeRate ?? ''),
+        preparationFee:    fs.preparationFee    ?? (f.defaultFeeInputs?.preparationFee ?? ''),
+        reserveRate:       fs.reserveRate       ?? (f.defaultFeeInputs?.reserveRate ?? ''),
         feeNotes: fs.notes ?? '',
       })
     } catch {
@@ -210,7 +217,7 @@ function DetailPanel({ id, onClose, onUpdated, showToast }) {
         headers: { 'Content-Type': 'application/json', ...authHeader() },
         body: JSON.stringify({
           listingDraft: { totalValue: num(f.totalValue), tokenPrice: num(f.tokenPrice), totalTokens: num(f.totalTokens), monthlyYield: num(f.monthlyYield), expectedROI: num(f.expectedROI), notes: f.listingNotes || undefined },
-          feeSnapshot: { platformFeePct: num(f.platformFeePct), managementFeePct: num(f.managementFeePct), tokenizationFeePct: num(f.tokenizationFeePct), vatPct: num(f.vatPct), notes: f.feeNotes || undefined },
+          feeSnapshot: { preparationFee: num(f.preparationFee), investorFeeRate: num(f.investorFeeRate), managementFeeRate: num(f.managementFeeRate), reserveRate: num(f.reserveRate), notes: f.feeNotes || undefined },
         }),
       })
       showToast('success', 'تم حفظ بيانات الإدراج والرسوم')
@@ -386,15 +393,9 @@ function DetailPanel({ id, onClose, onUpdated, showToast }) {
 
             {/* Phase 5 — listing draft + fee snapshot (admin only) */}
             {['ACCEPTED', 'READY_FOR_FINAL_REVIEW'].includes(lead.status) && finForm && (() => {
-              const tv = Number(finForm.totalValue) || 0
-              const amt = (p) => { const n = Number(p); return Number.isFinite(n) && n > 0 ? Math.round(tv * n / 100 * 100) / 100 : 0 }
-              const platformAmt = amt(finForm.platformFeePct)
-              const mgmtAmt = finForm.managementFeePct !== '' ? amt(finForm.managementFeePct) : null
-              const tokAmt = finForm.tokenizationFeePct !== '' ? amt(finForm.tokenizationFeePct) : null
-              const feesSub = platformAmt + (mgmtAmt || 0) + (tokAmt || 0)
-              const vatAmt = finForm.vatPct !== '' ? Math.round(feesSub * Number(finForm.vatPct) / 100 * 100) / 100 : null
-              const totalFees = Math.round((feesSub + (vatAmt || 0)) * 100) / 100
-              const amtByKey = { platformFeePct: platformAmt, managementFeePct: mgmtAmt, tokenizationFeePct: tokAmt, vatPct: vatAmt }
+              // No combined fee total: the four values use different calculation
+              // bases (fixed SAR vs % of order vs % of rental income), so they are
+              // shown individually rather than summed.
               const mismatch = finForm.totalValue && finForm.tokenPrice && finForm.totalTokens &&
                 Math.abs(Number(finForm.totalValue) - Number(finForm.tokenPrice) * Number(finForm.totalTokens)) > 0.01
               const inputCls = 'w-full border border-border-soft rounded-lg px-2 py-1.5 text-sm focus:ring-1 focus:ring-brand-accent focus:border-brand-accent'
@@ -418,16 +419,19 @@ function DetailPanel({ id, onClose, onUpdated, showToast }) {
                     <p className="text-xs font-bold text-brand-primary">رسوم الإدراج المعتمدة لهذا العقار (لقطة الرسوم)</p>
                     <div className="grid grid-cols-2 gap-3">
                       {FIN_FEE_FIELDS.map(f => (
-                        <div key={f.k}>
-                          <label className="block">
-                            <span className="block text-[11px] text-text-muted mb-0.5">{f.label}</span>
-                            <input type="number" value={finForm[f.k]} onChange={e => setFinField(f.k, e.target.value)} className={inputCls} />
-                          </label>
-                          <p className="text-[10px] text-text-muted mt-0.5">المبلغ: {amtByKey[f.k] != null ? fmtSar(amtByKey[f.k]) : '—'}</p>
-                        </div>
+                        <label key={f.k} className="block">
+                          <span className="block text-[11px] text-text-muted mb-0.5">{f.label}</span>
+                          <input type="number" min="0" value={finForm[f.k]} onChange={e => setFinField(f.k, e.target.value)} className={inputCls} />
+                        </label>
                       ))}
                     </div>
-                    <p className="text-sm font-bold text-brand-primary">إجمالي الرسوم: {fmtSar(totalFees)}</p>
+                    {/* Per-value summary (no misleading combined total) */}
+                    <div className="rounded-lg bg-surface-muted px-3 py-2 text-[11px] text-text-body space-y-0.5">
+                      <p>رسوم تجهيز العقار: <span className="font-semibold" dir="ltr">{fmtSar(Number(finForm.preparationFee) || 0)}</span></p>
+                      <p>رسوم خدمة المنصة عند الاستثمار: <span className="font-semibold" dir="ltr">{Number(finForm.investorFeeRate) || 0}%</span></p>
+                      <p>رسوم إدارة العقار: <span className="font-semibold" dir="ltr">{Number(finForm.managementFeeRate) || 0}%</span></p>
+                      <p>احتياطي العقار: <span className="font-semibold" dir="ltr">{Number(finForm.reserveRate) || 0}%</span></p>
+                    </div>
                     <input type="text" placeholder="ملاحظات الرسوم (اختياري)" value={finForm.feeNotes} onChange={e => setFinField('feeNotes', e.target.value)} className={inputCls} />
                   </div>
 
