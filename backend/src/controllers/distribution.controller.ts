@@ -2,7 +2,6 @@ import { Router } from 'express'
 import { prisma } from '../lib/prisma'
 import { auth } from '../middleware/auth'
 import { requireRole } from '../middleware/roles'
-import { getSetting } from './settings.controller'
 
 export const distributionRouter = Router()
 
@@ -26,16 +25,15 @@ export interface FeeRates {
   reserveRate: number
 }
 
-// Resolve fee rates for a property: prefer a locked property feeSnapshot, else
-// fall back to the current global settings. Mirrors the historic POST behavior.
-async function resolveFeeRates(feeSnapshot: any): Promise<FeeRates> {
+// Resolve fee rates STRICTLY from the property's fee snapshot — never from global
+// settings. Callers must guarantee a present snapshot (NO_FEE_SNAPSHOT guard). New
+// MVP snapshots omit managementFeeEnabled → treated as enabled; legacy snapshots
+// may set it false (that historic behavior is preserved).
+export function resolveFeeRates(feeSnapshot: any): FeeRates {
   const snap = feeSnapshot ?? {}
-  const managementFeeEnabled: boolean = snap.managementFeeEnabled
-    ?? ((await getSetting('managementFeeEnabled', 'false')) === 'true')
-  const managementFeeRate: number = snap.managementFeeRate
-    ?? (parseFloat(await getSetting('managementFeeRate', '8')) || 8)
-  const reserveRate: number = snap.reserveRate
-    ?? (parseFloat(await getSetting('reserveRate', '3')) || 3)
+  const managementFeeEnabled: boolean = snap.managementFeeEnabled ?? true
+  const managementFeeRate: number = Number.isFinite(Number(snap.managementFeeRate)) ? Number(snap.managementFeeRate) : 0
+  const reserveRate: number = Number.isFinite(Number(snap.reserveRate)) ? Number(snap.reserveRate) : 0
   return { managementFeeEnabled, managementFeeRate, reserveRate }
 }
 
@@ -50,7 +48,7 @@ export interface DistributionBreakdown {
 
 // Pure computation — given holders, a gross amount and fee rates, produce the
 // fee/reserve deductions and each holder's share of the net distributable.
-function computeDistribution(
+export function computeDistribution(
   holdings: Array<{ userId: string; tokens: number }>,
   totalAmount: number,
   rates: FeeRates,
@@ -147,6 +145,11 @@ distributionRouter.get(
         return res.status(400).json({ code: 'PROPERTY_NOT_ELIGIBLE', message: `Property is not eligible for distribution (status: ${property.status})` })
       }
 
+      // Fee snapshot is the sole source of truth — no global-settings fallback.
+      if (property.feeSnapshot == null) {
+        return res.status(400).json({ code: 'NO_FEE_SNAPSHOT', message: 'This property has no approved fee configuration.' })
+      }
+
       // Zero-token guard — no holders, or holders with no tokens. Reject before
       // any calculation (a zero total would divide-by-zero downstream).
       const totalTokens = holdings.reduce((s, h) => s + h.tokens, 0)
@@ -154,7 +157,7 @@ distributionRouter.get(
         return res.status(400).json({ code: 'NO_HOLDERS', message: 'No token holders for this property — nothing to distribute' })
       }
 
-      const rates = await resolveFeeRates(property.feeSnapshot as any)
+      const rates = resolveFeeRates(property.feeSnapshot as any)
       const alreadyDistributed = !!existing
 
       const breakdown = computeDistribution(
@@ -230,6 +233,11 @@ distributionRouter.post(
       return res.status(400).json({ code: 'PROPERTY_NOT_ELIGIBLE', message: `Property is not eligible for distribution (status: ${property.status})` })
     }
 
+    // Fee snapshot is the sole source of truth — no global-settings fallback.
+    if (property.feeSnapshot == null) {
+      return res.status(400).json({ code: 'NO_FEE_SNAPSHOT', message: 'This property has no approved fee configuration.' })
+    }
+
     // Zero-token guard — reject before any calculation or write.
     const totalTokens = holdings.reduce((s, h) => s + h.tokens, 0)
     if (totalTokens <= 0) {
@@ -238,7 +246,7 @@ distributionRouter.post(
 
     // Resolve fee rates and compute the breakdown via the shared helpers — the
     // exact same math the preview endpoint runs.
-    const rates = await resolveFeeRates(property.feeSnapshot as any)
+    const rates = resolveFeeRates(property.feeSnapshot as any)
     const { grossAmount, mgmtFeeAmount, reserveAmount, netDistributable, shares } =
       computeDistribution(holdings, Number(totalAmount), rates)
 

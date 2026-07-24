@@ -810,7 +810,7 @@ function validateListingDraft(input: any):
 //   managementFeeRate — % of rental income (ALWSM revenue)
 //   reserveRate       — % of rental income (property reserve, NOT revenue)
 // Legacy VAT/tokenization fields are no longer produced (historical rows kept).
-function buildFeeSnapshot(input: any, admin: { userId?: string; email?: string }):
+export function buildFeeSnapshot(input: any, admin: { userId?: string; email?: string }):
   | { ok: false; error: string; field?: string }
   | { ok: true; data: any } {
   const b = input || {}

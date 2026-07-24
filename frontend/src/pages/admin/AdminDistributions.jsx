@@ -150,6 +150,7 @@ export default function AdminDistributions() {
     if (status === 409 || code === 'ALREADY_DISTRIBUTED')
       return tt('تم تنفيذ توزيع لهذا العقار عن هذا الشهر مسبقاً.', 'A distribution for this property and month has already been executed.')
     if (status === 400) {
+      if (code === 'NO_FEE_SNAPSHOT') return tt('لا توجد إعدادات رسوم معتمدة لهذا العقار.', 'This property has no approved fee configuration.')
       if (code === 'PROPERTY_NOT_ELIGIBLE') return tt('هذا العقار غير مؤهل للتوزيع (يجب أن يكون معتمداً).', 'This property is not eligible for distribution (must be APPROVED).')
       if (code === 'NO_HOLDERS') return tt('لا يوجد حاملو رموز لهذا العقار — لا يمكن التوزيع.', 'No token holders for this property — nothing to distribute.')
       return msg || tt('المدخلات غير صحيحة.', 'Invalid input.')
