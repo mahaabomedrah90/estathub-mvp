@@ -291,6 +291,9 @@ model Payout {
 
   property      Property       @relation(fields: [propertyId], references: [id], onDelete: Cascade)
   distributions Distribution[]
+
+  // Concurrency-safe guard: at most one distribution per property per month.
+  @@unique([propertyId, month])
 }
 
 model Distribution {
