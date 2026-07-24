@@ -97,6 +97,8 @@ distributionRouter.get(
           propertyId: true,
           month: true,
           totalAmount: true,
+          mgmtFeeAmount: true,
+          reserveAmount: true,
           createdAt: true,
           property: { select: { title: true } },
           distributions: {
@@ -255,7 +257,7 @@ distributionRouter.post(
     try {
       payout = await prisma.$transaction(async (tx: any) => {
       const p = await tx.payout.create({
-        data: { propertyId, month, totalAmount: grossAmount },
+        data: { propertyId, month, totalAmount: grossAmount, mgmtFeeAmount, reserveAmount },
       })
 
       // Record management fee as platform revenue event
