@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react'
 import {
   Building2, User, MapPin, Coins, Loader2, AlertCircle, CheckCircle2,
-  XCircle, RefreshCw, X, Calendar, Eye, ClipboardList, Info, FileText, Gavel
+  XCircle, RefreshCw, X, Calendar, Eye, ClipboardList, Info, FileText, Gavel, Clock
 } from 'lucide-react'
 import { authHeader, fetchJson } from '../../lib/api'
 
@@ -14,12 +14,14 @@ import { authHeader, fetchJson } from '../../lib/api'
 const API_BASE = import.meta.env.VITE_API_BASE || ''
 
 const STATUS = {
-  NEW:                   { label: 'جديد',            cls: 'bg-blue-100 text-blue-800 border-blue-200',       dot: 'bg-blue-500' },
-  UNDER_REVIEW:          { label: 'قيد المراجعة',    cls: 'bg-amber-100 text-amber-800 border-amber-200',    dot: 'bg-amber-500' },
-  NEEDS_INFO:            { label: 'بحاجة لمعلومات',  cls: 'bg-orange-100 text-orange-800 border-orange-200', dot: 'bg-orange-500' },
-  ACCEPTED:              { label: 'مقبول مبدئيًا',   cls: 'bg-green-100 text-green-800 border-green-200',     dot: 'bg-green-500' },
-  REJECTED:              { label: 'مرفوض',           cls: 'bg-red-100 text-red-800 border-red-200',          dot: 'bg-red-500' },
-  CONVERTED_TO_PROPERTY: { label: 'مُحوّل إلى عقار', cls: 'bg-indigo-100 text-indigo-800 border-indigo-200', dot: 'bg-indigo-500' },
+  NEW:                    { label: 'تم استلام الطلب',      cls: 'bg-blue-100 text-blue-800 border-blue-200',         dot: 'bg-blue-500' },
+  UNDER_REVIEW:           { label: 'قيد الدراسة',          cls: 'bg-amber-100 text-amber-800 border-amber-200',      dot: 'bg-amber-500' },
+  NEEDS_INFO:             { label: 'مطلوب معلومات إضافية', cls: 'bg-orange-100 text-orange-800 border-orange-200',   dot: 'bg-orange-500' },
+  ACCEPTED:               { label: 'قبول مبدئي',           cls: 'bg-green-100 text-green-800 border-green-200',       dot: 'bg-green-500' },
+  READY_FOR_FINAL_REVIEW: { label: 'جاهز للاعتماد النهائي', cls: 'bg-teal-100 text-teal-800 border-teal-200',         dot: 'bg-teal-500' },
+  FINAL_APPROVED:         { label: 'اعتماد نهائي',         cls: 'bg-emerald-100 text-emerald-800 border-emerald-200', dot: 'bg-emerald-500' },
+  REJECTED:               { label: 'مرفوض',               cls: 'bg-red-100 text-red-800 border-red-200',            dot: 'bg-red-500' },
+  CONVERTED_TO_PROPERTY:  { label: 'تم تحويله إلى عقار',   cls: 'bg-indigo-100 text-indigo-800 border-indigo-200',   dot: 'bg-indigo-500' },
 }
 const REC = {
   PROCEED:               { label: 'المضي قدمًا',      cls: 'bg-green-50 text-green-700 border-green-200' },
@@ -30,23 +32,70 @@ const PROPERTY_TYPES = { land: 'أرض', apartment: 'شقة', building: 'عما�
 const CITIES = { riyadh: 'الرياض', jeddah: 'جدة', dammam: 'الدمام', khobar: 'الخبر' }
 const APPLICANT = { owner: 'مالك', developer: 'مطوّر عقاري' }
 
+// Phase 5 — listing/tokenomics + fee inputs (admin finalization form)
+const FIN_LISTING_FIELDS = [
+  { k: 'totalValue',   label: 'القيمة النهائية للعقار (ر.س)' },
+  { k: 'tokenPrice',   label: 'سعر الحصة (ر.س)' },
+  { k: 'totalTokens',  label: 'عدد الحصص' },
+  { k: 'monthlyYield', label: 'العائد الشهري المتوقع (%)' },
+  { k: 'expectedROI',  label: 'العائد السنوي المتوقع (%) — اختياري' },
+]
+// Four approved MVP fee values. preparationFee is a fixed SAR amount; the rest
+// are percentages. Field keys are the accounting snapshot field names.
+const FIN_FEE_FIELDS = [
+  { k: 'investorFeeRate',   label: 'رسوم خدمة المنصة عند الاستثمار (%)', unit: '%' },
+  { k: 'managementFeeRate', label: 'رسوم إدارة العقار من دخل الإيجار (%)', unit: '%' },
+  { k: 'preparationFee',    label: 'رسوم تجهيز العقار (ر.س)', unit: 'ر.س' },
+  { k: 'reserveRate',       label: 'احتياطي العقار (%)', unit: '%' },
+]
+
 const FILTERS = [
-  { value: 'all',          label: 'الكل' },
-  { value: 'NEW',          label: 'جديد' },
-  { value: 'UNDER_REVIEW', label: 'قيد المراجعة' },
-  { value: 'NEEDS_INFO',   label: 'بحاجة لمعلومات' },
-  { value: 'ACCEPTED',     label: 'مقبول مبدئيًا' },
-  { value: 'REJECTED',     label: 'مرفوض' },
+  { value: 'all',                    label: 'الكل' },
+  { value: 'NEW',                    label: 'تم استلام الطلب' },
+  { value: 'UNDER_REVIEW',           label: 'قيد الدراسة' },
+  { value: 'NEEDS_INFO',             label: 'مطلوب معلومات إضافية' },
+  { value: 'ACCEPTED',               label: 'قبول مبدئي' },
+  { value: 'READY_FOR_FINAL_REVIEW', label: 'جاهز للاعتماد النهائي' },
+  { value: 'FINAL_APPROVED',         label: 'اعتماد نهائي' },
+  { value: 'REJECTED',               label: 'مرفوض' },
 ]
 
 // Owner-facing meaning of each admin action (product copy)
-const ACTIONS = [
-  { status: 'UNDER_REVIEW', label: 'بدء المراجعة',       icon: ClipboardList, cls: 'bg-amber-500 hover:bg-amber-600',  hint: 'الطلب قيد المراجعة من فريق الوسم' },
-  { status: 'NEEDS_INFO',   label: 'طلب معلومات إضافية', icon: Info,          cls: 'bg-orange-500 hover:bg-orange-600', hint: 'نحتاج معلومات إضافية قبل اتخاذ القرار' },
-  { status: 'ACCEPTED',     label: 'قبول مبدئي',         icon: CheckCircle2,  cls: 'bg-green-600 hover:bg-green-700',   hint: 'تم قبول الطلب مبدئيًا للانتقال إلى الدراسة التفصيلية' },
-  { status: 'REJECTED',     label: 'رفض',                icon: XCircle,       cls: 'bg-red-600 hover:bg-red-700',       hint: 'الفرصة غير مناسبة حاليًا وفق معايير الوسم' },
-]
+// Admin actions available FROM each status (mirrors the backend transition map).
+// CONVERTED_TO_PROPERTY is never offered here — conversion is a separate path (Phase 6).
+const ADMIN_ACTIONS = {
+  NEW: [
+    { to: 'UNDER_REVIEW', label: 'بدء الدراسة', icon: ClipboardList, cls: 'bg-amber-500 hover:bg-amber-600' },
+  ],
+  UNDER_REVIEW: [
+    { to: 'NEEDS_INFO', label: 'طلب معلومات إضافية', icon: Info,         cls: 'bg-orange-500 hover:bg-orange-600' },
+    { to: 'ACCEPTED',   label: 'قبول مبدئي',         icon: CheckCircle2, cls: 'bg-green-600 hover:bg-green-700' },
+    { to: 'REJECTED',   label: 'رفض',                icon: XCircle,      cls: 'bg-red-600 hover:bg-red-700' },
+  ],
+  ACCEPTED: [
+    { to: 'READY_FOR_FINAL_REVIEW', label: 'تجهيز للاعتماد النهائي', icon: ClipboardList, cls: 'bg-teal-600 hover:bg-teal-700' },
+    { to: 'REJECTED',               label: 'رفض',                    icon: XCircle,       cls: 'bg-red-600 hover:bg-red-700' },
+  ],
+  READY_FOR_FINAL_REVIEW: [
+    { to: 'FINAL_APPROVED', label: 'اعتماد نهائي',         icon: CheckCircle2, cls: 'bg-emerald-700 hover:bg-emerald-800' },
+    { to: 'NEEDS_INFO',     label: 'طلب معلومات إضافية',   icon: Info,         cls: 'bg-orange-500 hover:bg-orange-600' },
+    { to: 'ACCEPTED',       label: 'إرجاع لقبول مبدئي',    icon: RefreshCw,    cls: 'bg-gray-500 hover:bg-gray-600' },
+    { to: 'REJECTED',       label: 'رفض',                  icon: XCircle,      cls: 'bg-red-600 hover:bg-red-700' },
+  ],
+  NEEDS_INFO: [               // owner can resubmit, and admin can also progress it manually
+    { to: 'UNDER_REVIEW', label: 'بدء المراجعة', icon: ClipboardList, cls: 'bg-amber-500 hover:bg-amber-600' },
+    { to: 'ACCEPTED',     label: 'قبول مبدئي',    icon: CheckCircle2,  cls: 'bg-green-600 hover:bg-green-700' },
+    { to: 'REJECTED',     label: 'رفض',           icon: XCircle,       cls: 'bg-red-600 hover:bg-red-700' },
+  ],
+  FINAL_APPROVED: [],         // terminal
+  REJECTED: [],               // terminal
+  CONVERTED_TO_PROPERTY: [],  // terminal
+}
 
+const statusLabel = (k) => (k && STATUS[k]?.label) || k || '—'
+// A document ref may be a legacy local URL string, an S3 key string, or a { key } object.
+const isLegacyRef = (ref) => typeof ref === 'string' && ref.startsWith('/api/uploads')
+const refToKey = (ref) => (typeof ref === 'string' ? ref : (ref && ref.key) || '')
 const fmtSar = (n) => (n || n === 0) ? Number(n).toLocaleString('en-US') + ' ر.س' : '—'
 const fmtDate = (d) => d ? new Date(d).toLocaleDateString('ar-SA', { year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' }) : '—'
 
@@ -100,6 +149,44 @@ function DetailPanel({ id, onClose, onUpdated, showToast }) {
   const [error, setError] = useState('')
   const [notes, setNotes] = useState('')
   const [saving, setSaving] = useState(null)
+  const [history, setHistory] = useState([])
+  const [fin, setFin] = useState(null)        // GET /finalization response
+  const [finForm, setFinForm] = useState(null) // editable inputs
+  const [finSaving, setFinSaving] = useState(false)
+  const [converting, setConverting] = useState(false)
+  const setFinField = (k, v) => setFinForm(f => ({ ...f, [k]: v }))
+
+  const loadHistory = useCallback(async () => {
+    try {
+      const h = await fetchJson(`/api/admin/property-leads/${id}/audit-history`, { headers: authHeader() })
+      setHistory(Array.isArray(h) ? h : [])
+    } catch {
+      setHistory([])
+    }
+  }, [id])
+
+  const loadFinalization = useCallback(async () => {
+    try {
+      const f = await fetchJson(`/api/admin/property-leads/${id}/finalization`, { headers: authHeader() })
+      setFin(f)
+      const ld = f.listingDraft || {}
+      const fs = f.feeSnapshot || {}
+      setFinForm({
+        totalValue: ld.totalValue ?? '', tokenPrice: ld.tokenPrice ?? '', totalTokens: ld.totalTokens ?? '',
+        monthlyYield: ld.monthlyYield ?? '', expectedROI: ld.expectedROI ?? '', listingNotes: ld.notes ?? '',
+        // Prefer stored snapshot values; fall back to legacy pct keys, then to
+        // the Settings-seeded defaults. preparationFee/reserveRate have no legacy
+        // equivalent (were tokenization/VAT) so they start from defaults.
+        investorFeeRate:   fs.investorFeeRate   ?? fs.platformFeePct   ?? (f.defaultFeeInputs?.investorFeeRate ?? ''),
+        managementFeeRate: fs.managementFeeRate ?? fs.managementFeePct ?? (f.defaultFeeInputs?.managementFeeRate ?? ''),
+        preparationFee:    fs.preparationFee    ?? (f.defaultFeeInputs?.preparationFee ?? ''),
+        reserveRate:       fs.reserveRate       ?? (f.defaultFeeInputs?.reserveRate ?? ''),
+        feeNotes: fs.notes ?? '',
+      })
+    } catch {
+      setFin(null); setFinForm(null)
+    }
+  }, [id])
 
   useEffect(() => {
     let alive = true
@@ -115,8 +202,56 @@ function DetailPanel({ id, onClose, onUpdated, showToast }) {
         if (alive) setLoading(false)
       }
     })()
+    loadHistory()
+    loadFinalization()
     return () => { alive = false }
-  }, [id])
+  }, [id, loadHistory, loadFinalization])
+
+  const saveFinalization = async () => {
+    setFinSaving(true)
+    try {
+      const f = finForm
+      const num = (v) => (v === '' || v === null || v === undefined ? undefined : Number(v))
+      const res = await fetchJson(`/api/admin/property-leads/${id}/finalization`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json', ...authHeader() },
+        body: JSON.stringify({
+          listingDraft: { totalValue: num(f.totalValue), tokenPrice: num(f.tokenPrice), totalTokens: num(f.totalTokens), monthlyYield: num(f.monthlyYield), expectedROI: num(f.expectedROI), notes: f.listingNotes || undefined },
+          feeSnapshot: { preparationFee: num(f.preparationFee), investorFeeRate: num(f.investorFeeRate), managementFeeRate: num(f.managementFeeRate), reserveRate: num(f.reserveRate), notes: f.feeNotes || undefined },
+        }),
+      })
+      showToast('success', 'تم حفظ بيانات الإدراج والرسوم')
+      if (Array.isArray(res?.warnings) && res.warnings.length) showToast('error', res.warnings[0])
+      loadFinalization()
+      loadHistory()
+    } catch (err) {
+      showToast('error', err?.data?.message || 'تعذّر حفظ بيانات الإدراج والرسوم.')
+    } finally {
+      setFinSaving(false)
+    }
+  }
+
+  // Phase 6 — convert a FINAL_APPROVED lead into an actual Property (admin only).
+  const convertLead = async () => {
+    setConverting(true)
+    try {
+      const res = await fetchJson(`/api/admin/property-leads/${id}/convert`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', ...authHeader() },
+      })
+      showToast('success', res?.message || 'تم تحويل الطلب إلى عقار')
+      try {
+        const data = await fetchJson(`/api/admin/property-leads/${id}`, { headers: authHeader() })
+        setLead(data)
+      } catch { /* keep current lead */ }
+      loadHistory()
+      onUpdated()
+    } catch (err) {
+      showToast('error', err?.data?.message || 'تعذّر تحويل الطلب إلى عقار.')
+    } finally {
+      setConverting(false)
+    }
+  }
 
   const updateStatus = async (status) => {
     setSaving(status)
@@ -128,12 +263,27 @@ function DetailPanel({ id, onClose, onUpdated, showToast }) {
       })
       setLead(res.lead)
       showToast('success', 'تم تحديث حالة الطلب بنجاح')
+      loadHistory()
       onUpdated()
-    } catch {
-      showToast('error', 'تعذّر تحديث حالة الطلب. حاول مرة أخرى.')
+    } catch (err) {
+      // Surface the backend's Arabic message when present (e.g. the FINAL_APPROVED
+      // requirements guard or an invalid transition), otherwise a generic message.
+      showToast('error', err?.data?.message || 'تعذّر تحديث حالة الطلب. حاول مرة أخرى.')
     } finally {
       setSaving(null)
     }
+  }
+
+  // Open a lead document: legacy URLs directly; S3 keys via a short-lived
+  // admin-scoped signed URL (admin endpoint enforces the key belongs to the lead).
+  const openDoc = async (ref) => {
+    if (isLegacyRef(ref)) { window.open(`${API_BASE}${ref}`, '_blank', 'noopener'); return }
+    const key = refToKey(ref)
+    if (!key) return
+    try {
+      const r = await fetchJson(`/api/admin/property-leads/${id}/documents/url?key=${encodeURIComponent(key)}`, { headers: authHeader() })
+      if (r?.url) window.open(r.url, '_blank', 'noopener')
+    } catch { /* keep UI simple */ }
   }
 
   const imageUrls = Array.isArray(lead?.imageUrls) ? lead.imageUrls : []
@@ -205,17 +355,31 @@ function DetailPanel({ id, onClose, onUpdated, showToast }) {
                 {imageUrls.length > 0 && (
                   <div className="grid grid-cols-3 sm:grid-cols-4 gap-2 mb-3">
                     {imageUrls.map((u, i) => (
-                      <a key={i} href={`${API_BASE}${u}`} target="_blank" rel="noreferrer">
-                        <img src={`${API_BASE}${u}`} alt={`صورة ${i + 1}`} className="w-full h-24 object-cover rounded-lg border border-border-soft hover:opacity-90" />
-                      </a>
+                      isLegacyRef(u) ? (
+                        <a key={i} href={`${API_BASE}${u}`} target="_blank" rel="noreferrer">
+                          <img src={`${API_BASE}${u}`} alt={`صورة ${i + 1}`} className="w-full h-24 object-cover rounded-lg border border-border-soft hover:opacity-90" />
+                        </a>
+                      ) : (
+                        <button key={i} type="button" onClick={() => openDoc(u)}
+                          className="h-24 rounded-lg border border-border-soft bg-surface-muted flex flex-col items-center justify-center gap-1 text-brand-accent hover:border-brand-accent">
+                          <FileText size={18} /><span className="text-[10px] text-text-muted">عرض الصورة</span>
+                        </button>
+                      )
                     ))}
                   </div>
                 )}
                 {lead.deedImageUrl && (
-                  <a href={`${API_BASE}${lead.deedImageUrl}`} target="_blank" rel="noreferrer"
-                    className="inline-flex items-center gap-2 text-sm text-brand-accent hover:underline font-medium">
-                    <FileText size={16} /> عرض صورة الصك
-                  </a>
+                  isLegacyRef(lead.deedImageUrl) ? (
+                    <a href={`${API_BASE}${lead.deedImageUrl}`} target="_blank" rel="noreferrer"
+                      className="inline-flex items-center gap-2 text-sm text-brand-accent hover:underline font-medium">
+                      <FileText size={16} /> عرض صورة الصك
+                    </a>
+                  ) : (
+                    <button type="button" onClick={() => openDoc(lead.deedImageUrl)}
+                      className="inline-flex items-center gap-2 text-sm text-brand-accent hover:underline font-medium">
+                      <FileText size={16} /> عرض صورة الصك
+                    </button>
+                  )
                 )}
               </Section>
             )}
@@ -227,6 +391,58 @@ function DetailPanel({ id, onClose, onUpdated, showToast }) {
               {lead.reviewedBy && <span>بواسطة: {lead.reviewedBy}</span>}
             </div>
 
+            {/* Phase 5 — listing draft + fee snapshot (admin only) */}
+            {['ACCEPTED', 'READY_FOR_FINAL_REVIEW'].includes(lead.status) && finForm && (() => {
+              // No combined fee total: the four values use different calculation
+              // bases (fixed SAR vs % of order vs % of rental income), so they are
+              // shown individually rather than summed.
+              const mismatch = finForm.totalValue && finForm.tokenPrice && finForm.totalTokens &&
+                Math.abs(Number(finForm.totalValue) - Number(finForm.tokenPrice) * Number(finForm.totalTokens)) > 0.01
+              const inputCls = 'w-full border border-border-soft rounded-lg px-2 py-1.5 text-sm focus:ring-1 focus:ring-brand-accent focus:border-brand-accent'
+              return (
+                <div className="rounded-2xl border border-border-soft bg-surface-card p-5 space-y-4">
+                  <h3 className="text-sm font-bold text-brand-primary flex items-center gap-2"><Coins size={16} className="text-brand-accent" /> بيانات الإدراج والرسوم</h3>
+                  {fin?.feesLockedAt && <p className="text-[11px] text-green-700">تم حفظ لقطة الرسوم بتاريخ {fmtDate(fin.feesLockedAt)}.</p>}
+
+                  <div className="grid grid-cols-2 gap-3">
+                    {FIN_LISTING_FIELDS.map(f => (
+                      <label key={f.k} className="block">
+                        <span className="block text-[11px] text-text-muted mb-0.5">{f.label}</span>
+                        <input type="number" value={finForm[f.k]} onChange={e => setFinField(f.k, e.target.value)} className={inputCls} />
+                      </label>
+                    ))}
+                  </div>
+                  <input type="text" placeholder="ملاحظات الإدراج (اختياري)" value={finForm.listingNotes} onChange={e => setFinField('listingNotes', e.target.value)} className={inputCls} />
+                  {mismatch && <p className="text-[11px] text-amber-600">تنبيه: القيمة النهائية لا تساوي سعر الحصة × عدد الحصص.</p>}
+
+                  <div className="border-t border-border-soft pt-3 space-y-3">
+                    <p className="text-xs font-bold text-brand-primary">رسوم الإدراج المعتمدة لهذا العقار (لقطة الرسوم)</p>
+                    <div className="grid grid-cols-2 gap-3">
+                      {FIN_FEE_FIELDS.map(f => (
+                        <label key={f.k} className="block">
+                          <span className="block text-[11px] text-text-muted mb-0.5">{f.label}</span>
+                          <input type="number" min="0" value={finForm[f.k]} onChange={e => setFinField(f.k, e.target.value)} className={inputCls} />
+                        </label>
+                      ))}
+                    </div>
+                    {/* Per-value summary (no misleading combined total) */}
+                    <div className="rounded-lg bg-surface-muted px-3 py-2 text-[11px] text-text-body space-y-0.5">
+                      <p>رسوم تجهيز العقار: <span className="font-semibold" dir="ltr">{fmtSar(Number(finForm.preparationFee) || 0)}</span></p>
+                      <p>رسوم خدمة المنصة عند الاستثمار: <span className="font-semibold" dir="ltr">{Number(finForm.investorFeeRate) || 0}%</span></p>
+                      <p>رسوم إدارة العقار: <span className="font-semibold" dir="ltr">{Number(finForm.managementFeeRate) || 0}%</span></p>
+                      <p>احتياطي العقار: <span className="font-semibold" dir="ltr">{Number(finForm.reserveRate) || 0}%</span></p>
+                    </div>
+                    <input type="text" placeholder="ملاحظات الرسوم (اختياري)" value={finForm.feeNotes} onChange={e => setFinField('feeNotes', e.target.value)} className={inputCls} />
+                  </div>
+
+                  <button onClick={saveFinalization} disabled={finSaving}
+                    className="inline-flex items-center gap-2 px-5 py-2.5 bg-brand-accent text-white rounded-xl text-sm font-semibold hover:bg-brand-accent/90 transition-colors disabled:opacity-60">
+                    {finSaving ? <Loader2 size={14} className="animate-spin" /> : <Coins size={14} />} حفظ بيانات الإدراج والرسوم
+                  </button>
+                </div>
+              )
+            })()}
+
             {/* actions */}
             <div className="rounded-2xl border border-border-soft bg-surface-card p-5">
               <h3 className="text-sm font-bold text-brand-primary flex items-center gap-2 mb-3"><Gavel size={16} /> إجراء المراجعة</h3>
@@ -235,21 +451,73 @@ function DetailPanel({ id, onClose, onUpdated, showToast }) {
                 placeholder="اكتب ملاحظاتك للمالك أو للأرشيف الداخلي..."
                 className="w-full border border-border-soft rounded-xl px-3 py-2 text-sm focus:ring-2 focus:ring-brand-accent focus:border-brand-accent resize-none mb-4" />
               <div className="grid grid-cols-2 gap-2">
-                {ACTIONS.map(a => {
+                {(ADMIN_ACTIONS[lead.status] || []).map(a => {
                   const Icon = a.icon
-                  const active = lead.status === a.status
                   return (
-                    <button key={a.status} onClick={() => updateStatus(a.status)} disabled={!!saving || active} title={a.hint}
+                    <button key={a.to} onClick={() => updateStatus(a.to)} disabled={!!saving}
                       className={`flex items-center justify-center gap-2 px-3 py-2.5 rounded-xl text-white text-sm font-semibold transition-colors disabled:opacity-50 disabled:cursor-not-allowed ${a.cls}`}>
-                      {saving === a.status ? <Loader2 size={14} className="animate-spin" /> : <Icon size={14} />}
-                      {active ? 'الحالة الحالية' : a.label}
+                      {saving === a.to ? <Loader2 size={14} className="animate-spin" /> : <Icon size={14} />}
+                      {a.label}
                     </button>
                   )
                 })}
               </div>
+              {lead.status === 'NEEDS_INFO' && (
+                <p className="text-xs text-text-muted mt-2">
+                  يمكنك انتظار تحديث المالك أو متابعة المراجعة يدويًا.
+                </p>
+              )}
+              {(ADMIN_ACTIONS[lead.status] || []).length === 0 && lead.status !== 'FINAL_APPROVED' && (
+                <p className="text-xs text-text-muted">لا توجد إجراءات متاحة لهذه الحالة.</p>
+              )}
+              {lead.status === 'FINAL_APPROVED' && (
+                <div className="mt-1">
+                  <button onClick={convertLead} disabled={converting}
+                    className="w-full inline-flex items-center justify-center gap-2 px-4 py-2.5 bg-indigo-600 text-white rounded-xl text-sm font-semibold hover:bg-indigo-700 transition-colors disabled:opacity-60">
+                    {converting ? <Loader2 size={14} className="animate-spin" /> : <Building2 size={14} />} تحويل إلى عقار
+                  </button>
+                  <p className="text-[11px] text-text-muted mt-2">يُنشئ عقارًا بحالة مبدئية غير مرئية للمستثمرين حتى اعتماد الإدراج لاحقًا.</p>
+                </div>
+              )}
               <p className="text-[11px] text-text-muted mt-3 leading-relaxed">
                 القبول المبدئي يعني الانتقال إلى الدراسة التفصيلية فقط — ولا يعني إدراج العقار أو ترميزه أو اعتماده للمستثمرين.
               </p>
+            </div>
+
+            {/* review history / audit timeline (read-only, admin-only) */}
+            <div className="rounded-2xl border border-border-soft bg-surface-card p-5">
+              <h3 className="text-sm font-bold text-brand-primary flex items-center gap-2 mb-3"><Clock size={16} className="text-brand-accent" /> سجل المراجعة</h3>
+              {history.length === 0 ? (
+                <p className="text-xs text-text-muted">لا يوجد سجل مراجعة بعد.</p>
+              ) : (
+                <ol className="space-y-3">
+                  {history.map(h => {
+                    const m = h.metadata || {}
+                    const by = h.adminEmail || (m.actor === 'owner' ? 'المالك' : (h.adminId || '—'))
+                    return (
+                      <li key={h.id} className="border-r-2 border-brand-accent/40 pr-3">
+                        <div className="text-sm font-semibold text-brand-primary">
+                          تغيّر الحالة: <span className="font-normal text-text-muted">من</span> {statusLabel(m.fromStatus)} <span className="font-normal text-text-muted">إلى</span> {statusLabel(m.toStatus)}
+                        </div>
+                        {m.note && (
+                          <div className="text-xs text-text-body mt-0.5"><span className="text-text-muted">ملاحظة:</span> {m.note}</div>
+                        )}
+                        {m.ownerResponseNote && (
+                          <div className="text-xs text-text-body mt-1 bg-orange-50 border border-orange-200 rounded-lg p-2 whitespace-pre-line">
+                            <span className="font-semibold text-orange-800">
+                              {h.action === 'PROPERTY_LEAD_OWNER_SUPPLEMENTED' ? 'إضافة من المالك:' : 'رد المالك:'}
+                            </span> {m.ownerResponseNote}
+                          </div>
+                        )}
+                        <div className="text-[11px] text-text-muted mt-1 flex flex-wrap gap-x-4 gap-y-0.5">
+                          <span>بواسطة: {by}</span>
+                          <span>التاريخ: {fmtDate(h.createdAt)}</span>
+                        </div>
+                      </li>
+                    )
+                  })}
+                </ol>
+              )}
             </div>
           </div>
         )}

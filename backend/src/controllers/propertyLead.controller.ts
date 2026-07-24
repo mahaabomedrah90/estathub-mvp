@@ -1,11 +1,14 @@
 import { Router, Request, Response, NextFunction } from 'express'
 import multer from 'multer'
-import path from 'path'
-import crypto from 'crypto'
 import { prisma } from '../lib/prisma'
 import { auth } from '../middleware/auth'
-import { getFileUrl } from '../middleware/roles'
 import { scoreLead } from '../lib/propertyLeadScoring'
+import { logAdminAction, AuditAction } from '../lib/auditService'
+import {
+  buildPropertyLeadKey, uploadPropertyLeadDocument, getSignedPropertyLeadUrl,
+  detectMimeFromMagic, getDocsBucket, isLegacyLocalUrl, isS3Key,
+  SIGNED_URL_TTL_SECONDS, DocsNotConfiguredError,
+} from '../lib/propertyLeadS3'
 
 // ============================================================================
 // PropertyLead API — preliminary owner opportunity submissions
@@ -20,7 +23,23 @@ import { scoreLead } from '../lib/propertyLeadScoring'
 // ============================================================================
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
-const ALLOWED_STATUS_UPDATES = ['UNDER_REVIEW', 'NEEDS_INFO', 'ACCEPTED', 'REJECTED'] as const
+// Statuses an admin may set via the generic status PATCH. CONVERTED_TO_PROPERTY is
+// intentionally excluded — conversion happens on a separate path (Phase 6, not built).
+const ADMIN_SETTABLE_STATUSES = ['UNDER_REVIEW', 'NEEDS_INFO', 'ACCEPTED', 'REJECTED', 'READY_FOR_FINAL_REVIEW', 'FINAL_APPROVED'] as const
+// Allowed admin status transitions (from -> [to]). NEEDS_INFO can also progress
+// via the owner resubmit endpoint (NEEDS_INFO -> UNDER_REVIEW); admins may drive it
+// forward manually too (wait for the owner or continue review).
+// FINAL_APPROVED/REJECTED/CONVERTED are terminal.
+const ADMIN_STATUS_TRANSITIONS: Record<string, string[]> = {
+  NEW:                    ['UNDER_REVIEW'],
+  UNDER_REVIEW:           ['NEEDS_INFO', 'ACCEPTED', 'REJECTED'],
+  NEEDS_INFO:             ['UNDER_REVIEW', 'ACCEPTED', 'REJECTED'], // no longer a dead-end for admin
+  ACCEPTED:               ['READY_FOR_FINAL_REVIEW', 'REJECTED'],
+  READY_FOR_FINAL_REVIEW: ['FINAL_APPROVED', 'ACCEPTED', 'NEEDS_INFO', 'REJECTED'],
+  FINAL_APPROVED:         [],
+  REJECTED:               [],
+  CONVERTED_TO_PROPERTY:  [],
+}
 
 // Owner-facing projection — exposes review feedback (adminStatus, reviewNotes,
 // reviewedAt) so owners see the team's decision, but deliberately EXCLUDES the
@@ -96,24 +115,55 @@ function requireAdmin(req: Request & { user?: any }, res: Response): boolean {
 }
 
 // ─── file upload (lead property images + deed) ──────────────────────────────
-// LOCAL to this controller so the legacy /api/properties/upload-document is not
-// modified. Accepts image or PDF (deed), 10 MB max, stored in the same
-// uploads/properties dir served via getFileUrl().
+// Phase 2a: memoryStorage → private S3 (NOT local disk). The buffer is
+// magic-byte validated then uploaded via propertyLeadS3. Client-declared mime is
+// only a first gate; detectMimeFromMagic is authoritative.
 const LEAD_UPLOAD_MIMES = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp', 'application/pdf']
 const leadUpload = multer({
-  storage: multer.diskStorage({
-    destination: (_req, _file, cb) => cb(null, 'uploads/properties/'),
-    filename: (_req, file, cb) => {
-      const suffix = `${Date.now()}-${crypto.randomBytes(6).toString('hex')}`
-      cb(null, `lead-${suffix}${path.extname(file.originalname)}`)
-    },
-  }),
+  storage: multer.memoryStorage(),
   limits: { fileSize: 10 * 1024 * 1024 }, // 10 MB
   fileFilter: (_req, file, cb) => {
     if (LEAD_UPLOAD_MIMES.includes(file.mimetype)) cb(null, true)
     else cb(new Error('Invalid file type'))
   },
 })
+
+// Collect every document reference stored on a lead (legacy URL strings AND new
+// S3-key strings/objects), so signed-URL endpoints can verify a requested key
+// actually belongs to the lead before signing it.
+// Normalize raw image-refs (from a client body or a stored lead field) into
+// clean string refs — S3 keys or legacy/public URLs. Handles both the correct
+// shape (upload returns { key, fileUrl, ... } objects) and legacy string refs,
+// and drops junk: "[object Object]" (produced by earlier String(obj) mistakes),
+// empty/whitespace, null/undefined, and objects without a usable key/URL.
+// Never includes deed/document refs (those live in deedImageUrl).
+function normalizeImageRefs(input: unknown): string[] {
+  if (!Array.isArray(input)) return []
+  const out: string[] = []
+  for (const item of input) {
+    let ref: string | null = null
+    if (typeof item === 'string') {
+      ref = item.trim()
+    } else if (item && typeof item === 'object') {
+      const key = (item as any).key
+      const fileUrl = (item as any).fileUrl
+      if (typeof key === 'string' && key.trim()) {
+        ref = key.trim()
+      } else if (typeof fileUrl === 'string' && /^(https?:\/\/|\/api\/uploads\/)/.test(fileUrl.trim())) {
+        ref = fileUrl.trim()
+      }
+    }
+    if (!ref || ref === '[object Object]') continue
+    out.push(ref)
+  }
+  return out
+}
+
+function leadDocumentRefs(lead: { imageUrls?: unknown; deedImageUrl?: unknown }): string[] {
+  const refs = normalizeImageRefs(lead.imageUrls)
+  if (typeof lead.deedImageUrl === 'string' && lead.deedImageUrl.trim()) refs.push(lead.deedImageUrl.trim())
+  return refs
+}
 
 // ════════════════════════════════════════════════════════════════════════════
 // OWNER ROUTER  →  /api/property-leads
@@ -178,7 +228,9 @@ propertyLeadRouter.post('/', auth(true), async (req: Request & { user?: any }, r
       if (b.imageUrls.length > 5) {
         return res.status(400).json({ error: 'too_many_images', message: 'الحد الأقصى 5 صور.', field: 'imageUrls' })
       }
-      imageUrls = b.imageUrls.map((u: unknown) => String(u)).filter(Boolean)
+      // Store S3 keys / URLs only — extract .key from upload-result objects and
+      // drop junk like "[object Object]" (never store the stringified object).
+      imageUrls = normalizeImageRefs(b.imageUrls)
     }
 
     const landArea     = toNum(b.landArea)
@@ -290,13 +342,75 @@ propertyLeadRouter.post(
       return res.status(400).json({ error: 'upload_error', message: 'تعذّر رفع الملف. حاول مرة أخرى.' })
     })
   },
-  (req: Request & { file?: any }, res: Response) => {
-    if (!req.file) {
+  async (req: Request & { file?: any; user?: any }, res: Response) => {
+    if (!req.file || !req.file.buffer) {
       return res.status(400).json({ error: 'no_file', message: 'لم يتم استلام أي ملف.' })
     }
-    return res.json({ fileUrl: getFileUrl(req.file.filename), fileName: req.file.originalname })
+    // Authoritative server-side content check (do not trust client mimetype).
+    const detected = detectMimeFromMagic(req.file.buffer)
+    if (!detected) {
+      return res.status(415).json({ error: 'unsupported_file_type', message: 'صيغة الملف غير مدعومة. المسموح: JPG أو PNG أو WEBP أو PDF.' })
+    }
+    if (!getDocsBucket()) {
+      return res.status(500).json({ error: 'storage_not_configured', message: 'Document storage is not configured' })
+    }
+    // Optional leadId: use the lead-scoped key prefix ONLY if the caller is
+    // authorized for that lead; otherwise fall back to the pending prefix.
+    let leadId: string | undefined = toStr(req.body?.leadId)
+    if (leadId) {
+      const role = normalizedRole(req)
+      const scope = role === 'ADMIN'
+        ? { id: leadId }
+        : { id: leadId, ownerId: req.user!.userId, tenantId: req.user!.tenantId }
+      const owns = await prisma.propertyLead.findFirst({ where: scope, select: { id: true } })
+      if (!owns) leadId = undefined
+    }
+    const key = buildPropertyLeadKey({ ownerId: req.user!.userId, leadId, originalName: req.file.originalname })
+    try {
+      await uploadPropertyLeadDocument({ buffer: req.file.buffer, key, contentType: detected })
+    } catch (e: any) {
+      if (e instanceof DocsNotConfiguredError) {
+        return res.status(500).json({ error: 'storage_not_configured', message: 'Document storage is not configured' })
+      }
+      console.error('❌ PropertyLead upload S3 error:', e?.message)
+      return res.status(500).json({ error: 'upload_failed', message: 'تعذّر رفع الملف. حاول مرة أخرى.' })
+    }
+    // New shape: store the KEY (never a public URL). fileUrl:null for BC.
+    return res.json({
+      key,
+      filename: req.file.originalname,
+      mimeType: detected,
+      size: req.file.size,
+      uploadedAt: new Date().toISOString(),
+      fileUrl: null,
+    })
   }
 )
+
+// GET /api/property-leads/:id/documents/url?key=<encodedKey> — owner gets a
+// short-lived signed URL for ONE of their own lead's documents. Legacy local
+// URLs are returned as-is (marked legacy). Arbitrary keys are never signed.
+propertyLeadRouter.get('/:id/documents/url', auth(true), async (req: Request & { user?: any }, res: Response) => {
+  if (!requireOwner(req, res)) return
+  try {
+    const key = typeof req.query.key === 'string' ? req.query.key : ''
+    if (!key) return res.status(400).json({ error: 'missing_key', message: 'المستند غير محدد.' })
+    const lead = await prisma.propertyLead.findFirst({
+      where: { id: req.params.id, ownerId: req.user!.userId, tenantId: req.user!.tenantId },
+      select: { imageUrls: true, deedImageUrl: true },
+    })
+    if (!lead) return res.status(404).json({ error: 'property_lead_not_found' })
+    if (!leadDocumentRefs(lead).includes(key)) return res.status(403).json({ error: 'document_not_on_lead' })
+    if (isLegacyLocalUrl(key)) return res.json({ url: key, legacy: true })
+    if (!isS3Key(key)) return res.status(400).json({ error: 'invalid_document_reference' })
+    const url = await getSignedPropertyLeadUrl(key)
+    return res.json({ url, expiresIn: SIGNED_URL_TTL_SECONDS })
+  } catch (e: any) {
+    if (e instanceof DocsNotConfiguredError) return res.status(500).json({ error: 'storage_not_configured', message: 'Document storage is not configured' })
+    console.error('❌ PropertyLead owner document url error:', e?.message)
+    return res.status(500).json({ error: 'document_url_failed', message: 'تعذّر فتح المستند. حاول مرة أخرى.' })
+  }
+})
 
 propertyLeadRouter.get('/mine', auth(true), async (req: Request & { user?: any }, res: Response) => {
   if (!requireOwner(req, res)) return
@@ -310,6 +424,182 @@ propertyLeadRouter.get('/mine', auth(true), async (req: Request & { user?: any }
   } catch (e: any) {
     console.error('❌ PropertyLead list (mine) error:', e)
     return res.status(500).json({ error: 'property_lead_list_failed' })
+  }
+})
+
+// GET /api/property-leads/:id — owner views ONE of their OWN leads (to pre-fill the edit form).
+// Registered AFTER /mine and /upload so those literal routes still match first.
+// Owner-safe projection only (never exposes internal scores). Returns 404 if the lead
+// is missing OR not owned by the caller (do not leak existence of other owners' leads).
+propertyLeadRouter.get('/:id', auth(true), async (req: Request & { user?: any }, res: Response) => {
+  if (!requireOwner(req, res)) return
+  try {
+    const lead = await prisma.propertyLead.findFirst({
+      where: { id: req.params.id, ownerId: req.user!.userId, tenantId: req.user!.tenantId },
+      select: OWNER_SAFE_SELECT,
+    })
+    if (!lead) return res.status(404).json({ error: 'property_lead_not_found' })
+    return res.json(lead)
+  } catch (e: any) {
+    console.error('❌ PropertyLead owner detail error:', e)
+    return res.status(500).json({ error: 'property_lead_detail_failed' })
+  }
+})
+
+// PATCH /api/property-leads/:id/resubmit — owner updates a NEEDS_INFO lead and resubmits it.
+// Owner-only, own-lead-only, allowed ONLY when the lead is currently NEEDS_INFO.
+// Sets status/adminStatus back to UNDER_REVIEW (existing enum — NO migration).
+// STRICT field allowlist: owner can never touch ownerId, tenantId, status/adminStatus directly,
+// reviewNotes, reviewedBy, reviewedAt, or internal scores. Last admin reviewNotes is preserved
+// for context. Internal scores are recomputed server-side (owner never sees/controls them).
+propertyLeadRouter.patch('/:id/resubmit', auth(true), async (req: Request & { user?: any }, res: Response) => {
+  if (!requireOwner(req, res)) return
+  try {
+    const existing = await prisma.propertyLead.findFirst({
+      where: { id: req.params.id, ownerId: req.user!.userId, tenantId: req.user!.tenantId },
+      select: { id: true, status: true },
+    })
+    if (!existing) return res.status(404).json({ error: 'property_lead_not_found' })
+    // Owner may update via this endpoint when the lead is NEEDS_INFO (respond to an
+    // info request) or READY_FOR_FINAL_REVIEW (supplement info during final review).
+    const OWNER_EDITABLE_STATUSES = ['NEEDS_INFO', 'READY_FOR_FINAL_REVIEW']
+    if (!OWNER_EDITABLE_STATUSES.includes(existing.status)) {
+      return res.status(409).json({
+        error: 'lead_not_editable',
+        message: 'لا يمكن تعديل هذا الطلب في حالته الحالية.',
+        currentStatus: existing.status,
+      })
+    }
+    // READY_FOR_FINAL_REVIEW supplement stays put (never moves the lead backward and
+    // never touches finalization). NEEDS_INFO resubmit returns to the review queue.
+    const isFinalReviewSupplement = existing.status === 'READY_FOR_FINAL_REVIEW'
+    const nextStatus = isFinalReviewSupplement ? 'READY_FOR_FINAL_REVIEW' : 'UNDER_REVIEW'
+
+    const b = req.body || {}
+
+    // --- required string fields (same contract as create) ---
+    const requiredStr = ['applicantType', 'fullName', 'phone', 'propertyName', 'propertyType', 'city', 'district', 'googleMapsUrl', 'shortDescription']
+    const missing = requiredStr.filter(k => !toStr(b[k]))
+    const requestedPrice = toNum(b.requestedPrice)
+    if (requestedPrice === undefined) missing.push('requestedPrice')
+    if (missing.length > 0) {
+      return res.status(400).json({ error: 'missing_required_fields', message: 'يرجى تعبئة جميع الحقول المطلوبة.', fields: missing })
+    }
+    if (!Number.isFinite(requestedPrice as number) || (requestedPrice as number) <= 0) {
+      return res.status(400).json({ error: 'invalid_requested_price', message: 'السعر المطلوب يجب أن يكون رقماً موجباً.', field: 'requestedPrice' })
+    }
+    const email = toStr(b.email)
+    if (email && !EMAIL_RE.test(email)) {
+      return res.status(400).json({ error: 'invalid_email', message: 'صيغة البريد الإلكتروني غير صحيحة.', field: 'email' })
+    }
+    const annualRent = toNum(b.annualRent)
+    if (annualRent !== undefined && (!Number.isFinite(annualRent) || annualRent <= 0)) {
+      return res.status(400).json({ error: 'invalid_annual_rent', message: 'قيمة الإيجار السنوي يجب أن تكون رقماً موجباً.', field: 'annualRent' })
+    }
+    let imageUrls: string[] | undefined
+    if (b.imageUrls !== undefined && b.imageUrls !== null) {
+      if (!Array.isArray(b.imageUrls)) return res.status(400).json({ error: 'invalid_images', message: 'صيغة الصور غير صحيحة.', field: 'imageUrls' })
+      if (b.imageUrls.length > 5) return res.status(400).json({ error: 'too_many_images', message: 'الحد الأقصى 5 صور.', field: 'imageUrls' })
+      // Store S3 keys / URLs only — extract .key from upload-result objects and
+      // drop junk like "[object Object]" (never store the stringified object).
+      imageUrls = normalizeImageRefs(b.imageUrls)
+    }
+    const landArea = toNum(b.landArea)
+    const buildingArea = toNum(b.buildingArea)
+    const buildingYear = toNum(b.buildingYear)
+    for (const [k, v] of Object.entries({ landArea, buildingArea, buildingYear })) {
+      if (typeof v === 'number' && Number.isNaN(v)) {
+        return res.status(400).json({ error: 'invalid_number', message: `قيمة غير صحيحة للحقل ${k}.`, field: k })
+      }
+    }
+    let leaseExpiryDate: Date | undefined
+    if (toStr(b.leaseExpiryDate)) {
+      const d = new Date(b.leaseExpiryDate)
+      if (!Number.isNaN(d.getTime())) leaseExpiryDate = d
+    }
+
+    // Optional owner response to the admin's request for info. Stored ONLY in the
+    // audit metadata (no schema change) and never overwrites admin reviewNotes.
+    let ownerResponseNote: string | undefined
+    if (b.ownerResponseNote !== undefined && b.ownerResponseNote !== null) {
+      const note = String(b.ownerResponseNote).trim()
+      if (note.length > 1000) {
+        return res.status(400).json({ error: 'note_too_long', message: 'الرد يجب ألا يتجاوز 1000 حرف.', field: 'ownerResponseNote' })
+      }
+      if (note) ownerResponseNote = note
+    }
+
+    // --- STRICT owner-editable allowlist (mirrors the create form fields) ---
+    const leadInput = {
+      applicantType: toStr(b.applicantType),
+      fullName:      toStr(b.fullName),
+      companyName:   toStr(b.companyName),
+      phone:         toStr(b.phone),
+      email,
+      propertyName:  toStr(b.propertyName),
+      propertyType:  toStr(b.propertyType),
+      city:          toStr(b.city),
+      district:      toStr(b.district),
+      googleMapsUrl: toStr(b.googleMapsUrl),
+      landArea:      landArea ?? null,
+      buildingArea:  buildingArea ?? null,
+      buildingYear:  buildingYear != null ? Math.trunc(buildingYear as number) : null,
+      requestedPrice: requestedPrice as number,
+      isPriceNegotiable:   toBool(b.isPriceNegotiable) ?? null,
+      isLeased:            toBool(b.isLeased) ?? null,
+      annualRent:          annualRent ?? null,
+      leaseExpiryDate:     leaseExpiryDate ?? null,
+      hasMortgage:         toBool(b.hasMortgage) ?? null,
+      hasOwnershipPartner: toBool(b.hasOwnershipPartner) ?? null,
+      hasLegalDispute:     toBool(b.hasLegalDispute) ?? null,
+      noLegalIssues:       toBool(b.noLegalIssues) ?? null,
+      shortDescription:    toStr(b.shortDescription),
+      // Documents: skip when not sent (protect existing docs from accidental clearing).
+      imageUrls:           imageUrls ?? undefined,
+      deedImageUrl:        toStr(b.deedImageUrl) ?? undefined,
+    }
+
+    // Recompute internal scores server-side against the updated data. Admin-only; never returned.
+    const scores = scoreLead(leadInput)
+
+    const updated = await prisma.propertyLead.update({
+      where: { id: existing.id },
+      data: {
+        ...leadInput,
+        qualificationScore: scores.qualificationScore,
+        tokenizationSuitabilityScore: scores.tokenizationSuitabilityScore,
+        internalRecommendation: scores.internalRecommendation,
+        // NEEDS_INFO → UNDER_REVIEW (back to queue); READY_FOR_FINAL_REVIEW → unchanged.
+        // listingDraft / feeSnapshot / feesLockedAt intentionally NOT touched.
+        status: nextStatus,
+        adminStatus: nextStatus,
+        // reviewNotes / reviewedBy / reviewedAt intentionally NOT touched (preserve admin context).
+        // ownerId / tenantId never change. updatedAt auto-updates via @updatedAt.
+      },
+      select: { id: true, status: true, updatedAt: true },
+    })
+
+    // Record the owner action in the shared audit trail so the admin review timeline
+    // is complete. adminId is null (owner actor). Safe: logAdminAction never throws.
+    await logAdminAction({
+      admin:      null,
+      action:     isFinalReviewSupplement ? AuditAction.PROPERTY_LEAD_OWNER_SUPPLEMENTED : AuditAction.PROPERTY_LEAD_RESUBMITTED,
+      targetType: 'PropertyLead',
+      targetId:   existing.id,
+      metadata:   { fromStatus: existing.status, toStatus: nextStatus, actor: 'owner', ownerId: req.user!.userId, ...(ownerResponseNote ? { ownerResponseNote } : {}) },
+      req,
+    })
+
+    return res.json({
+      success: true,
+      id: updated.id,
+      status: updated.status,
+      updatedAt: updated.updatedAt,
+      message: isFinalReviewSupplement ? 'تم إرسال معلومات الاعتماد النهائي' : 'تم إعادة إرسال الطلب للمراجعة',
+    })
+  } catch (e: any) {
+    console.error('❌ PropertyLead resubmit error:', e)
+    return res.status(500).json({ error: 'property_lead_resubmit_failed' })
   }
 })
 
@@ -354,16 +644,50 @@ propertyLeadAdminRouter.patch('/:id/status', auth(true), async (req: Request & {
   if (!requireAdmin(req, res)) return
   try {
     const { status, reviewNotes } = req.body || {}
-    if (!ALLOWED_STATUS_UPDATES.includes(status)) {
+
+    // Conversion is never performed via the generic status PATCH (separate path, Phase 6).
+    if (status === 'CONVERTED_TO_PROPERTY') {
+      return res.status(409).json({ error: 'conversion_not_allowed_here', message: 'التحويل إلى عقار يتم من خلال مسار مستقل' })
+    }
+    if (!ADMIN_SETTABLE_STATUSES.includes(status)) {
       return res.status(400).json({
         error: 'invalid_status',
-        message: `الحالة غير مسموحة. المسموح: ${ALLOWED_STATUS_UPDATES.join(', ')}`,
-        allowed: ALLOWED_STATUS_UPDATES,
+        message: `الحالة غير مسموحة. المسموح: ${ADMIN_SETTABLE_STATUSES.join(', ')}`,
+        allowed: ADMIN_SETTABLE_STATUSES,
       })
     }
 
-    const existing = await prisma.propertyLead.findUnique({ where: { id: req.params.id }, select: { id: true } })
+    const existing = await prisma.propertyLead.findUnique({
+      where: { id: req.params.id },
+      select: {
+        id: true, status: true, propertyName: true, ownerId: true,
+        listingDraft: true, feeSnapshot: true, feesLockedAt: true,
+      },
+    })
     if (!existing) return res.status(404).json({ error: 'property_lead_not_found' })
+
+    // Enforce the allowed transition map for the lead's current status.
+    const allowedTo = ADMIN_STATUS_TRANSITIONS[existing.status] || []
+    if (!allowedTo.includes(status)) {
+      return res.status(409).json({
+        error: 'invalid_status_transition',
+        message: `لا يمكن تغيير الحالة من "${existing.status}" إلى "${status}".`,
+        from: existing.status,
+        to: status,
+        allowed: allowedTo,
+      })
+    }
+
+    // FINAL_APPROVED requires listing + fee data. Phase 5/6 not built yet, so this
+    // blocks until listingDraft + feeSnapshot + feesLockedAt are all present.
+    if (status === 'FINAL_APPROVED') {
+      if (!existing.listingDraft || !existing.feeSnapshot || !existing.feesLockedAt) {
+        return res.status(409).json({
+          error: 'final_approval_requirements_missing',
+          message: 'لا يمكن الاعتماد النهائي قبل استكمال بيانات الإدراج والرسوم',
+        })
+      }
+    }
 
     const updated = await prisma.propertyLead.update({
       where: { id: req.params.id },
@@ -375,9 +699,373 @@ propertyLeadAdminRouter.patch('/:id/status', auth(true), async (req: Request & {
         reviewedBy: req.user!.userId,
       },
     })
+
+    // Audit trail via the existing AdminAuditLog (no new table). Never blocks the
+    // response — logAdminAction swallows its own errors internally.
+    await logAdminAction({
+      admin:      { userId: req.user!.userId, email: req.user!.email },
+      action:     AuditAction.PROPERTY_LEAD_STATUS_CHANGE,
+      targetType: 'PropertyLead',
+      targetId:   existing.id,
+      metadata:   {
+        fromStatus: existing.status,
+        toStatus:   status,
+        note:       typeof reviewNotes === 'string' ? reviewNotes : null,
+        propertyName: existing.propertyName ?? null,
+        ownerId:    existing.ownerId ?? null,
+      },
+      req,
+    })
+
     return res.json({ success: true, lead: updated })
   } catch (e: any) {
     console.error('❌ PropertyLead status update error:', e)
     return res.status(500).json({ error: 'property_lead_status_update_failed' })
+  }
+})
+
+// GET /api/admin/property-leads/:id/audit-history — admin-only review timeline for one lead.
+// Reads from the existing AdminAuditLog (targetType='PropertyLead', targetId=leadId). No new table.
+propertyLeadAdminRouter.get('/:id/audit-history', auth(true), async (req: Request & { user?: any }, res: Response) => {
+  if (!requireAdmin(req, res)) return
+  try {
+    const entries = await prisma.adminAuditLog.findMany({
+      where: { targetType: 'PropertyLead', targetId: req.params.id },
+      orderBy: { createdAt: 'desc' },
+      select: {
+        id: true, action: true, adminId: true, adminEmail: true,
+        metadata: true, createdAt: true,
+      },
+    })
+    return res.json(entries)
+  } catch (e: any) {
+    console.error('❌ PropertyLead audit-history error:', e)
+    return res.status(500).json({ error: 'property_lead_audit_history_failed' })
+  }
+})
+
+// GET /api/admin/property-leads/:id/documents/url?key=<encodedKey> — admin gets a
+// short-lived signed URL for ONE of a lead's documents. Key must belong to the
+// lead (never sign arbitrary keys). Legacy local URLs returned as-is.
+propertyLeadAdminRouter.get('/:id/documents/url', auth(true), async (req: Request & { user?: any }, res: Response) => {
+  if (!requireAdmin(req, res)) return
+  try {
+    const key = typeof req.query.key === 'string' ? req.query.key : ''
+    if (!key) return res.status(400).json({ error: 'missing_key', message: 'المستند غير محدد.' })
+    const lead = await prisma.propertyLead.findUnique({
+      where: { id: req.params.id },
+      select: { imageUrls: true, deedImageUrl: true },
+    })
+    if (!lead) return res.status(404).json({ error: 'property_lead_not_found' })
+    if (!leadDocumentRefs(lead).includes(key)) return res.status(403).json({ error: 'document_not_on_lead' })
+    if (isLegacyLocalUrl(key)) return res.json({ url: key, legacy: true })
+    if (!isS3Key(key)) return res.status(400).json({ error: 'invalid_document_reference' })
+    const url = await getSignedPropertyLeadUrl(key)
+    return res.json({ url, expiresIn: SIGNED_URL_TTL_SECONDS })
+  } catch (e: any) {
+    if (e instanceof DocsNotConfiguredError) return res.status(500).json({ error: 'storage_not_configured', message: 'Document storage is not configured' })
+    console.error('❌ PropertyLead admin document url error:', e?.message)
+    return res.status(500).json({ error: 'document_url_failed', message: 'تعذّر فتح المستند. حاول مرة أخرى.' })
+  }
+})
+
+// ─── Phase 5: listing draft + fee snapshot (admin finalization) ──────────────
+const FINALIZATION_EDITABLE_STATUSES = ['ACCEPTED', 'READY_FOR_FINAL_REVIEW']
+const round2 = (n: number) => Math.round(n * 100) / 100
+
+// Validate + normalize the admin-entered tokenomics/listing draft.
+function validateListingDraft(input: any):
+  | { ok: false; error: string; field?: string }
+  | { ok: true; data: any; warnings: string[] } {
+  const b = input || {}
+  const totalValue = toNum(b.totalValue)
+  const tokenPrice = toNum(b.tokenPrice)
+  const totalTokens = toNum(b.totalTokens)
+  const monthlyYield = toNum(b.monthlyYield)
+  if (totalValue === undefined || !Number.isFinite(totalValue) || totalValue <= 0) return { ok: false, error: 'invalid_total_value', field: 'totalValue' }
+  if (tokenPrice === undefined || !Number.isFinite(tokenPrice) || tokenPrice <= 0) return { ok: false, error: 'invalid_token_price', field: 'tokenPrice' }
+  if (totalTokens === undefined || !Number.isFinite(totalTokens) || totalTokens <= 0 || !Number.isInteger(totalTokens)) return { ok: false, error: 'invalid_total_tokens', field: 'totalTokens' }
+  if (monthlyYield === undefined || !Number.isFinite(monthlyYield) || monthlyYield < 0) return { ok: false, error: 'invalid_monthly_yield', field: 'monthlyYield' }
+  let remainingTokens = toNum(b.remainingTokens)
+  if (remainingTokens === undefined) remainingTokens = totalTokens
+  else if (!Number.isFinite(remainingTokens) || !Number.isInteger(remainingTokens) || remainingTokens < 0 || remainingTokens > totalTokens) return { ok: false, error: 'invalid_remaining_tokens', field: 'remainingTokens' }
+  const expectedROI = toNum(b.expectedROI)
+  if (expectedROI !== undefined && (!Number.isFinite(expectedROI) || expectedROI < 0)) return { ok: false, error: 'invalid_expected_roi', field: 'expectedROI' }
+  const notes = toStr(b.notes)
+  const warnings: string[] = []
+  // Warning only (do not block): totalValue vs tokenPrice * totalTokens.
+  if (Math.abs(totalValue - tokenPrice * totalTokens) > 0.01) warnings.push('القيمة النهائية لا تساوي سعر الحصة × عدد الحصص.')
+  return {
+    ok: true,
+    data: { totalValue, tokenPrice, totalTokens, remainingTokens, monthlyYield, expectedROI: expectedROI ?? null, notes: notes ?? null },
+    warnings,
+  }
+}
+
+// Build the fee snapshot from admin input — the four approved MVP fee values.
+// Stored with accounting field names so the snapshot is authoritative once
+// copied to Property.feeSnapshot at conversion:
+//   preparationFee    — fixed SAR amount (owner onboarding charge)
+//   investorFeeRate   — % charged on each investor order
+//   managementFeeRate — % of rental income (ALWSM revenue)
+//   reserveRate       — % of rental income (property reserve, NOT revenue)
+// Legacy VAT/tokenization fields are no longer produced (historical rows kept).
+export function buildFeeSnapshot(input: any, admin: { userId?: string; email?: string }):
+  | { ok: false; error: string; field?: string }
+  | { ok: true; data: any } {
+  const b = input || {}
+  const preparationFee = toNum(b.preparationFee)
+  const investorFeeRate = toNum(b.investorFeeRate)
+  const managementFeeRate = toNum(b.managementFeeRate)
+  const reserveRate = toNum(b.reserveRate)
+
+  // preparationFee is a fixed SAR amount (>= 0), not a percentage.
+  if (preparationFee === undefined || !Number.isFinite(preparationFee) || preparationFee < 0) {
+    return { ok: false, error: 'invalid_preparation_fee', field: 'preparationFee' }
+  }
+  // The three rates are percentages in [0, 100].
+  for (const [k, v] of Object.entries({ investorFeeRate, managementFeeRate, reserveRate })) {
+    if (v === undefined || !Number.isFinite(v) || v < 0 || v > 100) {
+      return { ok: false, error: 'invalid_fee_percentage', field: k }
+    }
+  }
+
+  const notes = toStr(b.notes)
+  const data: any = {
+    currency: 'SAR',
+    preparationFee,
+    investorFeeRate,
+    managementFeeRate,
+    reserveRate,
+    source: 'admin_manual_mvp4',
+    enteredBy: admin.userId ?? null,
+    enteredAt: new Date().toISOString(),
+  }
+  if (notes) data.notes = notes
+  return { ok: true, data }
+}
+
+// GET /api/admin/property-leads/:id/finalization — admin reads current listing/fee
+// data + a default platform-fee input seeded from Settings.platformFee.
+propertyLeadAdminRouter.get('/:id/finalization', auth(true), async (req: Request & { user?: any }, res: Response) => {
+  if (!requireAdmin(req, res)) return
+  try {
+    const lead = await prisma.propertyLead.findUnique({
+      where: { id: req.params.id },
+      select: { id: true, status: true, adminStatus: true, propertyName: true, requestedPrice: true, listingDraft: true, feeSnapshot: true, feesLockedAt: true },
+    })
+    if (!lead) return res.status(404).json({ error: 'property_lead_not_found' })
+    // Defaults for the four approved MVP fee values, seeded from Settings.
+    const readNum = async (key: string, fallback: number): Promise<number> => {
+      try {
+        const s = await prisma.settings.findUnique({ where: { key } })
+        const n = s?.value != null ? parseFloat(s.value) : NaN
+        return Number.isFinite(n) ? n : fallback
+      } catch { return fallback }
+    }
+    const [defPreparationFee, defInvestorFeeRate, defManagementFeeRate, defReserveRate] = await Promise.all([
+      readNum('propertyPreparationFee', 0),
+      readNum('platformFee', 5),
+      readNum('managementFeeRate', 8),
+      readNum('reserveRate', 3),
+    ])
+    return res.json({
+      lead: { id: lead.id, status: lead.status, adminStatus: lead.adminStatus, propertyName: lead.propertyName, requestedPrice: lead.requestedPrice },
+      listingDraft: lead.listingDraft,
+      feeSnapshot: lead.feeSnapshot,
+      feesLockedAt: lead.feesLockedAt,
+      defaultFeeInputs: {
+        currency: 'SAR',
+        preparationFee: defPreparationFee,
+        investorFeeRate: defInvestorFeeRate,
+        managementFeeRate: defManagementFeeRate,
+        reserveRate: defReserveRate,
+      },
+    })
+  } catch (e: any) {
+    console.error('❌ PropertyLead finalization get error:', e?.message)
+    return res.status(500).json({ error: 'finalization_get_failed' })
+  }
+})
+
+// PATCH /api/admin/property-leads/:id/finalization — admin saves the listing draft +
+// fee snapshot; sets feesLockedAt. Allowed only for ACCEPTED / READY_FOR_FINAL_REVIEW.
+// Does NOT create a Property and does NOT change status.
+propertyLeadAdminRouter.patch('/:id/finalization', auth(true), async (req: Request & { user?: any }, res: Response) => {
+  if (!requireAdmin(req, res)) return
+  try {
+    const existing = await prisma.propertyLead.findUnique({
+      where: { id: req.params.id },
+      select: { id: true, status: true, propertyName: true, ownerId: true },
+    })
+    if (!existing) return res.status(404).json({ error: 'property_lead_not_found' })
+    if (!FINALIZATION_EDITABLE_STATUSES.includes(existing.status)) {
+      return res.status(409).json({
+        error: 'finalization_not_allowed',
+        message: 'لا يمكن تعديل بيانات الإدراج والرسوم في حالة الطلب الحالية.',
+        currentStatus: existing.status,
+      })
+    }
+    const ld = validateListingDraft(req.body?.listingDraft)
+    if (!ld.ok) return res.status(400).json({ error: ld.error, field: ld.field, message: 'بيانات الإدراج غير صحيحة. تحقق من القيم المدخلة.' })
+    const fs = buildFeeSnapshot(req.body?.feeSnapshot, { userId: req.user!.userId, email: req.user!.email })
+    if (!fs.ok) return res.status(400).json({ error: fs.error, field: fs.field, message: 'بيانات الرسوم غير صحيحة. تحقق من النسب المدخلة (0–100).' })
+
+    const updated = await prisma.propertyLead.update({
+      where: { id: existing.id },
+      data: {
+        listingDraft: ld.data as any,
+        feeSnapshot: fs.data as any,
+        feesLockedAt: new Date(),
+      },
+      select: { id: true, status: true, listingDraft: true, feeSnapshot: true, feesLockedAt: true },
+    })
+
+    await logAdminAction({
+      admin:      { userId: req.user!.userId, email: req.user!.email },
+      action:     AuditAction.PROPERTY_LEAD_FINALIZATION_UPDATED,
+      targetType: 'PropertyLead',
+      targetId:   existing.id,
+      metadata:   {
+        totalValue: ld.data.totalValue,
+        totalTokens: ld.data.totalTokens,
+        totalFeesAmount: (fs.data as any).totalFeesAmount,
+        note: toStr(req.body?.note) ?? null,
+        propertyName: existing.propertyName ?? null,
+      },
+      req,
+    })
+
+    return res.json({
+      success: true,
+      listingDraft: updated.listingDraft,
+      feeSnapshot: updated.feeSnapshot,
+      feesLockedAt: updated.feesLockedAt,
+      warnings: ld.warnings,
+    })
+  } catch (e: any) {
+    console.error('❌ PropertyLead finalization update error:', e?.message)
+    return res.status(500).json({ error: 'finalization_update_failed' })
+  }
+})
+
+// POST /api/admin/property-leads/:id/convert — admin converts a FINAL_APPROVED lead
+// into an actual Property (status PENDING, isDraft=false → NOT investor-visible).
+// Idempotent (convertedPropertyId link), transactional. No minting/payment/listing.
+propertyLeadAdminRouter.post('/:id/convert', auth(true), async (req: Request & { user?: any }, res: Response) => {
+  if (!requireAdmin(req, res)) return
+  try {
+    const result = await prisma.$transaction(async (tx) => {
+      const lead = await tx.propertyLead.findUnique({
+        where: { id: req.params.id },
+        select: {
+          id: true, status: true, convertedPropertyId: true,
+          propertyName: true, shortDescription: true, propertyType: true, city: true, district: true,
+          landArea: true, buildingArea: true, buildingYear: true,
+          ownerId: true, fullName: true, phone: true, email: true, tenantId: true,
+          imageUrls: true, deedImageUrl: true,
+          listingDraft: true, feeSnapshot: true, feesLockedAt: true,
+        },
+      })
+      if (!lead) return { kind: 'not_found' as const }
+      // Idempotency: already converted → return the linked Property, never create another.
+      if (lead.convertedPropertyId) {
+        const existing = await tx.property.findUnique({ where: { id: lead.convertedPropertyId } })
+        return { kind: 'already' as const, propertyId: lead.convertedPropertyId, property: existing }
+      }
+      if (lead.status !== 'FINAL_APPROVED') return { kind: 'not_final' as const, status: lead.status }
+      if (!lead.listingDraft || !lead.feeSnapshot || !lead.feesLockedAt) return { kind: 'missing_finalization' as const }
+
+      const ld: any = lead.listingDraft
+      const tv = Number(ld?.totalValue), tp = Number(ld?.tokenPrice), tt = Number(ld?.totalTokens), my = Number(ld?.monthlyYield)
+      const rt = ld?.remainingTokens != null ? Number(ld.remainingTokens) : tt
+      const roi = ld?.expectedROI != null ? Number(ld.expectedROI) : 0
+      if (!(tv > 0) || !(tp > 0) || !Number.isInteger(tt) || !(tt > 0) || !(my >= 0) ||
+          !Number.isInteger(rt) || rt < 0 || rt > tt || !(roi >= 0)) {
+        return { kind: 'bad_tokenomics' as const }
+      }
+      if (!lead.propertyName) return { kind: 'missing_property_name' as const }
+
+      // Image references (S3 keys or legacy URLs) carried over as metadata; deed goes to deedDocumentUrl.
+      const imageRefs = leadDocumentRefs({ imageUrls: lead.imageUrls, deedImageUrl: null })
+
+      const property = await tx.property.create({
+        data: {
+          title: lead.propertyName,
+          description: lead.shortDescription ?? '',
+          propertyDescription: lead.shortDescription ?? undefined,
+          totalValue: tv, tokenPrice: tp, totalTokens: tt, remainingTokens: rt, monthlyYield: my, expectedROI: roi,
+          status: 'PENDING',   // NOT investor-visible (investors see APPROVED only)
+          isDraft: false,
+          ownerId: lead.ownerId ?? undefined,
+          ownerName: lead.fullName ?? '',
+          ownerPhone: lead.phone ?? undefined,
+          ownerEmail: lead.email ?? undefined,
+          tenantId: lead.tenantId,
+          city: lead.city ?? undefined,
+          district: lead.district ?? '',
+          propertyTypeDetailed: lead.propertyType ?? undefined,
+          landArea: lead.landArea ?? undefined,
+          builtArea: lead.buildingArea ?? undefined,
+          buildingAge: lead.buildingYear ?? undefined,
+          mainImagesUrls: imageRefs,
+          deedDocumentUrl: typeof lead.deedImageUrl === 'string' ? lead.deedImageUrl : undefined,
+          feeSnapshot: lead.feeSnapshot as any,
+        },
+      })
+
+      await tx.propertyLead.update({
+        where: { id: lead.id },
+        data: { status: 'CONVERTED_TO_PROPERTY', adminStatus: 'CONVERTED_TO_PROPERTY', convertedPropertyId: property.id },
+      })
+
+      return { kind: 'created' as const, property, fromStatus: lead.status, propertyName: lead.propertyName, totalValue: tv, totalTokens: tt, tokenPrice: tp }
+    })
+
+    if (result.kind === 'not_found') return res.status(404).json({ error: 'property_lead_not_found' })
+    if (result.kind === 'already') {
+      return res.json({ success: true, alreadyConverted: true, propertyId: result.propertyId, property: result.property, message: 'الطلب محوّل إلى عقار مسبقًا.' })
+    }
+    if (result.kind === 'not_final') {
+      return res.status(409).json({ error: 'not_final_approved', message: 'لا يمكن تحويل الطلب إلى عقار قبل الاعتماد النهائي', currentStatus: result.status })
+    }
+    if (result.kind === 'missing_finalization') {
+      return res.status(409).json({ error: 'finalization_missing', message: 'لا يمكن تحويل الطلب قبل استكمال بيانات الإدراج والرسوم' })
+    }
+    if (result.kind === 'bad_tokenomics') {
+      return res.status(400).json({ error: 'invalid_listing_tokenomics', message: 'بيانات الإدراج (الترميز) غير مكتملة أو غير صحيحة. راجع بيانات الإدراج ثم أعد المحاولة.' })
+    }
+    if (result.kind === 'missing_property_name') {
+      return res.status(400).json({ error: 'missing_property_name', message: 'اسم العقار مطلوب للتحويل.' })
+    }
+
+    // created
+    await logAdminAction({
+      admin:      { userId: req.user!.userId, email: req.user!.email },
+      action:     AuditAction.PROPERTY_LEAD_CONVERTED_TO_PROPERTY,
+      targetType: 'PropertyLead',
+      targetId:   req.params.id,
+      metadata:   {
+        leadId: req.params.id,
+        propertyId: result.property.id,
+        fromStatus: result.fromStatus,
+        toStatus: 'CONVERTED_TO_PROPERTY',
+        propertyName: result.propertyName,
+        totalValue: result.totalValue,
+        totalTokens: result.totalTokens,
+        tokenPrice: result.tokenPrice,
+      },
+      req,
+    })
+
+    return res.status(201).json({
+      success: true,
+      propertyId: result.property.id,
+      property: { id: result.property.id, title: result.property.title, status: result.property.status, isDraft: result.property.isDraft },
+      message: 'تم تحويل الطلب إلى عقار',
+    })
+  } catch (e: any) {
+    console.error('❌ PropertyLead convert error:', e?.message)
+    return res.status(500).json({ error: 'property_lead_convert_failed', message: 'تعذّر تحويل الطلب إلى عقار. حاول مرة أخرى.' })
   }
 })

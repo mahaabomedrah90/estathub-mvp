@@ -3,11 +3,48 @@ import { prisma } from '../lib/prisma'
 import { submitInitProperty, submitTxn, isFabricEnabled } from '../lib/fabric'
 import { uploadMultiplePropertyImages, getFileUrl, errorHandler, validateRequired, throwApiError, requireRole } from '../middleware/roles'
 import { auth } from '../middleware/auth'
+import { getSignedPropertyLeadUrl, isS3Key, isLegacyLocalUrl } from '../lib/propertyLeadS3'
+import { getSetting } from './settings.controller'
+import { buildPropertyFeeSnapshot } from '../lib/fees'
 import multer from 'multer'
 import path from 'path'
 import crypto from 'crypto'
 
 export const propertyRouter = Router()
+
+// Resolve stored property image refs to browser-usable URLs for PUBLIC responses.
+// - Private S3 keys ("property-leads/…", produced by converting a PropertyLead)
+//   → short-lived pre-signed GET URLs, but ONLY when the property is publicly
+//   visible (allowSignedS3 = status === 'APPROVED'). For PENDING/other statuses
+//   the key is skipped entirely — never signed, never returned — so private
+//   marketing photos of non-approved properties are not exposed via the public API.
+// - Public/legacy URLs (absolute http(s), legacy "/api/uploads/…") → passed
+//   through unchanged (already public) so existing wizard-submitted images work.
+// - Junk refs — "[object Object]" (from an earlier String(obj) bug), empties,
+//   and any string that is neither an S3 key nor a URL → dropped.
+// Only marketing photos (mainImagesUrls) are ever passed here — deed/legal
+// documents are NEVER signed for public property responses.
+async function resolvePropertyImageUrls(refs: unknown, allowSignedS3: boolean): Promise<string[]> {
+  if (!Array.isArray(refs)) return []
+  const out: string[] = []
+  for (const ref of refs) {
+    if (typeof ref !== 'string') continue
+    const r = ref.trim()
+    if (!r || r === '[object Object]') continue
+    if (isS3Key(r)) {
+      if (!allowSignedS3) continue
+      try {
+        out.push(await getSignedPropertyLeadUrl(r))
+      } catch {
+        // Skip keys we cannot sign (e.g. bucket not configured); never leak a raw key.
+      }
+    } else if (/^https?:\/\//.test(r) || isLegacyLocalUrl(r)) {
+      out.push(r)
+    }
+    // else: not a key, not a URL → junk, dropped.
+  }
+  return out
+}
 
 // ============================================================================
 // FILE UPLOAD CONFIGURATION
@@ -67,15 +104,17 @@ propertyRouter.get('/', async (req: Request, res: Response) => {
         ])
       : [0, await prisma.property.findMany({ where, orderBy: { id: 'desc' } })]
     
-    const mapped = list.map((p: any) => ({
+    const mapped = await Promise.all(list.map(async (p: any) => {
+      const resolvedMainImages = await resolvePropertyImageUrls(p.mainImagesUrls, p.status === 'APPROVED')
+      return {
       // Basic fields
       id: p.id,
       name: p.title,
       title: p.title,
       location: p.location,
       description: p.description,
-      imageUrl: p.imageUrl,
-      images: p.images || [],
+      imageUrl: p.imageUrl || resolvedMainImages[0] || null,
+      images: (Array.isArray(p.images) && p.images.length) ? p.images : resolvedMainImages,
       totalValue: p.totalValue,
       tokenPrice: p.tokenPrice,
       totalTokens: p.totalTokens,
@@ -116,7 +155,7 @@ propertyRouter.get('/', async (req: Request, res: Response) => {
       district: p.district,
       municipality: p.municipality,
       propertyDescription: p.propertyDescription,
-      mainImagesUrls: p.mainImagesUrls || [],
+      mainImagesUrls: resolvedMainImages,
       
       // Step 3: Financial & Tokenization
       marketValue: p.marketValue,
@@ -137,6 +176,7 @@ propertyRouter.get('/', async (req: Request, res: Response) => {
       // Metadata
       isDraft: p.isDraft,
       submissionCompletedAt: p.submissionCompletedAt
+      }
     }))
 
     if (hasPagination) {
@@ -170,7 +210,13 @@ propertyRouter.get('/:id', async (req: Request, res: Response) => {
     if (!property) {
       return res.status(404).json({ error: 'property_not_found' })
     }
-    
+
+    // Converted-lead properties store their marketing photos as private S3 keys
+    // in mainImagesUrls; resolve them to signed URLs (APPROVED only) and derive a
+    // hero imageUrl when the (legacy) single imageUrl field is empty. Private keys
+    // are never signed for non-APPROVED (e.g. PENDING) properties.
+    const resolvedMainImages = await resolvePropertyImageUrls(property.mainImagesUrls, property.status === 'APPROVED')
+
     // Map to frontend format with ALL fields
     const mapped = {
       // Basic fields
@@ -179,8 +225,8 @@ propertyRouter.get('/:id', async (req: Request, res: Response) => {
       title: property.title,
       location: property.location,
       description: property.description,
-      imageUrl: property.imageUrl,
-      images: property.images || [],
+      imageUrl: property.imageUrl || resolvedMainImages[0] || null,
+      images: (Array.isArray(property.images) && property.images.length) ? property.images : resolvedMainImages,
       totalValue: property.totalValue,
       tokenPrice: property.tokenPrice,
       totalTokens: property.totalTokens,
@@ -221,7 +267,7 @@ propertyRouter.get('/:id', async (req: Request, res: Response) => {
       district: property.district,
       municipality: property.municipality,
       propertyDescription: property.propertyDescription,
-      mainImagesUrls: property.mainImagesUrls || [],
+      mainImagesUrls: resolvedMainImages,
       
       // Step 3: Financial & Tokenization
       marketValue: property.marketValue,
@@ -257,13 +303,22 @@ propertyRouter.get('/:id', async (req: Request, res: Response) => {
 
 // POST /api/properties/upload-document
 // Upload a single document (deed, permit, valuation report, etc.)
-propertyRouter.post('/upload-document', auth(true), upload.single('file'), async (req: Request & { user?: any }, res: Response) => {
+propertyRouter.post('/upload-document', auth(true), requireRole(['OWNER', 'ADMIN']), upload.single('file'), async (req: Request & { user?: any }, res: Response) => {
   try {
     if (!req.file) {
       return res.status(400).json({ error: 'No file uploaded' })
     }
 
-    const { documentType } = req.body
+    const { documentType, propertyId } = req.body
+
+    // OWNER may upload only to a property they own; propertyId is optional (e.g. new unsaved drafts)
+    if (req.user?.role === 'OWNER' && propertyId) {
+      const property = await prisma.property.findUnique({ where: { id: propertyId }, select: { ownerId: true } })
+      if (!property || property.ownerId !== req.user.userId) {
+        return res.status(403).json({ error: 'forbidden', message: 'You can only upload documents for your own properties' })
+      }
+    }
+
     const fileUrl = getFileUrl(req.file.filename)
     
     // Calculate file hash for integrity
@@ -568,17 +623,34 @@ if (!allowedStatuses.includes(status)) {
 } = { status }
     
     if (status === 'APPROVED') {
+      const current = await prisma.property.findUnique({ where: { id }, select: { status: true, feeSnapshot: true } })
+      if (current?.status === 'APPROVED') {
+        if (current.feeSnapshot != null) {
+          const full = await prisma.property.findUnique({ where: { id } })
+          return res.json({ success: true, message: 'Property already approved — fee snapshot preserved', property: full })
+        }
+        return res.status(409).json({
+          error: 'fee_snapshot_missing',
+          message: 'Property is APPROVED but feeSnapshot is absent. Explicit admin remediation required — do not re-approve.',
+        })
+      }
       updateData.approvedAt = new Date()
+      // Preserve an existing snapshot (e.g. copied from a finalized PropertyLead
+      // at conversion) — it is the authoritative approved-fee configuration.
+      // Build from global settings ONLY for direct-submit properties that have none.
+      if (current?.feeSnapshot == null) {
+        ;(updateData as any).feeSnapshot = await buildPropertyFeeSnapshot()
+      }
     } else if (status === 'REJECTED') {
       updateData.rejectedAt = new Date()
       updateData.rejectionReason = req.body.reason || 'No reason provided'
     }
-    
+
     const updated = await prisma.property.update({
       where: { id },
       data: updateData,
     })
-    
+
     // Register property on blockchain when approved
     if (status === 'APPROVED' && isFabricEnabled()) {
       try {
@@ -674,15 +746,31 @@ if (!allowedStatuses.includes(status)) {
 propertyRouter.put('/:id/approve', auth(true), requireRole(['ADMIN']), async (req: Request, res: Response) => {
   try {
     const { id } = req.params
-    
+
+    const current = await prisma.property.findUnique({ where: { id }, select: { status: true, feeSnapshot: true } })
+    if (current?.status === 'APPROVED') {
+      if (current.feeSnapshot != null) {
+        const full = await prisma.property.findUnique({ where: { id } })
+        return res.json({ success: true, message: 'Property already approved — fee snapshot preserved', property: full })
+      }
+      return res.status(409).json({
+        error: 'fee_snapshot_missing',
+        message: 'Property is APPROVED but feeSnapshot is absent. Explicit admin remediation required — do not re-approve.',
+      })
+    }
+
+    // Preserve an existing snapshot (copied from a finalized PropertyLead at
+    // conversion); build from global settings ONLY when none exists.
+    const approvalData: any = { status: 'APPROVED', approvedAt: new Date() }
+    if (current?.feeSnapshot == null) {
+      approvalData.feeSnapshot = await buildPropertyFeeSnapshot()
+    }
+
     const updated = await prisma.property.update({
       where: { id },
-      data: {
-        status: 'APPROVED',
-        approvedAt: new Date(),
-      },
+      data: approvalData,
     })
-    
+
     // Register property on blockchain when approved
     if (isFabricEnabled()) {
       try {

@@ -51,6 +51,7 @@ async function buildPnL(opts: {
 }) {
   const { from, to, propertyId, revenueType, expenseCategory } = opts
 
+  // Current fee rate — kept for display only; revenue uses recorded PlatformRevenue entries
   const feeRate = await getPlatformFeeRate()
 
   const dateFilter = {
@@ -58,7 +59,7 @@ async function buildPnL(opts: {
     ...(to && { lte: endOfDay(to) }),
   }
 
-  // ── 1. Orders → derived investment fee revenue ─────────────────────────────
+  // ── 1. Orders — kept for investor/property counts only ─────────────────────
   const orders = await prisma.order.findMany({
     where: {
       status: { in: ['PAID', 'ISSUED'] },
@@ -72,41 +73,43 @@ async function buildPnL(opts: {
     orderBy: { createdAt: 'asc' },
   })
 
-  const derivedInvestmentFees = orders.reduce((s, o) => s + o.amount * (feeRate / 100), 0)
-
-  // ── 2. Manual revenue entries ──────────────────────────────────────────────
-  const manualRevWhere: any = {}
-  if (from || to) manualRevWhere.date = dateFilter
-  if (propertyId) manualRevWhere.propertyId = propertyId
-  if (revenueType && revenueType !== 'INVESTMENT_FEE') manualRevWhere.type = revenueType as any
+  // ── 2. All platform revenue entries (including INVESTMENT_FEE records) ─────
+  const revWhere: any = {}
+  if (from || to) revWhere.date = dateFilter
+  if (propertyId) revWhere.propertyId = propertyId
+  // When filtering by a specific type, apply it to DB query; otherwise fetch all
+  if (revenueType && revenueType !== 'ALL') revWhere.type = revenueType as any
 
   const manualRevenues = await prisma.platformRevenue.findMany({
-    where: manualRevWhere,
+    where: revWhere,
     orderBy: { date: 'desc' },
   })
 
   const sum = (type: string) =>
     manualRevenues.filter((r: any) => r.type === type).reduce((s: number, r: any) => s + r.amount, 0)
 
-  const ownerFees       = sum('OWNER_FEE')
-  const managementFees  = sum('MANAGEMENT_FEE')
-  const subscriptions   = sum('SUBSCRIPTION')
-  const otherRevenue    = sum('OTHER')
+  const recordedInvestmentFees = sum('INVESTMENT_FEE')
+  const preparationFees        = sum('PREPARATION_FEE')
+  const ownerFees              = sum('OWNER_FEE')
+  const managementFees         = sum('MANAGEMENT_FEE')
+  const subscriptions          = sum('SUBSCRIPTION')
+  const otherRevenue           = sum('OTHER')
 
-  // Filter for display when revenueType filter is active
   const investmentFeeRevenue = revenueType && revenueType !== 'ALL' && revenueType !== 'INVESTMENT_FEE'
     ? 0
-    : derivedInvestmentFees
+    : recordedInvestmentFees
 
-  const totalRevenue = investmentFeeRevenue + ownerFees + managementFees + subscriptions + otherRevenue
+  const totalRevenue = investmentFeeRevenue + preparationFees + ownerFees + managementFees + subscriptions + otherRevenue
 
-  // Revenue breakdown
+  // Revenue breakdown. PREPARATION_FEE is the four-fee owner onboarding charge
+  // (recorded when an admin marks it collected). OWNER_FEE is LEGACY only.
   const revBreakdown = [
-    { type: 'INVESTMENT_FEE', label: 'Investment Transaction Fees', labelAr: 'رسوم عمليات الاستثمار', amount: investmentFeeRevenue },
-    { type: 'OWNER_FEE',      label: 'Property Owner Fees',        labelAr: 'رسوم الملاك',            amount: ownerFees },
-    { type: 'MANAGEMENT_FEE', label: 'Platform Management Fees',   labelAr: 'رسوم إدارة المنصة',      amount: managementFees },
-    { type: 'SUBSCRIPTION',   label: 'Subscription Revenue',       labelAr: 'إيرادات الاشتراكات',     amount: subscriptions },
-    { type: 'OTHER',          label: 'Other Revenue',              labelAr: 'إيرادات أخرى',            amount: otherRevenue },
+    { type: 'INVESTMENT_FEE',  label: 'Investment Transaction Fees',  labelAr: 'رسوم عمليات الاستثمار',        amount: investmentFeeRevenue },
+    { type: 'PREPARATION_FEE', label: 'Property Preparation Fees',    labelAr: 'رسوم تجهيز العقار',            amount: preparationFees },
+    { type: 'MANAGEMENT_FEE',  label: 'Property Management Fees',     labelAr: 'رسوم إدارة العقار',            amount: managementFees },
+    { type: 'OWNER_FEE',       label: 'Owner Fees (legacy)',          labelAr: 'رسوم الملاك (قديمة)',          amount: ownerFees },
+    { type: 'SUBSCRIPTION',    label: 'Subscription Revenue',         labelAr: 'إيرادات الاشتراكات',           amount: subscriptions },
+    { type: 'OTHER',           label: 'Other Revenue',                labelAr: 'إيرادات أخرى',                 amount: otherRevenue },
   ].map(item => ({
     ...item,
     pct: totalRevenue > 0 ? +((item.amount / totalRevenue) * 100).toFixed(2) : 0,
@@ -157,18 +160,11 @@ async function buildPnL(opts: {
   // ── 5. Monthly trend (last 12 months) ─────────────────────────────────────
   const months = last12Months()
 
-  // Group order fees by month
-  const orderFeeByMonth: Record<string, number> = {}
-  for (const o of orders as any[]) {
-    const key = new Date(o.createdAt).toISOString().slice(0, 7)
-    orderFeeByMonth[key] = (orderFeeByMonth[key] ?? 0) + o.amount * (feeRate / 100)
-  }
-
-  // Group manual revenues by month
-  const manualRevByMonth: Record<string, number> = {}
+  // Group all PlatformRevenue by month (INVESTMENT_FEE records included)
+  const revByMonth: Record<string, number> = {}
   for (const r of manualRevenues as any[]) {
     const key = new Date(r.date).toISOString().slice(0, 7)
-    manualRevByMonth[key] = (manualRevByMonth[key] ?? 0) + r.amount
+    revByMonth[key] = (revByMonth[key] ?? 0) + r.amount
   }
 
   // Group expenses by month
@@ -179,7 +175,7 @@ async function buildPnL(opts: {
   }
 
   const monthlyTrend = months.map(month => {
-    const revenue = +((orderFeeByMonth[month] ?? 0) + (manualRevByMonth[month] ?? 0)).toFixed(2)
+    const revenue = +(revByMonth[month] ?? 0).toFixed(2)
     const exp     = +(expByMonth[month] ?? 0).toFixed(2)
     return { month, revenue, expenses: exp, netProfit: +(revenue - exp).toFixed(2) }
   })
@@ -194,13 +190,15 @@ async function buildPnL(opts: {
     const entry = propMap.get(pid)!
     entry.orders += 1
     entry.investors.add(o.userId)
-    entry.revenue += o.amount * (feeRate / 100)
   }
-  // Add manual revenue linked to properties
+  // Revenue per property comes from recorded PlatformRevenue entries only
   for (const r of manualRevenues as any[]) {
-    if (r.propertyId && propMap.has(r.propertyId)) {
-      propMap.get(r.propertyId)!.revenue += r.amount
+    const pid = r.propertyId
+    if (!pid) continue
+    if (!propMap.has(pid)) {
+      propMap.set(pid, { id: pid, title: pid, orders: 0, investors: new Set(), revenue: 0 })
     }
+    propMap.get(pid)!.revenue += r.amount
   }
 
   const propertyProfitability = [...propMap.values()].map(p => ({
@@ -426,6 +424,63 @@ platformPnlRouter.delete(
     } catch (e: any) {
       console.error('❌ platform-pnl DELETE expense:', e?.message)
       return res.status(500).json({ error: 'failed_to_delete_expense_entry' })
+    }
+  }
+)
+
+// POST /api/admin/properties/:id/collect-preparation-fee
+// Four-fee model (cash-basis): record the property's preparation fee as
+// PREPARATION_FEE platform revenue ONLY when an admin marks it collected.
+// Idempotent — at most one PREPARATION_FEE revenue event per property.
+platformPnlRouter.post(
+  '/admin/properties/:id/collect-preparation-fee',
+  auth(true),
+  requireRole(['ADMIN']),
+  async (req: Request & { user?: any }, res: Response) => {
+    try {
+      const propertyId = req.params.id
+      const property = await prisma.property.findUnique({
+        where: { id: propertyId },
+        select: { id: true, title: true, feeSnapshot: true },
+      })
+      if (!property) return res.status(404).json({ error: 'property_not_found' })
+
+      const snap = (property.feeSnapshot as any) ?? null
+      if (snap == null) {
+        return res.status(400).json({ code: 'NO_FEE_SNAPSHOT', message: 'This property has no approved fee configuration.' })
+      }
+      const amount = Number(snap.preparationFee)
+      if (!Number.isFinite(amount) || amount <= 0) {
+        return res.status(400).json({ code: 'NO_PREPARATION_FEE', message: 'This property has no preparation fee to collect.' })
+      }
+
+      // Idempotency guard — one preparation-fee revenue event per property.
+      const existing = await prisma.platformRevenue.findFirst({
+        where: { propertyId, type: 'PREPARATION_FEE' as any },
+        select: { id: true },
+      })
+      if (existing) {
+        return res.status(409).json({ code: 'ALREADY_COLLECTED', message: 'Preparation fee already recorded as collected for this property.' })
+      }
+
+      const entry = await prisma.platformRevenue.create({
+        data: {
+          type: 'PREPARATION_FEE' as any,
+          description: `Property preparation fee — ${property.title}`,
+          amount,
+          propertyId,
+          date: new Date(),
+          createdBy: req.user?.userId ?? null,
+        },
+      })
+
+      return res.status(201).json({
+        success: true,
+        revenue: { id: entry.id, type: 'PREPARATION_FEE', amount, propertyId, collectedAt: entry.date },
+      })
+    } catch (e: any) {
+      console.error('collect preparation fee error:', e?.message)
+      return res.status(500).json({ error: 'collect_preparation_fee_failed' })
     }
   }
 )

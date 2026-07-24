@@ -36,6 +36,22 @@ const DEFAULT_SETTINGS = {
   enableReports: 'true',
   enableMessaging: 'true',
 
+  // MVP Fee Settings
+  // Four approved fee values (MVP four-fee model). preparationFee is a fixed SAR
+  // amount; the other three are percentages sourced from existing keys below.
+  propertyPreparationFee: '0',
+  ownerFeeEnabled:     'false',
+  ownerFeeMode:        'PERCENTAGE',  // PERCENTAGE | FLAT
+  ownerFeeRate:        '0',
+  ownerFeeFlat:        '0',
+  managementFeeEnabled:'false',
+  managementFeeRate:   '8',
+  reserveRate:         '3',
+  withdrawalFeeEnabled:'false',
+  withdrawalFeeMode:   'FLAT',        // FLAT | PERCENTAGE
+  withdrawalFeeFlat:   '0',
+  withdrawalFeeRate:   '0',
+
   // Service Feature Flags
   purchaseEnabled:     'false',
   depositEnabled:      'true',
@@ -106,6 +122,23 @@ settingsRouter.get('/', auth(true), async (req: Request & { user?: any }, res: R
         enableAnalytics: s.enableAnalytics === 'true',
         enableReports: s.enableReports === 'true',
         enableMessaging: s.enableMessaging === 'true',
+      },
+      fees: {
+        // Four approved MVP fee values (preparationFee is fixed SAR; rest are %).
+        propertyPreparationFee: parseFloat(s.propertyPreparationFee) || 0,
+        investorFeeEnabled: true, // platformFee is always active once purchaseEnabled
+        investorFeeRate: parseFloat(s.platformFee) || 5,
+        ownerFeeEnabled: s.ownerFeeEnabled === 'true',
+        ownerFeeMode: s.ownerFeeMode || 'PERCENTAGE',
+        ownerFeeRate: parseFloat(s.ownerFeeRate) || 0,
+        ownerFeeFlat: parseFloat(s.ownerFeeFlat) || 0,
+        managementFeeEnabled: s.managementFeeEnabled === 'true',
+        managementFeeRate: parseFloat(s.managementFeeRate) || 8,
+        reserveRate: parseFloat(s.reserveRate) || 3,
+        withdrawalFeeEnabled: s.withdrawalFeeEnabled === 'true',
+        withdrawalFeeMode: s.withdrawalFeeMode || 'FLAT',
+        withdrawalFeeFlat: parseFloat(s.withdrawalFeeFlat) || 0,
+        withdrawalFeeRate: parseFloat(s.withdrawalFeeRate) || 0,
       },
       services: {
         purchaseEnabled:     s.purchaseEnabled     === 'true',
@@ -184,6 +217,27 @@ settingsRouter.put('/', auth(true), async (req: Request & { user?: any }, res: R
           flatSettings[key] = String(!!services[key])
         }
       }
+    }
+
+    const { fees } = req.body
+    if (fees) {
+      const safeNum = (v: any, fallback: string) => {
+        const n = parseFloat(String(v))
+        return Number.isFinite(n) && n >= 0 ? String(n) : fallback
+      }
+      if ('propertyPreparationFee' in fees) flatSettings.propertyPreparationFee = safeNum(fees.propertyPreparationFee, '0')
+      if ('investorFeeRate' in fees) flatSettings.platformFee = safeNum(fees.investorFeeRate, '5')
+      if ('ownerFeeEnabled' in fees) flatSettings.ownerFeeEnabled = String(!!fees.ownerFeeEnabled)
+      if ('ownerFeeMode' in fees) flatSettings.ownerFeeMode = fees.ownerFeeMode === 'FLAT' ? 'FLAT' : 'PERCENTAGE'
+      if ('ownerFeeRate' in fees) flatSettings.ownerFeeRate = safeNum(fees.ownerFeeRate, '0')
+      if ('ownerFeeFlat' in fees) flatSettings.ownerFeeFlat = safeNum(fees.ownerFeeFlat, '0')
+      if ('managementFeeEnabled' in fees) flatSettings.managementFeeEnabled = String(!!fees.managementFeeEnabled)
+      if ('managementFeeRate' in fees) flatSettings.managementFeeRate = safeNum(fees.managementFeeRate, '8')
+      if ('reserveRate' in fees) flatSettings.reserveRate = safeNum(fees.reserveRate, '3')
+      if ('withdrawalFeeEnabled' in fees) flatSettings.withdrawalFeeEnabled = String(!!fees.withdrawalFeeEnabled)
+      if ('withdrawalFeeMode' in fees) flatSettings.withdrawalFeeMode = fees.withdrawalFeeMode === 'PERCENTAGE' ? 'PERCENTAGE' : 'FLAT'
+      if ('withdrawalFeeFlat' in fees) flatSettings.withdrawalFeeFlat = safeNum(fees.withdrawalFeeFlat, '0')
+      if ('withdrawalFeeRate' in fees) flatSettings.withdrawalFeeRate = safeNum(fees.withdrawalFeeRate, '0')
     }
 
     // Read old values for flag-change audit log

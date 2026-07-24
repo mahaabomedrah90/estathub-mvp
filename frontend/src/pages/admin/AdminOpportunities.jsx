@@ -60,6 +60,7 @@ export default function AdminOpportunities() {
   ]) */
 
   const [selectedProperty, setSelectedProperty] = useState(null)
+  const [publishSuccess, setPublishSuccess] = useState(null) // { id, title } after publication approval
 
   useEffect(() => {
     loadProperties()
@@ -108,11 +109,15 @@ description: p.description || t('admin.opportunities.defaults.description'),
         method: 'PUT',
         headers: { 'Content-Type': 'application/json', ...authHeader() },
       })
+      const approvedProp = (selectedProperty && selectedProperty.id === id)
+        ? selectedProperty
+        : properties.find(p => p.id === id)
       setProperties(properties.map(p =>
         p.id === id ? { ...p, status: 'approved' } : p
       ))
       setSelectedProperty(null)
-      alert(t('admin.opportunities.messages.approveSuccess'))
+      // Branded success modal instead of a native alert.
+      setPublishSuccess({ id, title: approvedProp?.name || approvedProp?.title || '' })
       loadProperties()
     } catch (error) {
       console.error('Approve error:', error)
@@ -252,7 +257,7 @@ description: p.description || t('admin.opportunities.defaults.description'),
                   </td>
                   <td className="px-6 py-4">
                     <span className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold ${getStatusBadge(property.status)}`}>
-                      {t(`admin.opportunities.status.${property.status}`)}
+                      {property.status === 'pending' ? 'بانتظار اعتماد النشر' : t(`admin.opportunities.status.${property.status}`)}
                     </span>
                   </td>
                   <td className="px-6 py-4">
@@ -339,7 +344,7 @@ description: p.description || t('admin.opportunities.defaults.description'),
   {t('admin.opportunities.fields.status')}
 </label>
                   <span className={`inline-flex items-center px-3 py-1 rounded-full text-sm font-semibold mt-1 ${getStatusBadge(selectedProperty.status)}`}>
-                    {t(`admin.opportunities.status.${selectedProperty.status}`)}
+                    {selectedProperty.status === 'pending' ? 'بانتظار اعتماد النشر' : t(`admin.opportunities.status.${selectedProperty.status}`)}
                   </span>
                 </div>
                 <div>
@@ -360,25 +365,62 @@ description: p.description || t('admin.opportunities.defaults.description'),
                 <p className="text-gray-700 mt-2 leading-relaxed">{selectedProperty.description}</p>
               </div>
 
-              {/* Actions */}
+              {/* Actions — this is publication (investor-listing) approval, NOT owner-request approval */}
               {selectedProperty.status === 'pending' && (
-                <div className="flex gap-3 pt-4">
-                  <button
-                    onClick={() => handleApprove(selectedProperty.id)}
-                    className="flex-1 flex items-center justify-center gap-2 px-6 py-3 bg-green-600 text-white rounded-xl hover:bg-green-700 transition-colors font-semibold"
-                  >
-                    <CheckCircle size={20} />
-                    {t('admin.opportunities.actions.approve')}
-                  </button>
-                  <button
-                    onClick={() => handleReject(selectedProperty.id)}
-                    className="flex-1 flex items-center justify-center gap-2 px-6 py-3 bg-red-600 text-white rounded-xl hover:bg-red-700 transition-colors font-semibold"
-                  >
-                    <X size={20} />
-                    {t('admin.opportunities.actions.reject')}
-                  </button>
-                </div>
+                <>
+                  <div className="bg-blue-50 border border-blue-200 rounded-xl p-3 text-sm text-blue-800 leading-relaxed">
+                    هذا العقار تم تحويله من طلب مالك، لكنه غير ظاهر للمستثمرين حتى اعتماد نشر الفرصة.
+                  </div>
+                  <div className="flex gap-3 pt-4">
+                    <button
+                      onClick={() => handleApprove(selectedProperty.id)}
+                      className="flex-1 flex items-center justify-center gap-2 px-6 py-3 bg-green-600 text-white rounded-xl hover:bg-green-700 transition-colors font-semibold"
+                    >
+                      <CheckCircle size={20} />
+                      اعتماد نشر الفرصة للمستثمرين
+                    </button>
+                    <button
+                      onClick={() => handleReject(selectedProperty.id)}
+                      className="flex-1 flex items-center justify-center gap-2 px-6 py-3 bg-red-600 text-white rounded-xl hover:bg-red-700 transition-colors font-semibold"
+                    >
+                      <X size={20} />
+                      رفض نشر الفرصة
+                    </button>
+                  </div>
+                </>
               )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Branded publication-approval success modal (replaces native alert) */}
+      {publishSuccess && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4" dir="rtl">
+          <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full p-6 text-center">
+            <div className="mx-auto w-16 h-16 rounded-full bg-green-100 flex items-center justify-center mb-4">
+              <CheckCircle size={36} className="text-green-600" />
+            </div>
+            <h3 className="text-xl font-bold text-brand-primary mb-2">تم اعتماد نشر الفرصة بنجاح</h3>
+            <p className="text-sm text-text-muted leading-relaxed mb-3">
+              أصبحت الفرصة العقارية الآن منشورة ومتاحة للمستثمرين على منصة الوسم. يمكنك متابعة حالة العقار وإدارته من لوحة التحكم.
+            </p>
+            <p className="text-xs text-brand-accent bg-brand-accent/5 border border-brand-accent/20 rounded-lg p-2 mb-5">
+              سيظهر العقار الآن ضمن الفرص الاستثمارية المتاحة للمستثمرين.
+            </p>
+            <div className="flex items-center gap-3">
+              <button
+                onClick={() => { const pid = publishSuccess.id; setPublishSuccess(null); navigate(`/properties/${pid}`) }}
+                className="flex-1 inline-flex items-center justify-center gap-2 px-5 py-3 bg-brand-accent text-white rounded-xl font-semibold hover:bg-brand-accent/90 transition-colors"
+              >
+                <Eye size={18} /> عرض الفرصة
+              </button>
+              <button
+                onClick={() => setPublishSuccess(null)}
+                className="px-5 py-3 text-text-muted font-medium rounded-xl hover:bg-surface-muted transition-colors"
+              >
+                إغلاق
+              </button>
             </div>
           </div>
         </div>

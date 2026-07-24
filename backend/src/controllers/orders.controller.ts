@@ -4,6 +4,7 @@ import { auth } from '../middleware/auth'
 import { requireRole } from '../middleware/roles'
 import { isFabricEnabled, submitTxn } from '../lib/fabric'
 import { getSetting } from './settings.controller'
+import { calculateInvestorOrderFee } from '../lib/fees'
 import { getFeatureFlag } from '../lib/featureFlags'
 import { issueDeedAfterPayment } from '../lib/deedService'
 import { logAdminAction, AuditAction } from '../lib/auditService'
@@ -145,13 +146,17 @@ ordersRouter.post('/', purchaseGate, auth(true), async (req: Request & { user?: 
       })
     }
 
-    const platformFeeStr = await getSetting('platformFee', '5')
-    const platformFeePercent = parseFloat(platformFeeStr)
-    const platformFeeAmount = parseFloat((investmentAmount * platformFeePercent / 100).toFixed(2))
-    const totalPayable = parseFloat((investmentAmount + platformFeeAmount).toFixed(2))
+    const { feeRateSnapshot, feeAmountSnapshot, totalPayable } = await calculateInvestorOrderFee(prop, investmentAmount)
+    const platformFeePercent = feeRateSnapshot
+    const platformFeeAmount = feeAmountSnapshot
 
     const order = await prisma.order.create({
-      data: { userId, propertyId: pid, tokens: qty, amount: investmentAmount, status: 'PENDING' },
+      data: {
+        userId, propertyId: pid, tokens: qty, amount: investmentAmount, status: 'PENDING',
+        feeRateSnapshot:   platformFeePercent,
+        feeAmountSnapshot: platformFeeAmount,
+        totalPayable,
+      },
     })
 
     console.log(`💳 Order created: investor=${userId} property=${pid} tokens=${qty} investmentAmount=${investmentAmount} fee=${platformFeePercent}%=${platformFeeAmount} totalPayable=${totalPayable}`)
@@ -253,12 +258,38 @@ ordersRouter.post('/confirm', purchaseGate, auth(true), async (req: Request & { 
         throw new Error('order_not_confirmable')
       }
 
-      // Recalculate payment amounts — must match order creation logic
+      // Resolve fee values — source depends on order vintage:
+      //   New orders  (post-Sprint 1): all three snapshots are stored — use them exactly, never recalculate.
+      //   Legacy orders (pre-snapshot): compatibility path only; derive from stored rate if possible,
+      //                                 otherwise fall back to current Global Settings as last resort.
       const investmentAmount = (order.property?.tokenPrice || 0) * (order.tokens || 0)
-      const platformFeeStr = await getSetting('platformFee', '5')
-      const platformFeePercent = parseFloat(platformFeeStr)
-      const platformFeeAmount = parseFloat((investmentAmount * platformFeePercent / 100).toFixed(2))
-      const totalPayable = parseFloat((investmentAmount + platformFeeAmount).toFixed(2))
+
+      const storedRate   = (order as any).feeRateSnapshot   as number | null
+      const storedAmount = (order as any).feeAmountSnapshot as number | null
+      const storedTotal  = (order as any).totalPayable      as number | null
+
+      let platformFeePercent: number
+      let platformFeeAmount: number
+      let totalPayable: number
+
+      if (storedRate != null && storedAmount != null && storedTotal != null) {
+        // New order — use stored snapshots exactly; no recalculation of any kind
+        platformFeePercent = storedRate
+        platformFeeAmount  = storedAmount
+        totalPayable       = storedTotal
+      } else {
+        // Legacy order (pre-snapshot) — compatibility path only
+        if (storedRate != null) {
+          platformFeePercent = storedRate
+        } else {
+          const raw = await getSetting('platformFee', '5')
+          const parsed = parseFloat(raw)
+          platformFeePercent = Number.isFinite(parsed) ? parsed : 5
+        }
+        platformFeeAmount = storedAmount  ?? parseFloat((investmentAmount * platformFeePercent / 100).toFixed(2))
+        totalPayable      = storedTotal   ?? parseFloat((investmentAmount + platformFeeAmount).toFixed(2))
+      }
+
       confirmedTotalPayable = totalPayable
 
       // Get user's tenantId for wallet creation
@@ -294,6 +325,20 @@ ordersRouter.post('/confirm', purchaseGate, auth(true), async (req: Request & { 
           ref:      String(oid),
         },
       })
+
+      // Record investment fee as an immutable platform revenue event
+      if (platformFeeAmount > 0) {
+        await (tx as any).platformRevenue.create({
+          data: {
+            type:        'INVESTMENT_FEE',
+            description: `Investment fee — order ${oid}`,
+            amount:      platformFeeAmount,
+            propertyId:  order.propertyId,
+            userId:      order.userId,
+            date:        new Date(),
+          },
+        })
+      }
 
       // Re-read remainingTokens inside the transaction before decrementing.
       // Prevents overselling when two orders for the same property confirm concurrently.

@@ -29,6 +29,7 @@ export default function AdminPropertyDetail() {
   const [property, setProperty] = useState(null)
   const [imageViewerOpen, setImageViewerOpen] = useState(false)
   const [activeImageIndex, setActiveImageIndex] = useState(0)
+  const [prepMsg, setPrepMsg] = useState(null) // { ok, text } — preparation-fee collection result
 
   useEffect(() => {
     load()
@@ -97,6 +98,27 @@ export default function AdminPropertyDetail() {
     } finally {
       setActionLoading(false)
     }
+  }
+
+  // Four-fee model: record the preparation fee as platform revenue when the admin
+  // marks it collected (cash-basis; idempotent — backend validates the snapshot).
+  const collectPreparationFee = async () => {
+    if (!property) return
+    try {
+      setActionLoading(true); setPrepMsg(null)
+      const res = await fetchJson(`/api/admin/properties/${property.id}/collect-preparation-fee`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', ...authHeader() },
+      })
+      setPrepMsg({ ok: true, text: `تم تسجيل رسوم تجهيز العقار كإيراد: ${Number(res?.revenue?.amount || 0).toLocaleString('en-US')} ر.س` })
+    } catch (e) {
+      const code = e?.data?.code
+      const text = code === 'ALREADY_COLLECTED' ? 'رسوم التجهيز مُسجّلة مسبقاً لهذا العقار.'
+        : code === 'NO_PREPARATION_FEE' ? 'لا توجد رسوم تجهيز لهذا العقار.'
+        : code === 'NO_FEE_SNAPSHOT' ? 'لا توجد إعدادات رسوم معتمدة لهذا العقار.'
+        : (e?.data?.message || e?.message || 'تعذّر تسجيل رسوم التجهيز.')
+      setPrepMsg({ ok: false, text })
+    } finally { setActionLoading(false) }
   }
 
   if (loading) {
@@ -178,8 +200,23 @@ export default function AdminPropertyDetail() {
             )}
             {t('admin.overview.pending.approve')}
           </button>
+          <button
+            onClick={collectPreparationFee}
+            disabled={actionLoading}
+            title="تسجيل رسوم تجهيز العقار كإيراد (عند التحصيل)"
+            className="px-4 py-2 rounded-lg bg-teal-600 hover:bg-teal-700 disabled:bg-gray-300 text-white text-sm font-medium flex items-center gap-2"
+          >
+            <Building2 size={16} />
+            تحصيل رسوم التجهيز
+          </button>
         </div>
       </div>
+
+      {prepMsg && (
+        <div className={`mb-4 px-4 py-3 rounded-lg text-sm ${prepMsg.ok ? 'bg-green-50 text-green-700' : 'bg-red-50 text-red-700'}`}>
+          {prepMsg.text}
+        </div>
+      )}
 
       {/* Summary card */}
       <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">

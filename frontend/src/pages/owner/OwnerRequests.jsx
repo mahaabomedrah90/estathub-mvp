@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { MapPin, DollarSign, Clock, AlertCircle, Loader2, ClipboardList, Plus } from 'lucide-react'
+import { MapPin, DollarSign, Clock, AlertCircle, Loader2, ClipboardList, Plus, Pencil } from 'lucide-react'
 import { fetchJson, authHeader } from '../../lib/api'
 
 // Preliminary opportunity submissions (PropertyLead) — owner-facing labels.
@@ -10,8 +10,10 @@ const LEAD_STATUS = {
   UNDER_REVIEW:          { label: 'قيد المراجعة',         cls: 'bg-amber-100 text-amber-700' },
   NEEDS_INFO:            { label: 'مطلوب معلومات إضافية', cls: 'bg-orange-100 text-orange-700' },
   ACCEPTED:              { label: 'قبول مبدئي',           cls: 'bg-green-100 text-green-700' },
+  READY_FOR_FINAL_REVIEW:{ label: 'قيد التجهيز للاعتماد النهائي', cls: 'bg-teal-100 text-teal-700' },
+  FINAL_APPROVED:        { label: 'اعتماد نهائي',         cls: 'bg-emerald-100 text-emerald-700' },
   REJECTED:              { label: 'مرفوض',                cls: 'bg-red-100 text-red-700' },
-  CONVERTED_TO_PROPERTY: { label: 'تم تحويله لعقار',      cls: 'bg-teal-100 text-teal-700' },
+  CONVERTED_TO_PROPERTY: { label: 'تم تحويله إلى عقار',   cls: 'bg-indigo-100 text-indigo-700' },
 }
 const LEAD_PROPERTY_TYPES = { land: 'أرض', apartment: 'شقة', building: 'عمارة', villa: 'فيلا', warehouse: 'مستودع', farm: 'مزرعة', commercial: 'تجاري', other: 'أخرى' }
 const LEAD_CITIES = { riyadh: 'الرياض', jeddah: 'جدة', dammam: 'الدمام', khobar: 'الخبر', mecca: 'مكة المكرمة', medina: 'المدينة المنورة' }
@@ -43,6 +45,12 @@ export default function OwnerRequests() {
       setLoading(false)
     }
   }
+
+  // Once a lead is converted to a Property it should leave the active "طلباتي"
+  // list (the owner follows it from "عقاراتي"); we still show it in a small
+  // completed section for history — records are never deleted.
+  const activeLeads = leads.filter((l) => leadStatusOf(l) !== 'CONVERTED_TO_PROPERTY')
+  const convertedLeads = leads.filter((l) => leadStatusOf(l) === 'CONVERTED_TO_PROPERTY')
 
   return (
     <div className="space-y-6">
@@ -88,8 +96,14 @@ export default function OwnerRequests() {
           </button>
         </div>
       ) : (
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-          {leads.map((lead) => {
+        <>
+          {activeLeads.length === 0 ? (
+            <div className="text-center py-10 bg-surface-muted rounded-2xl border border-border-soft">
+              <p className="text-text-muted">لا توجد طلبات قيد المتابعة حالياً.</p>
+            </div>
+          ) : (
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+          {activeLeads.map((lead) => {
             const statusKey = leadStatusOf(lead)
             const st = LEAD_STATUS[statusKey] || LEAD_STATUS.NEW
             const place = [leadCity(lead.city), lead.district].filter(Boolean).join(' - ')
@@ -122,9 +136,9 @@ export default function OwnerRequests() {
                   </div>
                 </div>
 
-                {/* NEEDS_INFO — prominent box + review notes */}
+                {/* NEEDS_INFO — prominent box + review notes + update action */}
                 {statusKey === 'NEEDS_INFO' && (
-                  <div className="bg-orange-50 border border-orange-200 rounded-lg p-3 space-y-1">
+                  <div className="bg-orange-50 border border-orange-200 rounded-lg p-3 space-y-2">
                     <div className="flex items-center gap-2">
                       <AlertCircle size={16} className="text-orange-600 flex-shrink-0" />
                       <p className="text-sm font-bold text-orange-800">مطلوب معلومات إضافية من فريق الوسم</p>
@@ -132,11 +146,38 @@ export default function OwnerRequests() {
                     {lead.reviewNotes && (
                       <p className="text-xs text-orange-800 leading-relaxed pr-6">{lead.reviewNotes}</p>
                     )}
+                    <button
+                      onClick={() => navigate(`/owner/requests/${lead.id}/edit`)}
+                      className="mt-1 inline-flex items-center gap-2 px-4 py-2 bg-orange-600 text-white rounded-lg text-sm font-semibold hover:bg-orange-700 transition-colors"
+                    >
+                      <Pencil size={15} />
+                      تحديث الطلب
+                    </button>
                   </div>
                 )}
 
-                {/* Review notes for non-NEEDS_INFO statuses */}
-                {statusKey !== 'NEEDS_INFO' && lead.reviewNotes && (
+                {/* READY_FOR_FINAL_REVIEW — owner may supplement info/documents during final review */}
+                {statusKey === 'READY_FOR_FINAL_REVIEW' && (
+                  <div className="bg-teal-50 border border-teal-200 rounded-lg p-3 space-y-2">
+                    <div className="flex items-center gap-2">
+                      <AlertCircle size={16} className="text-teal-600 flex-shrink-0" />
+                      <p className="text-sm font-bold text-teal-800">قيد التجهيز للاعتماد النهائي</p>
+                    </div>
+                    {lead.reviewNotes && (
+                      <p className="text-xs text-teal-800 leading-relaxed pr-6">{lead.reviewNotes}</p>
+                    )}
+                    <button
+                      onClick={() => navigate(`/owner/requests/${lead.id}/edit`)}
+                      className="mt-1 inline-flex items-center gap-2 px-4 py-2 bg-teal-600 text-white rounded-lg text-sm font-semibold hover:bg-teal-700 transition-colors"
+                    >
+                      <Pencil size={15} />
+                      إضافة معلومات للاعتماد النهائي
+                    </button>
+                  </div>
+                )}
+
+                {/* Review notes for other statuses (NEEDS_INFO & READY_FOR_FINAL_REVIEW handle their own) */}
+                {statusKey !== 'NEEDS_INFO' && statusKey !== 'READY_FOR_FINAL_REVIEW' && lead.reviewNotes && (
                   <div className="flex items-start gap-2 p-3 bg-amber-50 rounded-lg">
                     <AlertCircle size={16} className="text-amber-600 flex-shrink-0 mt-0.5" />
                     <p className="text-xs text-amber-800">{lead.reviewNotes}</p>
@@ -152,7 +193,50 @@ export default function OwnerRequests() {
               </div>
             )
           })}
-        </div>
+          </div>
+          )}
+
+          {convertedLeads.length > 0 && (
+            <div className="mt-8 space-y-4">
+              <div>
+                <h2 className="text-lg font-bold text-brand-primary">طلبات تم تحويلها إلى عقارات</h2>
+                <p className="text-sm text-text-muted mt-1">
+                  تم تحويل هذه الطلبات إلى عقارات ويمكنك متابعتها من صفحة عقاراتي.
+                </p>
+              </div>
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+                {convertedLeads.map((lead) => {
+                  const place = [leadCity(lead.city), lead.district].filter(Boolean).join(' - ')
+                  return (
+                    <div key={lead.id} className="bg-white border border-border-soft rounded-2xl shadow-card p-5 opacity-90">
+                      <div className="flex items-start justify-between gap-3">
+                        <div>
+                          <h3 className="text-lg font-bold text-brand-primary">{lead.propertyName || '—'}</h3>
+                          <p className="text-sm text-text-muted mt-0.5 flex items-center gap-1 flex-wrap">
+                            {leadType(lead.propertyType) && <span>{leadType(lead.propertyType)}</span>}
+                            {leadType(lead.propertyType) && place && <span>•</span>}
+                            {place && (
+                              <span className="inline-flex items-center gap-1"><MapPin size={13} />{place}</span>
+                            )}
+                          </p>
+                        </div>
+                        <span className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold whitespace-nowrap ${LEAD_STATUS.CONVERTED_TO_PROPERTY.cls}`}>
+                          {LEAD_STATUS.CONVERTED_TO_PROPERTY.label}
+                        </span>
+                      </div>
+                    </div>
+                  )
+                })}
+              </div>
+              <button
+                onClick={() => navigate('/owner/properties')}
+                className="inline-flex items-center gap-2 px-6 py-3 bg-brand-primary text-white rounded-xl font-semibold hover:bg-brand-primary/90 transition-colors"
+              >
+                عرض عقاراتي
+              </button>
+            </div>
+          )}
+        </>
       )}
     </div>
   )

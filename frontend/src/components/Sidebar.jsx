@@ -53,6 +53,7 @@ const adminGroups = (t, isAr) => [
     items: [
       { path: '/admin/deposits',            label: t('admin.deposits'),           icon: Banknote },
       { path: '/admin/withdrawals',         label: t('admin.withdrawals'),        icon: ArrowDownCircle },
+      { path: '/admin/distributions',       label: t('admin.distributions'),      icon: PieChart },
       { path: '/admin/investor-statement',  label: t('admin.investorStatement'),  icon: ScrollText },
       { path: '/admin/owner-statement',     label: t('admin.ownerStatement'),     icon: Home },
       { path: '/admin/platform-pnl',        label: t('admin.platformPnl'),        icon: TrendingUp },

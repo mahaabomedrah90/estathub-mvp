@@ -20,6 +20,23 @@ export default function AdminSettings() {
     notificationsEnabled: false,
     maintenanceMode: false,
   })
+  const [fees, setFees] = useState({
+    propertyPreparationFee: 0,
+    investorFeeEnabled: true,
+    investorFeeRate: 5,
+    ownerFeeEnabled: false,
+    ownerFeeMode: 'PERCENTAGE',
+    ownerFeeRate: 0,
+    ownerFeeFlat: 0,
+    managementFeeEnabled: false,
+    managementFeeRate: 8,
+    reserveRate: 3,
+    withdrawalFeeEnabled: false,
+    withdrawalFeeMode: 'FLAT',
+    withdrawalFeeFlat: 0,
+    withdrawalFeeRate: 0,
+  })
+
   const [settings, setSettings] = useState({
     general: {
       platformName: 'ALWASM',
@@ -58,9 +75,10 @@ export default function AdminSettings() {
   const loadSettings = async () => {
     try {
       const data = await fetchJson('/api/settings', { headers: authHeader() })
-      const { services: srv, ...rest } = data
+      const { services: srv, fees: feesData, ...rest } = data
       setSettings(rest)
       if (srv) setServices(srv)
+      if (feesData) setFees(f => ({ ...f, ...feesData }))
       console.log('✅ Settings loaded from database:', data)
     } catch (error) {
       console.error('❌ Failed to load settings:', error)
@@ -91,7 +109,7 @@ export default function AdminSettings() {
       await fetchJson('/api/settings', {
         method: 'PUT',
         headers: { ...authHeader(), 'Content-Type': 'application/json' },
-        body: JSON.stringify(settings)
+        body: JSON.stringify({ ...settings, fees })
       })
       console.log('✅ Settings saved to database')
       showMessage('success', t('admin.settings.saveSuccess'))
@@ -596,6 +614,92 @@ export default function AdminSettings() {
                 />
               </button>
             </div>
+          </div>
+        </div>
+
+        {/* Fees & Financial Policies — الرسوم والسياسات المالية */}
+        <div className="bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden">
+          <div className="px-8 py-6 border-b border-gray-200">
+            <div className="flex items-center">
+              <div className="p-3 bg-[#1E1958]/10 rounded-xl mr-3">
+                <Settings className="text-[#1E1958]" size={24} />
+              </div>
+              <div>
+                <h2 className="text-2xl font-bold text-[#1E1958]">الرسوم والسياسات المالية</h2>
+                <p className="text-sm text-gray-500 mt-1">تؤثر فقط على الفرص والعمليات الجديدة. العمليات التاريخية المسجلة لا تتغير.</p>
+              </div>
+            </div>
+          </div>
+          <div className="p-8 space-y-8">
+
+            {/* 1. Property Preparation Fee — fixed SAR, paid by owner */}
+            <div className="border border-gray-100 rounded-xl p-5 space-y-4">
+              <div className="flex items-center justify-between">
+                <h3 className="font-semibold text-gray-800">رسوم تجهيز العقار / Property Preparation Fee</h3>
+                <span className="text-xs bg-blue-50 text-blue-700 px-2 py-0.5 rounded-full">مبلغ ثابت</span>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-600 mb-1">المبلغ (ر.س) / Amount (SAR)</label>
+                <input type="number" min="0" step="1"
+                  value={fees.propertyPreparationFee}
+                  onChange={e => setFees(f => ({ ...f, propertyPreparationFee: parseFloat(e.target.value) || 0 }))}
+                  className="w-48 px-3 py-2 border-2 border-gray-200 rounded-xl text-sm focus:border-[#41EAD4] focus:ring-2 focus:ring-[#41EAD4]/20"
+                />
+                <p className="text-xs text-gray-400 mt-1">رسوم ثابتة يدفعها مالك العقار عند التهيئة: مراجعة، توثيق، تقييم، وإعداد العقار للإدراج.</p>
+              </div>
+            </div>
+
+            {/* 2. Platform Service Fee — % on investor order */}
+            <div className="border border-gray-100 rounded-xl p-5 space-y-4">
+              <div className="flex items-center justify-between">
+                <h3 className="font-semibold text-gray-800">رسوم خدمة المنصة عند الاستثمار / Platform Service Fee</h3>
+                <span className="text-xs bg-green-50 text-green-700 px-2 py-0.5 rounded-full">مُفعّل دائمًا</span>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-600 mb-1">النسبة (%) / Percentage</label>
+                <input type="number" min="0" max="100" step="0.1"
+                  value={fees.investorFeeRate}
+                  onChange={e => setFees(f => ({ ...f, investorFeeRate: parseFloat(e.target.value) || 0 }))}
+                  className="w-48 px-3 py-2 border-2 border-gray-200 rounded-xl text-sm focus:border-[#41EAD4] focus:ring-2 focus:ring-[#41EAD4]/20"
+                />
+                <p className="text-xs text-gray-400 mt-1">نسبة تُحصَّل من المستثمر عند تنفيذ أمر الاستثمار وتُسجَّل إيرادًا فوريًا للمنصة.</p>
+              </div>
+            </div>
+
+            {/* 3. Property Management Fee — % of rental income, ALWSM revenue */}
+            <div className="border border-gray-100 rounded-xl p-5 space-y-4">
+              <div className="flex items-center justify-between">
+                <h3 className="font-semibold text-gray-800">رسوم إدارة العقار من دخل الإيجار / Property Management Fee</h3>
+                <span className="text-xs bg-green-50 text-green-700 px-2 py-0.5 rounded-full">إيراد للمنصة</span>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-600 mb-1">النسبة (%) / Percentage</label>
+                <input type="number" min="0" max="100" step="0.1" value={fees.managementFeeRate}
+                  onChange={e => setFees(f => ({ ...f, managementFeeRate: parseFloat(e.target.value) || 0 }))}
+                  className="w-48 px-3 py-2 border-2 border-gray-200 rounded-xl text-sm focus:border-[#41EAD4]" />
+                <p className="text-xs text-gray-400 mt-1">تُحسَب من إيرادات الإيجار قبل التوزيع وتُسجَّل إيرادًا للمنصة.</p>
+              </div>
+            </div>
+
+            {/* 4. Property Reserve — % of rental income, NOT revenue */}
+            <div className="border border-gray-100 rounded-xl p-5 space-y-4">
+              <div className="flex items-center justify-between">
+                <h3 className="font-semibold text-gray-800">احتياطي العقار / Property Reserve</h3>
+                <span className="text-xs bg-yellow-50 text-yellow-700 px-2 py-0.5 rounded-full">ليست إيرادًا</span>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-600 mb-1">النسبة (%) / Percentage</label>
+                <input type="number" min="0" max="100" step="0.1" value={fees.reserveRate}
+                  onChange={e => setFees(f => ({ ...f, reserveRate: parseFloat(e.target.value) || 0 }))}
+                  className="w-48 px-3 py-2 border-2 border-gray-200 rounded-xl text-sm focus:border-[#41EAD4]" />
+                <p className="text-xs text-gray-400 mt-1">تُحسَب من إيرادات الإيجار قبل التوزيع وتُحجز لحساب احتياطي العقار. لا تُعدّ إيرادًا للمنصة.</p>
+              </div>
+            </div>
+
+            <p className="text-xs text-gray-400">
+              تؤثر هذه القيم على العقارات الجديدة فقط. العقارات المعتمدة تحتفظ بقيم الرسوم المثبّتة لها.
+            </p>
+
           </div>
         </div>
 
