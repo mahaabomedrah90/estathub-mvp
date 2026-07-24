@@ -21,6 +21,7 @@ export default function AdminSettings() {
     maintenanceMode: false,
   })
   const [fees, setFees] = useState({
+    propertyPreparationFee: 0,
     investorFeeEnabled: true,
     investorFeeRate: 5,
     ownerFeeEnabled: false,
@@ -631,133 +632,73 @@ export default function AdminSettings() {
           </div>
           <div className="p-8 space-y-8">
 
-            {/* Investor Fee */}
+            {/* 1. Property Preparation Fee — fixed SAR, paid by owner */}
             <div className="border border-gray-100 rounded-xl p-5 space-y-4">
               <div className="flex items-center justify-between">
-                <h3 className="font-semibold text-gray-800">رسوم الاستثمار (المستثمر)</h3>
+                <h3 className="font-semibold text-gray-800">رسوم تجهيز العقار / Property Preparation Fee</h3>
+                <span className="text-xs bg-blue-50 text-blue-700 px-2 py-0.5 rounded-full">مبلغ ثابت</span>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-600 mb-1">المبلغ (ر.س) / Amount (SAR)</label>
+                <input type="number" min="0" step="1"
+                  value={fees.propertyPreparationFee}
+                  onChange={e => setFees(f => ({ ...f, propertyPreparationFee: parseFloat(e.target.value) || 0 }))}
+                  className="w-48 px-3 py-2 border-2 border-gray-200 rounded-xl text-sm focus:border-[#41EAD4] focus:ring-2 focus:ring-[#41EAD4]/20"
+                />
+                <p className="text-xs text-gray-400 mt-1">رسوم ثابتة يدفعها مالك العقار عند التهيئة: مراجعة، توثيق، تقييم، وإعداد العقار للإدراج.</p>
+              </div>
+            </div>
+
+            {/* 2. Platform Service Fee — % on investor order */}
+            <div className="border border-gray-100 rounded-xl p-5 space-y-4">
+              <div className="flex items-center justify-between">
+                <h3 className="font-semibold text-gray-800">رسوم خدمة المنصة عند الاستثمار / Platform Service Fee</h3>
                 <span className="text-xs bg-green-50 text-green-700 px-2 py-0.5 rounded-full">مُفعّل دائمًا</span>
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-600 mb-1">نسبة الرسوم (%)</label>
+                <label className="block text-sm font-medium text-gray-600 mb-1">النسبة (%) / Percentage</label>
                 <input type="number" min="0" max="100" step="0.1"
                   value={fees.investorFeeRate}
                   onChange={e => setFees(f => ({ ...f, investorFeeRate: parseFloat(e.target.value) || 0 }))}
                   className="w-48 px-3 py-2 border-2 border-gray-200 rounded-xl text-sm focus:border-[#41EAD4] focus:ring-2 focus:ring-[#41EAD4]/20"
                 />
-                <p className="text-xs text-gray-400 mt-1">رسوم تُحصَّل من المستثمر عند الاستثمار وتُسجَّل إيرادًا فوريًا للمنصة.</p>
+                <p className="text-xs text-gray-400 mt-1">نسبة تُحصَّل من المستثمر عند تنفيذ أمر الاستثمار وتُسجَّل إيرادًا فوريًا للمنصة.</p>
               </div>
             </div>
 
-            {/* Owner Fee */}
+            {/* 3. Property Management Fee — % of rental income, ALWSM revenue */}
             <div className="border border-gray-100 rounded-xl p-5 space-y-4">
               <div className="flex items-center justify-between">
-                <h3 className="font-semibold text-gray-800">رسوم المالك</h3>
-                <button onClick={() => setFees(f => ({ ...f, ownerFeeEnabled: !f.ownerFeeEnabled }))}
-                  className={`relative inline-flex h-7 w-12 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors ${fees.ownerFeeEnabled ? 'bg-[#41EAD4]' : 'bg-gray-300'}`}>
-                  <span className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ${fees.ownerFeeEnabled ? 'translate-x-5' : 'translate-x-0'}`} />
-                </button>
+                <h3 className="font-semibold text-gray-800">رسوم إدارة العقار من دخل الإيجار / Property Management Fee</h3>
+                <span className="text-xs bg-green-50 text-green-700 px-2 py-0.5 rounded-full">إيراد للمنصة</span>
               </div>
-              {fees.ownerFeeEnabled && (
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                  <div>
-                    <label className="block text-sm font-medium text-gray-600 mb-1">النوع</label>
-                    <select value={fees.ownerFeeMode} onChange={e => setFees(f => ({ ...f, ownerFeeMode: e.target.value }))}
-                      className="w-full px-3 py-2 border-2 border-gray-200 rounded-xl text-sm focus:border-[#41EAD4]">
-                      <option value="PERCENTAGE">نسبة مئوية (%)</option>
-                      <option value="FLAT">مبلغ ثابت (ر.س)</option>
-                    </select>
-                  </div>
-                  {fees.ownerFeeMode === 'PERCENTAGE' ? (
-                    <div>
-                      <label className="block text-sm font-medium text-gray-600 mb-1">النسبة (%)</label>
-                      <input type="number" min="0" max="100" step="0.1" value={fees.ownerFeeRate}
-                        onChange={e => setFees(f => ({ ...f, ownerFeeRate: parseFloat(e.target.value) || 0 }))}
-                        className="w-full px-3 py-2 border-2 border-gray-200 rounded-xl text-sm focus:border-[#41EAD4]" />
-                    </div>
-                  ) : (
-                    <div>
-                      <label className="block text-sm font-medium text-gray-600 mb-1">المبلغ الثابت (ر.س)</label>
-                      <input type="number" min="0" step="1" value={fees.ownerFeeFlat}
-                        onChange={e => setFees(f => ({ ...f, ownerFeeFlat: parseFloat(e.target.value) || 0 }))}
-                        className="w-full px-3 py-2 border-2 border-gray-200 rounded-xl text-sm focus:border-[#41EAD4]" />
-                    </div>
-                  )}
-                </div>
-              )}
+              <div>
+                <label className="block text-sm font-medium text-gray-600 mb-1">النسبة (%) / Percentage</label>
+                <input type="number" min="0" max="100" step="0.1" value={fees.managementFeeRate}
+                  onChange={e => setFees(f => ({ ...f, managementFeeRate: parseFloat(e.target.value) || 0 }))}
+                  className="w-48 px-3 py-2 border-2 border-gray-200 rounded-xl text-sm focus:border-[#41EAD4]" />
+                <p className="text-xs text-gray-400 mt-1">تُحسَب من إيرادات الإيجار قبل التوزيع وتُسجَّل إيرادًا للمنصة.</p>
+              </div>
             </div>
 
-            {/* Management Fee */}
+            {/* 4. Property Reserve — % of rental income, NOT revenue */}
             <div className="border border-gray-100 rounded-xl p-5 space-y-4">
               <div className="flex items-center justify-between">
-                <h3 className="font-semibold text-gray-800">رسوم الإدارة</h3>
-                <button onClick={() => setFees(f => ({ ...f, managementFeeEnabled: !f.managementFeeEnabled }))}
-                  className={`relative inline-flex h-7 w-12 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors ${fees.managementFeeEnabled ? 'bg-[#41EAD4]' : 'bg-gray-300'}`}>
-                  <span className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ${fees.managementFeeEnabled ? 'translate-x-5' : 'translate-x-0'}`} />
-                </button>
-              </div>
-              {fees.managementFeeEnabled && (
-                <div>
-                  <label className="block text-sm font-medium text-gray-600 mb-1">نسبة رسوم الإدارة (%)</label>
-                  <input type="number" min="0" max="100" step="0.1" value={fees.managementFeeRate}
-                    onChange={e => setFees(f => ({ ...f, managementFeeRate: parseFloat(e.target.value) || 0 }))}
-                    className="w-48 px-3 py-2 border-2 border-gray-200 rounded-xl text-sm focus:border-[#41EAD4]" />
-                  <p className="text-xs text-gray-400 mt-1">تُحسَب من إيرادات الإيجار — تُسجَّل إيرادًا للمنصة فقط عند التوزيع.</p>
-                </div>
-              )}
-            </div>
-
-            {/* Reserve Rate */}
-            <div className="border border-gray-100 rounded-xl p-5 space-y-4">
-              <div className="flex items-center justify-between">
-                <h3 className="font-semibold text-gray-800">نسبة الاحتياطي</h3>
+                <h3 className="font-semibold text-gray-800">احتياطي العقار / Property Reserve</h3>
                 <span className="text-xs bg-yellow-50 text-yellow-700 px-2 py-0.5 rounded-full">ليست إيرادًا</span>
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-600 mb-1">نسبة الاحتياطي (%)</label>
+                <label className="block text-sm font-medium text-gray-600 mb-1">النسبة (%) / Percentage</label>
                 <input type="number" min="0" max="100" step="0.1" value={fees.reserveRate}
                   onChange={e => setFees(f => ({ ...f, reserveRate: parseFloat(e.target.value) || 0 }))}
                   className="w-48 px-3 py-2 border-2 border-gray-200 rounded-xl text-sm focus:border-[#41EAD4]" />
-                <p className="text-xs text-gray-400 mt-1">مبلغ يُحجز من التوزيع لصيانة العقار. لا يُسجَّل إيرادًا للمنصة.</p>
+                <p className="text-xs text-gray-400 mt-1">تُحسَب من إيرادات الإيجار قبل التوزيع وتُحجز لحساب احتياطي العقار. لا تُعدّ إيرادًا للمنصة.</p>
               </div>
             </div>
 
-            {/* Withdrawal Fee */}
-            <div className="border border-gray-100 rounded-xl p-5 space-y-4">
-              <div className="flex items-center justify-between">
-                <h3 className="font-semibold text-gray-800">رسوم السحب</h3>
-                <button onClick={() => setFees(f => ({ ...f, withdrawalFeeEnabled: !f.withdrawalFeeEnabled }))}
-                  className={`relative inline-flex h-7 w-12 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors ${fees.withdrawalFeeEnabled ? 'bg-[#41EAD4]' : 'bg-gray-300'}`}>
-                  <span className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ${fees.withdrawalFeeEnabled ? 'translate-x-5' : 'translate-x-0'}`} />
-                </button>
-              </div>
-              {fees.withdrawalFeeEnabled && (
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                  <div>
-                    <label className="block text-sm font-medium text-gray-600 mb-1">النوع</label>
-                    <select value={fees.withdrawalFeeMode} onChange={e => setFees(f => ({ ...f, withdrawalFeeMode: e.target.value }))}
-                      className="w-full px-3 py-2 border-2 border-gray-200 rounded-xl text-sm focus:border-[#41EAD4]">
-                      <option value="FLAT">مبلغ ثابت (ر.س)</option>
-                      <option value="PERCENTAGE">نسبة مئوية (%)</option>
-                    </select>
-                  </div>
-                  {fees.withdrawalFeeMode === 'FLAT' ? (
-                    <div>
-                      <label className="block text-sm font-medium text-gray-600 mb-1">المبلغ الثابت (ر.س)</label>
-                      <input type="number" min="0" step="1" value={fees.withdrawalFeeFlat}
-                        onChange={e => setFees(f => ({ ...f, withdrawalFeeFlat: parseFloat(e.target.value) || 0 }))}
-                        className="w-full px-3 py-2 border-2 border-gray-200 rounded-xl text-sm focus:border-[#41EAD4]" />
-                    </div>
-                  ) : (
-                    <div>
-                      <label className="block text-sm font-medium text-gray-600 mb-1">النسبة (%)</label>
-                      <input type="number" min="0" max="100" step="0.1" value={fees.withdrawalFeeRate}
-                        onChange={e => setFees(f => ({ ...f, withdrawalFeeRate: parseFloat(e.target.value) || 0 }))}
-                        className="w-full px-3 py-2 border-2 border-gray-200 rounded-xl text-sm focus:border-[#41EAD4]" />
-                    </div>
-                  )}
-                </div>
-              )}
-            </div>
+            <p className="text-xs text-gray-400">
+              تؤثر هذه القيم على العقارات الجديدة فقط. العقارات المعتمدة تحتفظ بقيم الرسوم المثبّتة لها.
+            </p>
 
           </div>
         </div>

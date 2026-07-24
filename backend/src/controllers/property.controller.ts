@@ -635,7 +635,12 @@ if (!allowedStatuses.includes(status)) {
         })
       }
       updateData.approvedAt = new Date()
-      ;(updateData as any).feeSnapshot = await buildPropertyFeeSnapshot()
+      // Preserve an existing snapshot (e.g. copied from a finalized PropertyLead
+      // at conversion) — it is the authoritative approved-fee configuration.
+      // Build from global settings ONLY for direct-submit properties that have none.
+      if (current?.feeSnapshot == null) {
+        ;(updateData as any).feeSnapshot = await buildPropertyFeeSnapshot()
+      }
     } else if (status === 'REJECTED') {
       updateData.rejectedAt = new Date()
       updateData.rejectionReason = req.body.reason || 'No reason provided'
@@ -754,15 +759,16 @@ propertyRouter.put('/:id/approve', auth(true), requireRole(['ADMIN']), async (re
       })
     }
 
-    const feeSnapshot = await buildPropertyFeeSnapshot()
+    // Preserve an existing snapshot (copied from a finalized PropertyLead at
+    // conversion); build from global settings ONLY when none exists.
+    const approvalData: any = { status: 'APPROVED', approvedAt: new Date() }
+    if (current?.feeSnapshot == null) {
+      approvalData.feeSnapshot = await buildPropertyFeeSnapshot()
+    }
 
     const updated = await prisma.property.update({
       where: { id },
-      data: {
-        status: 'APPROVED',
-        approvedAt: new Date(),
-        feeSnapshot: feeSnapshot as any,
-      },
+      data: approvalData,
     })
 
     // Register property on blockchain when approved

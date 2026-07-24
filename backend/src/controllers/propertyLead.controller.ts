@@ -802,43 +802,45 @@ function validateListingDraft(input: any):
   }
 }
 
-// Build the fee snapshot from admin input; amounts computed server-side from
-// totalValue (fees), VAT on the fees subtotal. Flexible Json — NOT a final
-// accounting rule (source: admin_manual_phase5), admin-confirmable.
-function buildFeeSnapshot(input: any, totalValue: number, admin: { userId?: string; email?: string }):
+// Build the fee snapshot from admin input — the four approved MVP fee values.
+// Stored with accounting field names so the snapshot is authoritative once
+// copied to Property.feeSnapshot at conversion:
+//   preparationFee    — fixed SAR amount (owner onboarding charge)
+//   investorFeeRate   — % charged on each investor order
+//   managementFeeRate — % of rental income (ALWSM revenue)
+//   reserveRate       — % of rental income (property reserve, NOT revenue)
+// Legacy VAT/tokenization fields are no longer produced (historical rows kept).
+export function buildFeeSnapshot(input: any, admin: { userId?: string; email?: string }):
   | { ok: false; error: string; field?: string }
   | { ok: true; data: any } {
   const b = input || {}
-  const platformFeePct = toNum(b.platformFeePct)
-  const managementFeePct = toNum(b.managementFeePct)
-  const tokenizationFeePct = toNum(b.tokenizationFeePct)
-  const vatPct = toNum(b.vatPct)
-  if (platformFeePct === undefined || !Number.isFinite(platformFeePct) || platformFeePct < 0 || platformFeePct > 100) {
-    return { ok: false, error: 'invalid_fee_percentage', field: 'platformFeePct' }
+  const preparationFee = toNum(b.preparationFee)
+  const investorFeeRate = toNum(b.investorFeeRate)
+  const managementFeeRate = toNum(b.managementFeeRate)
+  const reserveRate = toNum(b.reserveRate)
+
+  // preparationFee is a fixed SAR amount (>= 0), not a percentage.
+  if (preparationFee === undefined || !Number.isFinite(preparationFee) || preparationFee < 0) {
+    return { ok: false, error: 'invalid_preparation_fee', field: 'preparationFee' }
   }
-  for (const [k, v] of Object.entries({ managementFeePct, tokenizationFeePct, vatPct })) {
-    if (v !== undefined && (!Number.isFinite(v) || v < 0 || v > 100)) return { ok: false, error: 'invalid_fee_percentage', field: k }
+  // The three rates are percentages in [0, 100].
+  for (const [k, v] of Object.entries({ investorFeeRate, managementFeeRate, reserveRate })) {
+    if (v === undefined || !Number.isFinite(v) || v < 0 || v > 100) {
+      return { ok: false, error: 'invalid_fee_percentage', field: k }
+    }
   }
-  const platformFeeAmount = round2(totalValue * platformFeePct / 100)
-  const managementFeeAmount = managementFeePct !== undefined ? round2(totalValue * managementFeePct / 100) : undefined
-  const tokenizationFeeAmount = tokenizationFeePct !== undefined ? round2(totalValue * tokenizationFeePct / 100) : undefined
-  const feesSubtotal = platformFeeAmount + (managementFeeAmount ?? 0) + (tokenizationFeeAmount ?? 0)
-  const vatAmount = vatPct !== undefined ? round2(feesSubtotal * vatPct / 100) : undefined
-  const totalFeesAmount = round2(feesSubtotal + (vatAmount ?? 0))
+
   const notes = toStr(b.notes)
   const data: any = {
     currency: 'SAR',
-    basis: 'totalValue',
-    vatBasis: 'feesSubtotal',
-    platformFeePct, platformFeeAmount,
-    totalFeesAmount,
-    source: 'admin_manual_phase5',
+    preparationFee,
+    investorFeeRate,
+    managementFeeRate,
+    reserveRate,
+    source: 'admin_manual_mvp4',
     enteredBy: admin.userId ?? null,
     enteredAt: new Date().toISOString(),
   }
-  if (managementFeePct !== undefined) { data.managementFeePct = managementFeePct; data.managementFeeAmount = managementFeeAmount }
-  if (tokenizationFeePct !== undefined) { data.tokenizationFeePct = tokenizationFeePct; data.tokenizationFeeAmount = tokenizationFeeAmount }
-  if (vatPct !== undefined) { data.vatPct = vatPct; data.vatAmount = vatAmount }
   if (notes) data.notes = notes
   return { ok: true, data }
 }
@@ -853,17 +855,32 @@ propertyLeadAdminRouter.get('/:id/finalization', auth(true), async (req: Request
       select: { id: true, status: true, adminStatus: true, propertyName: true, requestedPrice: true, listingDraft: true, feeSnapshot: true, feesLockedAt: true },
     })
     if (!lead) return res.status(404).json({ error: 'property_lead_not_found' })
-    let defaultPlatformFeePct: number | null = null
-    try {
-      const s = await prisma.settings.findUnique({ where: { key: 'platformFee' } })
-      if (s?.value) { const n = parseFloat(s.value); if (Number.isFinite(n)) defaultPlatformFeePct = n }
-    } catch { /* Settings optional */ }
+    // Defaults for the four approved MVP fee values, seeded from Settings.
+    const readNum = async (key: string, fallback: number): Promise<number> => {
+      try {
+        const s = await prisma.settings.findUnique({ where: { key } })
+        const n = s?.value != null ? parseFloat(s.value) : NaN
+        return Number.isFinite(n) ? n : fallback
+      } catch { return fallback }
+    }
+    const [defPreparationFee, defInvestorFeeRate, defManagementFeeRate, defReserveRate] = await Promise.all([
+      readNum('propertyPreparationFee', 0),
+      readNum('platformFee', 5),
+      readNum('managementFeeRate', 8),
+      readNum('reserveRate', 3),
+    ])
     return res.json({
       lead: { id: lead.id, status: lead.status, adminStatus: lead.adminStatus, propertyName: lead.propertyName, requestedPrice: lead.requestedPrice },
       listingDraft: lead.listingDraft,
       feeSnapshot: lead.feeSnapshot,
       feesLockedAt: lead.feesLockedAt,
-      defaultFeeInputs: { currency: 'SAR', platformFeePct: defaultPlatformFeePct },
+      defaultFeeInputs: {
+        currency: 'SAR',
+        preparationFee: defPreparationFee,
+        investorFeeRate: defInvestorFeeRate,
+        managementFeeRate: defManagementFeeRate,
+        reserveRate: defReserveRate,
+      },
     })
   } catch (e: any) {
     console.error('❌ PropertyLead finalization get error:', e?.message)
@@ -891,7 +908,7 @@ propertyLeadAdminRouter.patch('/:id/finalization', auth(true), async (req: Reque
     }
     const ld = validateListingDraft(req.body?.listingDraft)
     if (!ld.ok) return res.status(400).json({ error: ld.error, field: ld.field, message: 'بيانات الإدراج غير صحيحة. تحقق من القيم المدخلة.' })
-    const fs = buildFeeSnapshot(req.body?.feeSnapshot, ld.data.totalValue, { userId: req.user!.userId, email: req.user!.email })
+    const fs = buildFeeSnapshot(req.body?.feeSnapshot, { userId: req.user!.userId, email: req.user!.email })
     if (!fs.ok) return res.status(400).json({ error: fs.error, field: fs.field, message: 'بيانات الرسوم غير صحيحة. تحقق من النسب المدخلة (0–100).' })
 
     const updated = await prisma.propertyLead.update({
