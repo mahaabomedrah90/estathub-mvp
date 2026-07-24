@@ -283,11 +283,13 @@ model Holding {
 }
 
 model Payout {
-  id          String   @id @default(cuid())
-  propertyId  String
-  month       String
-  totalAmount Float
-  createdAt   DateTime @default(now())
+  id            String   @id @default(cuid())
+  propertyId    String
+  month         String
+  totalAmount   Float
+  mgmtFeeAmount Float?    // management fee deducted from gross (ALWSM revenue) — persisted for reporting
+  reserveAmount Float?    // property reserve withheld from gross (NOT revenue) — persisted for reporting
+  createdAt     DateTime @default(now())
 
   property      Property       @relation(fields: [propertyId], references: [id], onDelete: Cascade)
   distributions Distribution[]
@@ -533,8 +535,9 @@ model Settings {
 
 enum PlatformRevenueType {
   INVESTMENT_FEE    // Derived from token purchase orders
-  OWNER_FEE         // Property listing / tokenization / setup fees
-  MANAGEMENT_FEE    // Annual / asset management fees
+  PREPARATION_FEE   // Property preparation fee (four-fee model) — recorded when admin marks it collected
+  OWNER_FEE         // LEGACY / backward-compatibility only — not produced by the four-fee model
+  MANAGEMENT_FEE    // Property management fee deducted from rental income at distribution
   SUBSCRIPTION      // Premium accounts, enterprise plans
   OTHER             // Penalties, service charges, miscellaneous
 }

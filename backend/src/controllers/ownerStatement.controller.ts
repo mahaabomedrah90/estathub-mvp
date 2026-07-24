@@ -137,6 +137,8 @@ async function buildOwnerStatement(ownerId: string) {
       propertyTitle: p.property?.title ?? '—',
       period: p.month,
       totalPayoutAmount: p.totalAmount,
+      managementFee: p.mgmtFeeAmount ?? null,   // deducted from gross — ALWSM revenue
+      reserveWithheld: p.reserveAmount ?? null,  // deducted from gross — property reserve, NOT revenue
       totalDistributedToInvestors: totalDistributed,
       distributionCount: (p.distributions as any[]).length,
     }
