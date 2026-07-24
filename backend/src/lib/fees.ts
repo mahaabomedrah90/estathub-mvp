@@ -131,50 +131,31 @@ async function resolveInvestorSettings(): Promise<InvestorSettings> {
 // ── buildPropertyFeeSnapshot ──────────────────────────────────────────────────
 
 /**
- * Build the immutable fee snapshot stored on a Property at approval time.
+ * Build the fee snapshot for a Property from global settings — the four approved
+ * MVP fee values only:
+ *   preparationFee    ← propertyPreparationFee (fixed SAR, owner onboarding)
+ *   investorFeeRate   ← platformFee (via resolveInvestorSettings)
+ *   managementFeeRate ← managementFeeRate (% of rental income, ALWSM revenue)
+ *   reserveRate       ← reserveRate (% of rental income, NOT revenue)
  *
- * All three investor fee fields are read from Global Settings via resolveInvestorSettings().
- * Other fee fields (owner, management, reserve, withdrawal) are read in parallel.
- *
- * Single source of truth — both approval paths (PATCH status + PUT /approve) call this.
+ * Used ONLY for direct-submit properties with no finalized PropertyLead snapshot;
+ * lead-originated properties keep the snapshot copied at conversion (never rebuilt).
  */
 export async function buildPropertyFeeSnapshot(): Promise<Record<string, unknown>> {
-  const [
-    investorSettings,
-    ownerFeeEnabled, ownerFeeMode, ownerFeeRate, ownerFeeFlat,
-    managementFeeEnabled, managementFeeRate, reserveRate,
-    withdrawalFeeEnabled, withdrawalFeeMode, withdrawalFeeFlat, withdrawalFeeRate,
-  ] = await Promise.all([
+  const [investorSettings, managementFeeRate, reserveRate, preparationFee] = await Promise.all([
     resolveInvestorSettings(),
-    getSetting('ownerFeeEnabled',      'false'),
-    getSetting('ownerFeeMode',         'PERCENTAGE'),
-    getSetting('ownerFeeRate',         '0'),
-    getSetting('ownerFeeFlat',         '0'),
-    getSetting('managementFeeEnabled', 'false'),
-    getSetting('managementFeeRate',    '8'),
-    getSetting('reserveRate',          '3'),
-    getSetting('withdrawalFeeEnabled', 'false'),
-    getSetting('withdrawalFeeMode',    'FLAT'),
-    getSetting('withdrawalFeeFlat',    '0'),
-    getSetting('withdrawalFeeRate',    '0'),
+    getSetting('managementFeeRate',      '8'),
+    getSetting('reserveRate',            '3'),
+    getSetting('propertyPreparationFee', '0'),
   ])
 
   return {
-    investorFeeEnabled:       investorSettings.enabled,
-    investorFeeRate:          investorSettings.rate,
-    investorFeeMinimumAmount: investorSettings.minimumAmount,
-    ownerFeeEnabled:          ownerFeeEnabled      === 'true',
-    ownerFeeMode,
-    ownerFeeRate:             parseNumSettingWithDefault(ownerFeeRate,      'ownerFeeRate',      0),
-    ownerFeeFlat:             parseNumSettingWithDefault(ownerFeeFlat,      'ownerFeeFlat',      0),
-    managementFeeEnabled:     managementFeeEnabled === 'true',
-    managementFeeRate:        parseNumSettingWithDefault(managementFeeRate, 'managementFeeRate', 8),
-    reserveRate:              parseNumSettingWithDefault(reserveRate,       'reserveRate',       3),
-    withdrawalFeeEnabled:     withdrawalFeeEnabled === 'true',
-    withdrawalFeeMode,
-    withdrawalFeeFlat:        parseNumSettingWithDefault(withdrawalFeeFlat, 'withdrawalFeeFlat', 0),
-    withdrawalFeeRate:        parseNumSettingWithDefault(withdrawalFeeRate, 'withdrawalFeeRate', 0),
-    lockedAt:                 new Date().toISOString(),
+    preparationFee:    parseNumSettingWithDefault(preparationFee,    'propertyPreparationFee', 0),
+    investorFeeRate:   investorSettings.rate,
+    managementFeeRate: parseNumSettingWithDefault(managementFeeRate, 'managementFeeRate',       8),
+    reserveRate:       parseNumSettingWithDefault(reserveRate,       'reserveRate',             3),
+    source:            'global_settings_mvp4',
+    lockedAt:          new Date().toISOString(),
   }
 }
 
