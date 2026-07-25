@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react'
 import {
   Building2, User, MapPin, Coins, Loader2, AlertCircle, CheckCircle2,
-  XCircle, RefreshCw, X, Calendar, Eye, ClipboardList, Info, FileText, Gavel, Clock
+  XCircle, RefreshCw, X, Calendar, Eye, ClipboardList, Info, FileText, FileCheck2, Gavel, Clock
 } from 'lucide-react'
 import { authHeader, fetchJson } from '../../lib/api'
 
@@ -19,6 +19,8 @@ const STATUS = {
   NEEDS_INFO:             { label: 'مطلوب معلومات إضافية', cls: 'bg-orange-100 text-orange-800 border-orange-200',   dot: 'bg-orange-500' },
   ACCEPTED:               { label: 'قبول مبدئي',           cls: 'bg-green-100 text-green-800 border-green-200',       dot: 'bg-green-500' },
   READY_FOR_FINAL_REVIEW: { label: 'جاهز للاعتماد النهائي', cls: 'bg-teal-100 text-teal-800 border-teal-200',         dot: 'bg-teal-500' },
+  AWAITING_OWNER_FINAL_ACCEPTANCE: { label: 'بانتظار موافقة المالك النهائية', cls: 'bg-purple-100 text-purple-800 border-purple-200', dot: 'bg-purple-500' },
+  OWNER_FINAL_ACCEPTED:   { label: 'اكتملت موافقة المالك النهائية', cls: 'bg-sky-100 text-sky-800 border-sky-200', dot: 'bg-sky-500' },
   FINAL_APPROVED:         { label: 'اعتماد نهائي',         cls: 'bg-emerald-100 text-emerald-800 border-emerald-200', dot: 'bg-emerald-500' },
   REJECTED:               { label: 'مرفوض',               cls: 'bg-red-100 text-red-800 border-red-200',            dot: 'bg-red-500' },
   CONVERTED_TO_PROPERTY:  { label: 'تم تحويله إلى عقار',   cls: 'bg-indigo-100 text-indigo-800 border-indigo-200',   dot: 'bg-indigo-500' },
@@ -56,6 +58,8 @@ const FILTERS = [
   { value: 'NEEDS_INFO',             label: 'مطلوب معلومات إضافية' },
   { value: 'ACCEPTED',               label: 'قبول مبدئي' },
   { value: 'READY_FOR_FINAL_REVIEW', label: 'جاهز للاعتماد النهائي' },
+  { value: 'AWAITING_OWNER_FINAL_ACCEPTANCE', label: 'بانتظار موافقة المالك النهائية' },
+  { value: 'OWNER_FINAL_ACCEPTED',   label: 'اكتملت موافقة المالك النهائية' },
   { value: 'FINAL_APPROVED',         label: 'اعتماد نهائي' },
   { value: 'REJECTED',               label: 'مرفوض' },
 ]
@@ -77,10 +81,22 @@ const ADMIN_ACTIONS = {
     { to: 'REJECTED',               label: 'رفض',                    icon: XCircle,       cls: 'bg-red-600 hover:bg-red-700' },
   ],
   READY_FOR_FINAL_REVIEW: [
-    { to: 'FINAL_APPROVED', label: 'اعتماد نهائي',         icon: CheckCircle2, cls: 'bg-emerald-700 hover:bg-emerald-800' },
+    // Phase 7d: FINAL_APPROVED is no longer a direct action — the owner must accept
+    // first via the "إرسال الاتفاقية للمالك" button (rendered separately below).
     { to: 'NEEDS_INFO',     label: 'طلب معلومات إضافية',   icon: Info,         cls: 'bg-orange-500 hover:bg-orange-600' },
     { to: 'ACCEPTED',       label: 'إرجاع لقبول مبدئي',    icon: RefreshCw,    cls: 'bg-gray-500 hover:bg-gray-600' },
     { to: 'REJECTED',       label: 'رفض',                  icon: XCircle,      cls: 'bg-red-600 hover:bg-red-700' },
+  ],
+  AWAITING_OWNER_FINAL_ACCEPTANCE: [   // waiting on the owner; admin may pull back or reject only
+    { to: 'READY_FOR_FINAL_REVIEW', label: 'إرجاع إلى تجهيز الاعتماد', icon: RefreshCw, cls: 'bg-gray-500 hover:bg-gray-600' },
+    { to: 'NEEDS_INFO',             label: 'طلب معلومات إضافية',       icon: Info,      cls: 'bg-orange-500 hover:bg-orange-600' },
+    { to: 'REJECTED',               label: 'رفض',                      icon: XCircle,   cls: 'bg-red-600 hover:bg-red-700' },
+  ],
+  OWNER_FINAL_ACCEPTED: [              // owner accepted — admin may now approve, or pull back
+    { to: 'FINAL_APPROVED',         label: 'اعتماد نهائي',            icon: CheckCircle2, cls: 'bg-emerald-700 hover:bg-emerald-800' },
+    { to: 'READY_FOR_FINAL_REVIEW', label: 'إرجاع إلى تجهيز الاعتماد', icon: RefreshCw,    cls: 'bg-gray-500 hover:bg-gray-600' },
+    { to: 'NEEDS_INFO',             label: 'طلب معلومات إضافية',       icon: Info,         cls: 'bg-orange-500 hover:bg-orange-600' },
+    { to: 'REJECTED',               label: 'رفض',                      icon: XCircle,      cls: 'bg-red-600 hover:bg-red-700' },
   ],
   NEEDS_INFO: [               // owner can resubmit, and admin can also progress it manually
     { to: 'UNDER_REVIEW', label: 'بدء المراجعة', icon: ClipboardList, cls: 'bg-amber-500 hover:bg-amber-600' },
@@ -274,6 +290,41 @@ function DetailPanel({ id, onClose, onUpdated, showToast }) {
     }
   }
 
+  // Phase 7d: admin sends the listing agreement to the owner (opens the acceptance
+  // gate). Dedicated endpoint — NOT the generic status PATCH.
+  const sendFinalAcceptance = async () => {
+    setSaving('SEND_FINAL_ACCEPTANCE')
+    try {
+      const res = await fetchJson(`/api/admin/property-leads/${id}/send-final-acceptance`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', ...authHeader() },
+      })
+      const data = await fetchJson(`/api/admin/property-leads/${id}`, { headers: authHeader() })
+      setLead(data)
+      showToast('success', res?.message || 'تم إرسال طلب الموافقة النهائية للمالك.')
+      loadHistory()
+      onUpdated()
+    } catch (err) {
+      showToast('error', err?.data?.message || 'تعذّر إرسال الاتفاقية للمالك. حاول مرة أخرى.')
+    } finally {
+      setSaving(null)
+    }
+  }
+
+  // Open the owner's fee receipt via a short-lived admin-scoped signed URL. The raw
+  // key is never shown in the UI. Inline error on failure.
+  const openReceipt = async () => {
+    const key = lead?.ownerFeeReceiptKey
+    if (typeof key !== 'string' || !key) return
+    try {
+      const r = await fetchJson(`/api/admin/property-leads/${id}/documents/url?key=${encodeURIComponent(key)}`, { headers: authHeader() })
+      if (r?.url) { window.open(r.url, '_blank', 'noopener'); return }
+      showToast('error', 'تعذر فتح إيصال السداد. حاول مرة أخرى.')
+    } catch {
+      showToast('error', 'تعذر فتح إيصال السداد. حاول مرة أخرى.')
+    }
+  }
+
   // Open a lead document: legacy URLs directly; S3 keys via a short-lived
   // admin-scoped signed URL (admin endpoint enforces the key belongs to the lead).
   const openDoc = async (ref) => {
@@ -462,6 +513,63 @@ function DetailPanel({ id, onClose, onUpdated, showToast }) {
                   )
                 })}
               </div>
+              {/* Phase 7d: send the listing agreement to the owner (READY_FOR_FINAL_REVIEW) */}
+              {lead.status === 'READY_FOR_FINAL_REVIEW' && (
+                (lead.listingDraft && lead.feeSnapshot && lead.feesLockedAt) ? (
+                  <button onClick={sendFinalAcceptance} disabled={!!saving}
+                    className="w-full mt-2 inline-flex items-center justify-center gap-2 px-4 py-2.5 bg-purple-600 text-white rounded-xl text-sm font-semibold hover:bg-purple-700 transition-colors disabled:opacity-60">
+                    {saving === 'SEND_FINAL_ACCEPTANCE' ? <Loader2 size={14} className="animate-spin" /> : <FileCheck2 size={14} />} إرسال الاتفاقية للمالك
+                  </button>
+                ) : (
+                  <p className="text-xs text-amber-700 bg-amber-50 border border-amber-200 rounded-lg p-2 mt-2">
+                    استكمل بيانات الإدراج ورسوم التجهيز قبل إرسال الاتفاقية للمالك.
+                  </p>
+                )
+              )}
+
+              {/* AWAITING_OWNER_FINAL_ACCEPTANCE — waiting on the owner; no final-approve here */}
+              {lead.status === 'AWAITING_OWNER_FINAL_ACCEPTANCE' && (
+                <div className="mt-3 bg-purple-50 border border-purple-200 rounded-lg p-3 space-y-1">
+                  <p className="text-sm font-bold text-purple-800">بانتظار موافقة المالك النهائية</p>
+                  <p className="text-xs text-purple-800 leading-relaxed">تم إرسال الاتفاقية للمالك وبانتظار الموافقة والسداد إن وجدت.</p>
+                  <div className="text-[11px] text-purple-700 flex flex-wrap gap-x-4 pt-1">
+                    <span>رسوم التجهيز: {fmtSar(Number(lead.feeSnapshot?.preparationFee) || 0)}</span>
+                    {lead.feesLockedAt && <span>تاريخ قفل الرسوم: {fmtDate(lead.feesLockedAt)}</span>}
+                  </div>
+                </div>
+              )}
+
+              {/* OWNER_FINAL_ACCEPTED — acceptance evidence panel (final-approve comes from ADMIN_ACTIONS) */}
+              {lead.status === 'OWNER_FINAL_ACCEPTED' && (() => {
+                const acc = lead.ownerFinalAcceptance || {}
+                const yn = (v) => v === true ? 'نعم' : 'لا'
+                const payLabel = acc.paymentStatus === 'SUBMITTED' ? 'تم تقديم إثبات السداد'
+                  : acc.paymentStatus === 'NOT_REQUIRED' ? 'غير مطلوب'
+                  : (acc.paymentStatus || '—')
+                return (
+                  <div className="mt-3 bg-sky-50 border border-sky-200 rounded-lg p-3 space-y-1.5">
+                    <p className="text-sm font-bold text-sky-800">أدلة موافقة المالك</p>
+                    <div className="text-xs text-sky-900 space-y-1">
+                      <div>تاريخ الموافقة: <span className="font-semibold">{fmtDate(lead.ownerFinalAcceptanceAt)}</span></div>
+                      <div>نسخة الإقرار: <span className="font-semibold">{acc.agreementVersion || 'غير محدد'}</span></div>
+                      <div>إقرار صحة البيانات: {yn(acc.agreementAccepted)}</div>
+                      <div>قبول اتفاقية الإدراج: {yn(acc.acknowledgmentAccepted)}</div>
+                      <div>قبول رسوم التجهيز: {yn(acc.feeTermsAccepted)}</div>
+                      <div>رسوم التجهيز: <span className="font-semibold">{fmtSar(Number(lead.feeSnapshot?.preparationFee) || 0)}</span></div>
+                      <div>حالة السداد: <span className="font-semibold">{payLabel}</span></div>
+                      <div>مرجع التحويل: {acc.feePaymentReference || 'غير مرفق'}</div>
+                      <div>ملاحظات المالك: {acc.ownerResponseNote || 'لا توجد ملاحظات'}</div>
+                    </div>
+                    {lead.ownerFeeReceiptKey && (
+                      <button onClick={openReceipt}
+                        className="mt-1 inline-flex items-center gap-2 px-3 py-1.5 bg-sky-600 text-white rounded-lg text-xs font-semibold hover:bg-sky-700 transition-colors">
+                        <FileText size={13} /> عرض إيصال السداد
+                      </button>
+                    )}
+                  </div>
+                )
+              })()}
+
               {lead.status === 'NEEDS_INFO' && (
                 <p className="text-xs text-text-muted mt-2">
                   يمكنك انتظار تحديث المالك أو متابعة المراجعة يدويًا.
@@ -505,8 +613,25 @@ function DetailPanel({ id, onClose, onUpdated, showToast }) {
                         {m.ownerResponseNote && (
                           <div className="text-xs text-text-body mt-1 bg-orange-50 border border-orange-200 rounded-lg p-2 whitespace-pre-line">
                             <span className="font-semibold text-orange-800">
-                              {h.action === 'PROPERTY_LEAD_OWNER_SUPPLEMENTED' ? 'إضافة من المالك:' : 'رد المالك:'}
+                              {h.action === 'PROPERTY_LEAD_OWNER_SUPPLEMENTED' ? 'إضافة من المالك:'
+                                : h.action === 'PROPERTY_LEAD_OWNER_FINAL_ACCEPTED' ? 'ملاحظة المالك مع الموافقة:'
+                                : 'رد المالك:'}
                             </span> {m.ownerResponseNote}
+                          </div>
+                        )}
+                        {h.action === 'PROPERTY_LEAD_FINAL_ACCEPTANCE_REQUESTED' && (
+                          <div className="text-xs text-purple-800 mt-1 bg-purple-50 border border-purple-200 rounded-lg p-2">
+                            <p className="font-semibold">تم إرسال طلب الموافقة النهائية للمالك</p>
+                            {(m.preparationFee || m.preparationFee === 0) && <span>رسوم التجهيز: {fmtSar(m.preparationFee)}</span>}
+                          </div>
+                        )}
+                        {h.action === 'PROPERTY_LEAD_OWNER_FINAL_ACCEPTED' && (
+                          <div className="text-xs text-sky-900 mt-1 bg-sky-50 border border-sky-200 rounded-lg p-2 space-y-0.5">
+                            <p className="font-semibold text-sky-800">اكتملت موافقة المالك النهائية</p>
+                            {(m.preparationFee || m.preparationFee === 0) && <div>رسوم التجهيز: {fmtSar(m.preparationFee)}</div>}
+                            {m.paymentStatus && <div>حالة السداد: {m.paymentStatus === 'SUBMITTED' ? 'تم تقديم إثبات السداد' : m.paymentStatus === 'NOT_REQUIRED' ? 'غير مطلوب' : m.paymentStatus}</div>}
+                            {m.paymentReference && <div>مرجع التحويل: {m.paymentReference}</div>}
+                            {m.receiptKeyPresent && <div className="text-green-700">تم إرفاق إيصال السداد</div>}
                           </div>
                         )}
                         <div className="text-[11px] text-text-muted mt-1 flex flex-wrap gap-x-4 gap-y-0.5">
