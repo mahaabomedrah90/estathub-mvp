@@ -646,6 +646,8 @@ enum PropertyLeadStatus {
   NEEDS_INFO
   ACCEPTED
   READY_FOR_FINAL_REVIEW
+  AWAITING_OWNER_FINAL_ACCEPTANCE
+  OWNER_FINAL_ACCEPTED
   FINAL_APPROVED
   REJECTED
   CONVERTED_TO_PROPERTY
@@ -721,6 +723,15 @@ model PropertyLead {
   feeSnapshot                    Json?
   feesLockedAt                   DateTime?
   listingDraft                   Json?
+
+  // Owner Final Acceptance Gate (Phase 7a) — nullable, additive; no controller
+  // logic yet. Records the owner's acceptance of the listing agreement /
+  // acknowledgment / fee terms before FINAL_APPROVED, plus manual fee-payment
+  // proof. ownerFeeReceiptKey is a PRIVATE S3 key (never a public URL).
+  ownerFinalAcceptanceAt         DateTime?
+  ownerFinalAcceptanceBy         String?
+  ownerFinalAcceptance           Json?
+  ownerFeeReceiptKey             String?
 
   @@index([tenantId])
   @@index([ownerId])
