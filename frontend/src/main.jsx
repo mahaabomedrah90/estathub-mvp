@@ -39,6 +39,7 @@ import PropertySubmissionWizard from './pages/owner/PropertySubmissionWizard.jsx
 import OwnerOpportunityLeadForm from './pages/owner/OwnerOpportunityLeadForm.jsx'
 import OwnerRequests from './pages/owner/OwnerRequests.jsx'
 import OwnerRequestEdit from './pages/owner/OwnerRequestEdit.jsx'
+import OwnerFinalAcceptance from './pages/owner/OwnerFinalAcceptance.jsx'
 import OwnerInvestors from './pages/admin/AdminInvestors.jsx'
 // Admin Pages
 import AdminOverview from './pages/admin/AdminOverview.jsx'
@@ -147,6 +148,7 @@ const router = createBrowserRouter([
  { path: 'dashboard', element: <OwnerDashboard /> },
  { path: 'requests', element: <OwnerRequests /> },
  { path: 'requests/:id/edit', element: <OwnerRequestEdit /> },
+ { path: 'requests/:id/final-acceptance', element: <OwnerFinalAcceptance /> },
  { path: 'properties', element: <OwnerProperties /> },
  { path: 'properties/view-all', element: <ViewAllProperties /> },
  { path: 'properties/new', element: <PropertySubmissionWizard /> },

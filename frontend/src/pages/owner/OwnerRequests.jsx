@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { MapPin, DollarSign, Clock, AlertCircle, Loader2, ClipboardList, Plus, Pencil } from 'lucide-react'
+import { MapPin, DollarSign, Clock, AlertCircle, Loader2, ClipboardList, Plus, Pencil, FileCheck2, CheckCircle2 } from 'lucide-react'
 import { fetchJson, authHeader } from '../../lib/api'
 
 // Preliminary opportunity submissions (PropertyLead) — owner-facing labels.
@@ -11,6 +11,8 @@ const LEAD_STATUS = {
   NEEDS_INFO:            { label: 'مطلوب معلومات إضافية', cls: 'bg-orange-100 text-orange-700' },
   ACCEPTED:              { label: 'قبول مبدئي',           cls: 'bg-green-100 text-green-700' },
   READY_FOR_FINAL_REVIEW:{ label: 'قيد التجهيز للاعتماد النهائي', cls: 'bg-teal-100 text-teal-700' },
+  AWAITING_OWNER_FINAL_ACCEPTANCE: { label: 'بانتظار موافقتك النهائية', cls: 'bg-purple-100 text-purple-700' },
+  OWNER_FINAL_ACCEPTED:  { label: 'اكتملت موافقتك النهائية', cls: 'bg-sky-100 text-sky-700' },
   FINAL_APPROVED:        { label: 'اعتماد نهائي',         cls: 'bg-emerald-100 text-emerald-700' },
   REJECTED:              { label: 'مرفوض',                cls: 'bg-red-100 text-red-700' },
   CONVERTED_TO_PROPERTY: { label: 'تم تحويله إلى عقار',   cls: 'bg-indigo-100 text-indigo-700' },
@@ -176,8 +178,41 @@ export default function OwnerRequests() {
                   </div>
                 )}
 
-                {/* Review notes for other statuses (NEEDS_INFO & READY_FOR_FINAL_REVIEW handle their own) */}
-                {statusKey !== 'NEEDS_INFO' && statusKey !== 'READY_FOR_FINAL_REVIEW' && lead.reviewNotes && (
+                {/* AWAITING_OWNER_FINAL_ACCEPTANCE — owner must review the agreement, pay preparation fee if any, and accept */}
+                {statusKey === 'AWAITING_OWNER_FINAL_ACCEPTANCE' && (
+                  <div className="bg-purple-50 border border-purple-200 rounded-lg p-3 space-y-2">
+                    <div className="flex items-center gap-2">
+                      <FileCheck2 size={16} className="text-purple-600 flex-shrink-0" />
+                      <p className="text-sm font-bold text-purple-800">مطلوب موافقتك النهائية</p>
+                    </div>
+                    <p className="text-xs text-purple-800 leading-relaxed pr-6">
+                      يرجى مراجعة اتفاقية الإدراج والإقرار وسداد رسوم تجهيز العقار إن وجدت.
+                    </p>
+                    <button
+                      onClick={() => navigate(`/owner/requests/${lead.id}/final-acceptance`)}
+                      className="mt-1 inline-flex items-center gap-2 px-4 py-2 bg-purple-600 text-white rounded-lg text-sm font-semibold hover:bg-purple-700 transition-colors"
+                    >
+                      <FileCheck2 size={15} />
+                      مراجعة الاتفاقية والدفع
+                    </button>
+                  </div>
+                )}
+
+                {/* OWNER_FINAL_ACCEPTED — read-only confirmation, no action */}
+                {statusKey === 'OWNER_FINAL_ACCEPTED' && (
+                  <div className="bg-sky-50 border border-sky-200 rounded-lg p-3 space-y-1">
+                    <div className="flex items-center gap-2">
+                      <CheckCircle2 size={16} className="text-sky-600 flex-shrink-0" />
+                      <p className="text-sm font-bold text-sky-800">اكتملت موافقتك النهائية</p>
+                    </div>
+                    <p className="text-xs text-sky-800 leading-relaxed pr-6">
+                      تم إرسال موافقتك النهائية لفريق الوسم. سيقوم الفريق باستكمال الاعتماد النهائي.
+                    </p>
+                  </div>
+                )}
+
+                {/* Review notes for other statuses (the interactive states above handle their own) */}
+                {!['NEEDS_INFO', 'READY_FOR_FINAL_REVIEW', 'AWAITING_OWNER_FINAL_ACCEPTANCE', 'OWNER_FINAL_ACCEPTED'].includes(statusKey) && lead.reviewNotes && (
                   <div className="flex items-start gap-2 p-3 bg-amber-50 rounded-lg">
                     <AlertCircle size={16} className="text-amber-600 flex-shrink-0 mt-0.5" />
                     <p className="text-xs text-amber-800">{lead.reviewNotes}</p>
