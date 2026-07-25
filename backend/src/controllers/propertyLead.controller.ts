@@ -1,4 +1,5 @@
 import { Router, Request, Response, NextFunction } from 'express'
+import { Prisma } from '@prisma/client'
 import multer from 'multer'
 import { prisma } from '../lib/prisma'
 import { auth } from '../middleware/auth'
@@ -29,16 +30,22 @@ const ADMIN_SETTABLE_STATUSES = ['UNDER_REVIEW', 'NEEDS_INFO', 'ACCEPTED', 'REJE
 // Allowed admin status transitions (from -> [to]). NEEDS_INFO can also progress
 // via the owner resubmit endpoint (NEEDS_INFO -> UNDER_REVIEW); admins may drive it
 // forward manually too (wait for the owner or continue review).
+// Phase 7b: FINAL_APPROVED is no longer reachable directly from READY_FOR_FINAL_REVIEW.
+// The Owner Final Acceptance Gate sits between them, reached only via dedicated
+// endpoints (send-final-acceptance / final-acceptance) — NOT the generic status PATCH.
+// FINAL_APPROVED is allowed only from OWNER_FINAL_ACCEPTED.
 // FINAL_APPROVED/REJECTED/CONVERTED are terminal.
 const ADMIN_STATUS_TRANSITIONS: Record<string, string[]> = {
-  NEW:                    ['UNDER_REVIEW'],
-  UNDER_REVIEW:           ['NEEDS_INFO', 'ACCEPTED', 'REJECTED'],
-  NEEDS_INFO:             ['UNDER_REVIEW', 'ACCEPTED', 'REJECTED'], // no longer a dead-end for admin
-  ACCEPTED:               ['READY_FOR_FINAL_REVIEW', 'REJECTED'],
-  READY_FOR_FINAL_REVIEW: ['FINAL_APPROVED', 'ACCEPTED', 'NEEDS_INFO', 'REJECTED'],
-  FINAL_APPROVED:         [],
-  REJECTED:               [],
-  CONVERTED_TO_PROPERTY:  [],
+  NEW:                             ['UNDER_REVIEW'],
+  UNDER_REVIEW:                    ['NEEDS_INFO', 'ACCEPTED', 'REJECTED'],
+  NEEDS_INFO:                      ['UNDER_REVIEW', 'ACCEPTED', 'REJECTED'], // no longer a dead-end for admin
+  ACCEPTED:                        ['READY_FOR_FINAL_REVIEW', 'REJECTED'],
+  READY_FOR_FINAL_REVIEW:          ['ACCEPTED', 'NEEDS_INFO', 'REJECTED'], // FINAL_APPROVED removed — gate required
+  AWAITING_OWNER_FINAL_ACCEPTANCE: ['READY_FOR_FINAL_REVIEW', 'NEEDS_INFO', 'REJECTED'], // admin pull-back / reject
+  OWNER_FINAL_ACCEPTED:            ['FINAL_APPROVED', 'READY_FOR_FINAL_REVIEW', 'NEEDS_INFO', 'REJECTED'],
+  FINAL_APPROVED:                  [],
+  REJECTED:                        [],
+  CONVERTED_TO_PROPERTY:           [],
 }
 
 // Owner-facing projection — exposes review feedback (adminStatus, reviewNotes,
@@ -167,6 +174,33 @@ function leadDocumentRefs(lead: { imageUrls?: unknown; deedImageUrl?: unknown; o
   // (e.g. conversion → Property.mainImagesUrls) simply omit the field.
   if (typeof lead.ownerFeeReceiptKey === 'string' && lead.ownerFeeReceiptKey.trim()) refs.push(lead.ownerFeeReceiptKey.trim())
   return refs
+}
+
+// Phase 7b: the owner-side charge in the current fee model is the fixed
+// preparationFee (SAR) on the locked feeSnapshot. READ-ONLY — never touches
+// buildFeeSnapshot or any rate, and never uses the obsolete totalFeesAmount.
+// Returns the numeric value (>= 0 allowed = free listing), or NaN if the snapshot
+// has no numeric preparationFee.
+function preparationFeeOf(feeSnapshot: unknown): number {
+  const raw = (feeSnapshot && typeof feeSnapshot === 'object') ? (feeSnapshot as any).preparationFee : undefined
+  const n = Number(raw)
+  return Number.isFinite(n) ? n : NaN
+}
+
+// Owner-safe projection of the locked feeSnapshot for the acceptance package.
+// Exposes only the owner-relevant fee view (the SAR preparationFee the owner pays,
+// plus informational rates already present in the snapshot). Never exposes admin
+// bookkeeping fields (enteredBy, source, etc.).
+function ownerFeeView(feeSnapshot: unknown): Record<string, unknown> {
+  const fs: any = (feeSnapshot && typeof feeSnapshot === 'object') ? feeSnapshot : {}
+  const pf = preparationFeeOf(fs)
+  return {
+    currency: typeof fs.currency === 'string' ? fs.currency : 'SAR',
+    preparationFee: Number.isFinite(pf) ? pf : null,
+    investorFeeRate: fs.investorFeeRate ?? null,
+    managementFeeRate: fs.managementFeeRate ?? null,
+    reserveRate: fs.reserveRate ?? null,
+  }
 }
 
 // ════════════════════════════════════════════════════════════════════════════
@@ -607,6 +641,186 @@ propertyLeadRouter.patch('/:id/resubmit', auth(true), async (req: Request & { us
   }
 })
 
+// Statuses in which the owner may read the final-acceptance package.
+const OWNER_ACCEPTANCE_VISIBLE_STATUSES = ['AWAITING_OWNER_FINAL_ACCEPTANCE', 'OWNER_FINAL_ACCEPTED', 'FINAL_APPROVED', 'CONVERTED_TO_PROPERTY']
+
+// GET /api/property-leads/:id/final-acceptance — owner reads the acceptance package
+// (listing draft + owner-safe fee view). Needed because OWNER_SAFE_SELECT hides
+// listingDraft/feeSnapshot at every other stage. Never exposes internal scores.
+propertyLeadRouter.get('/:id/final-acceptance', auth(true), async (req: Request & { user?: any }, res: Response) => {
+  if (!requireOwner(req, res)) return
+  try {
+    const lead = await prisma.propertyLead.findFirst({
+      where: { id: req.params.id, ownerId: req.user!.userId, tenantId: req.user!.tenantId },
+      select: {
+        id: true, status: true, adminStatus: true,
+        propertyName: true, propertyType: true, city: true, district: true,
+        requestedPrice: true, shortDescription: true, reviewNotes: true,
+        listingDraft: true, feeSnapshot: true, feesLockedAt: true,
+        ownerFinalAcceptanceAt: true, ownerFinalAcceptance: true, ownerFeeReceiptKey: true,
+      },
+    })
+    if (!lead) return res.status(404).json({ error: 'property_lead_not_found' })
+    if (!OWNER_ACCEPTANCE_VISIBLE_STATUSES.includes(lead.status)) {
+      return res.status(409).json({
+        error: 'final_acceptance_not_available',
+        message: 'حزمة الموافقة النهائية غير متاحة لهذا الطلب في حالته الحالية.',
+        currentStatus: lead.status,
+      })
+    }
+    const pf = preparationFeeOf(lead.feeSnapshot)
+    return res.json({
+      lead: {
+        id: lead.id, status: lead.status, adminStatus: lead.adminStatus,
+        propertyName: lead.propertyName, propertyType: lead.propertyType,
+        city: lead.city, district: lead.district,
+        requestedPrice: lead.requestedPrice, shortDescription: lead.shortDescription,
+        reviewNotes: lead.reviewNotes,
+      },
+      listingDraft: lead.listingDraft,
+      feeView: ownerFeeView(lead.feeSnapshot),
+      feesLockedAt: lead.feesLockedAt,
+      feeProofRequired: Number.isFinite(pf) && pf > 0,
+      ownerFinalAcceptanceAt: lead.ownerFinalAcceptanceAt,
+      ownerFinalAcceptance: lead.ownerFinalAcceptance ?? null,
+      hasReceipt: typeof lead.ownerFeeReceiptKey === 'string' && !!lead.ownerFeeReceiptKey,
+    })
+  } catch (e: any) {
+    console.error('❌ PropertyLead final-acceptance get error:', e?.message)
+    return res.status(500).json({ error: 'final_acceptance_get_failed' })
+  }
+})
+
+// POST /api/property-leads/:id/final-acceptance — owner submits final acceptance.
+// Owner-only, own-lead-only, allowed ONLY from AWAITING_OWNER_FINAL_ACCEPTANCE.
+// Moves the lead to OWNER_FINAL_ACCEPTED. Never creates a Property, never
+// auto-approves, never touches listingDraft/feeSnapshot/feesLockedAt or finance.
+propertyLeadRouter.post('/:id/final-acceptance', auth(true), async (req: Request & { user?: any }, res: Response) => {
+  if (!requireOwner(req, res)) return
+  try {
+    const existing = await prisma.propertyLead.findFirst({
+      where: { id: req.params.id, ownerId: req.user!.userId, tenantId: req.user!.tenantId },
+      select: { id: true, status: true, propertyName: true, ownerId: true, feeSnapshot: true },
+    })
+    if (!existing) return res.status(404).json({ error: 'property_lead_not_found' })
+    if (existing.status === 'OWNER_FINAL_ACCEPTED') {
+      return res.status(409).json({ error: 'already_accepted', message: 'تم إرسال الموافقة النهائية مسبقًا.' })
+    }
+    if (existing.status !== 'AWAITING_OWNER_FINAL_ACCEPTANCE') {
+      return res.status(409).json({
+        error: 'final_acceptance_not_available',
+        message: 'حزمة الموافقة النهائية غير متاحة لهذا الطلب في حالته الحالية.',
+        currentStatus: existing.status,
+      })
+    }
+
+    const b = req.body || {}
+    if (b.agreementAccepted !== true || b.acknowledgmentAccepted !== true || b.feeTermsAccepted !== true) {
+      return res.status(400).json({ error: 'acceptance_required', message: 'يجب قبول جميع الإقرارات قبل إرسال الموافقة النهائية.' })
+    }
+
+    // Optional owner note (audit metadata only; never overwrites admin reviewNotes).
+    let ownerResponseNote: string | undefined
+    if (b.ownerResponseNote !== undefined && b.ownerResponseNote !== null) {
+      const note = String(b.ownerResponseNote).trim()
+      if (note.length > 1000) {
+        return res.status(400).json({ error: 'note_too_long', message: 'الرد يجب ألا يتجاوز 1000 حرف.', field: 'ownerResponseNote' })
+      }
+      if (note) ownerResponseNote = note
+    }
+
+    // Receipt key: only accept a private lead-scoped S3 key for THIS lead — never an
+    // arbitrary/external URL. (Legacy /api/uploads keys and this lead's key prefix.)
+    let feeReceiptKey: string | undefined
+    if (b.feeReceiptKey !== undefined && b.feeReceiptKey !== null && String(b.feeReceiptKey).trim()) {
+      const key = String(b.feeReceiptKey).trim()
+      const belongsToLead = isS3Key(key) && (key.startsWith(`property-leads/${existing.id}/`) || key.startsWith(`property-leads/pending/${req.user!.userId}/`))
+      if (!belongsToLead) {
+        return res.status(400).json({ error: 'invalid_receipt_key', message: 'مرجع الإيصال غير صالح.' })
+      }
+      feeReceiptKey = key
+    }
+
+    let feePaymentReference: string | undefined
+    if (b.feePaymentReference !== undefined && b.feePaymentReference !== null && String(b.feePaymentReference).trim()) {
+      feePaymentReference = String(b.feePaymentReference).trim().slice(0, 200)
+    }
+
+    // Fee gate keyed on the current model's fixed preparationFee (SAR). NOT totalFeesAmount.
+    const pfRaw = preparationFeeOf(existing.feeSnapshot)
+    const preparationFee = Number.isFinite(pfRaw) && pfRaw > 0 ? pfRaw : 0
+    let paymentStatus: 'SUBMITTED' | 'NOT_REQUIRED'
+    if (preparationFee > 0) {
+      if (!feeReceiptKey && !feePaymentReference) {
+        return res.status(400).json({ error: 'fee_payment_proof_required', message: 'يرجى إرفاق إيصال السداد أو إدخال مرجع التحويل قبل إرسال الموافقة.' })
+      }
+      paymentStatus = 'SUBMITTED'
+    } else {
+      paymentStatus = 'NOT_REQUIRED'
+    }
+
+    const acceptedAt = new Date()
+    const acceptance = {
+      agreementAccepted: true,
+      acknowledgmentAccepted: true,
+      feeTermsAccepted: true,
+      agreementVersion: 'owner-final-acceptance-v1-draft',
+      paymentStatus,
+      preparationFee,
+      acceptedAt: acceptedAt.toISOString(),
+      ...(ownerResponseNote ? { ownerResponseNote } : {}),
+      ...(feePaymentReference ? { feePaymentReference } : {}),
+    }
+
+    const updated = await prisma.propertyLead.update({
+      where: { id: existing.id },
+      data: {
+        status: 'OWNER_FINAL_ACCEPTED',
+        adminStatus: 'OWNER_FINAL_ACCEPTED',
+        ownerFinalAcceptanceAt: acceptedAt,
+        ownerFinalAcceptanceBy: req.user!.userId,
+        ownerFinalAcceptance: acceptance as any,
+        ownerFeeReceiptKey: feeReceiptKey ?? null,
+        // listingDraft / feeSnapshot / feesLockedAt / reviewNotes intentionally NOT touched.
+      },
+      select: { id: true, status: true, updatedAt: true },
+    })
+
+    // Audit — never store the raw receipt key in metadata (only presence).
+    await logAdminAction({
+      admin:      null,
+      action:     AuditAction.PROPERTY_LEAD_OWNER_FINAL_ACCEPTED,
+      targetType: 'PropertyLead',
+      targetId:   existing.id,
+      metadata:   {
+        fromStatus: 'AWAITING_OWNER_FINAL_ACCEPTANCE',
+        toStatus:   'OWNER_FINAL_ACCEPTED',
+        actor:      'owner',
+        propertyName: existing.propertyName ?? null,
+        ownerId:    existing.ownerId ?? null,
+        preparationFee,
+        paymentStatus,
+        agreementVersion: acceptance.agreementVersion,
+        receiptKeyPresent: !!feeReceiptKey,
+        ...(feePaymentReference ? { paymentReference: feePaymentReference } : {}),
+        ...(ownerResponseNote ? { ownerResponseNote } : {}),
+      },
+      req,
+    })
+
+    return res.json({
+      success: true,
+      id: updated.id,
+      status: updated.status,
+      updatedAt: updated.updatedAt,
+      message: 'تم إرسال موافقتك النهائية لفريق الوسم. سيقوم الفريق باستكمال الاعتماد النهائي.',
+    })
+  } catch (e: any) {
+    console.error('❌ PropertyLead final-acceptance submit error:', e?.message)
+    return res.status(500).json({ error: 'final_acceptance_submit_failed' })
+  }
+})
+
 // ════════════════════════════════════════════════════════════════════════════
 // ADMIN ROUTER  →  /api/admin/property-leads
 // ════════════════════════════════════════════════════════════════════════════
@@ -666,6 +880,7 @@ propertyLeadAdminRouter.patch('/:id/status', auth(true), async (req: Request & {
       select: {
         id: true, status: true, propertyName: true, ownerId: true,
         listingDraft: true, feeSnapshot: true, feesLockedAt: true,
+        ownerFinalAcceptanceAt: true, ownerFinalAcceptance: true,
       },
     })
     if (!existing) return res.status(404).json({ error: 'property_lead_not_found' })
@@ -682,9 +897,15 @@ propertyLeadAdminRouter.patch('/:id/status', auth(true), async (req: Request & {
       })
     }
 
-    // FINAL_APPROVED requires listing + fee data. Phase 5/6 not built yet, so this
-    // blocks until listingDraft + feeSnapshot + feesLockedAt are all present.
+    // Phase 7b: FINAL_APPROVED requires the Owner Final Acceptance Gate to be complete:
+    // current status OWNER_FINAL_ACCEPTED + listing/fee data + recorded owner acceptance.
     if (status === 'FINAL_APPROVED') {
+      if (existing.status !== 'OWNER_FINAL_ACCEPTED' || !existing.ownerFinalAcceptanceAt || !existing.ownerFinalAcceptance) {
+        return res.status(409).json({
+          error: 'owner_final_acceptance_required',
+          message: 'لا يمكن الاعتماد النهائي قبل اكتمال موافقة المالك النهائية.',
+        })
+      }
       if (!existing.listingDraft || !existing.feeSnapshot || !existing.feesLockedAt) {
         return res.status(409).json({
           error: 'final_approval_requirements_missing',
@@ -692,6 +913,13 @@ propertyLeadAdminRouter.patch('/:id/status', auth(true), async (req: Request & {
         })
       }
     }
+
+    // Phase 7b pull-back: moving OUT of the acceptance gate back to a correction state
+    // invalidates any recorded owner acceptance (terms may change → owner must re-accept).
+    // Historical audit records are never deleted. Not applied when moving to FINAL_APPROVED.
+    const clearsAcceptance =
+      (existing.status === 'OWNER_FINAL_ACCEPTED' || existing.status === 'AWAITING_OWNER_FINAL_ACCEPTANCE') &&
+      (status === 'READY_FOR_FINAL_REVIEW' || status === 'NEEDS_INFO')
 
     const updated = await prisma.propertyLead.update({
       where: { id: req.params.id },
@@ -701,6 +929,12 @@ propertyLeadAdminRouter.patch('/:id/status', auth(true), async (req: Request & {
         reviewNotes: typeof reviewNotes === 'string' ? reviewNotes : undefined,
         reviewedAt: new Date(),
         reviewedBy: req.user!.userId,
+        ...(clearsAcceptance ? {
+          ownerFinalAcceptanceAt: null,
+          ownerFinalAcceptanceBy: null,
+          ownerFinalAcceptance: Prisma.DbNull,
+          ownerFeeReceiptKey: null,
+        } : {}),
       },
     })
 
@@ -950,6 +1184,68 @@ propertyLeadAdminRouter.patch('/:id/finalization', auth(true), async (req: Reque
   } catch (e: any) {
     console.error('❌ PropertyLead finalization update error:', e?.message)
     return res.status(500).json({ error: 'finalization_update_failed' })
+  }
+})
+
+// POST /api/admin/property-leads/:id/send-final-acceptance — admin sends the listing
+// agreement to the owner, opening the Owner Final Acceptance Gate. Allowed only from
+// READY_FOR_FINAL_REVIEW with complete finalization. Does NOT create a Property, does
+// NOT touch listingDraft/feeSnapshot/feesLockedAt or any finance logic. No email in 7b.
+propertyLeadAdminRouter.post('/:id/send-final-acceptance', auth(true), async (req: Request & { user?: any }, res: Response) => {
+  if (!requireAdmin(req, res)) return
+  try {
+    const existing = await prisma.propertyLead.findUnique({
+      where: { id: req.params.id },
+      select: { id: true, status: true, propertyName: true, ownerId: true, listingDraft: true, feeSnapshot: true, feesLockedAt: true },
+    })
+    if (!existing) return res.status(404).json({ error: 'property_lead_not_found' })
+    if (existing.status !== 'READY_FOR_FINAL_REVIEW') {
+      return res.status(409).json({
+        error: 'invalid_status_transition',
+        message: 'يمكن إرسال الاتفاقية للمالك فقط عندما يكون الطلب قيد التجهيز للاعتماد النهائي.',
+        currentStatus: existing.status,
+      })
+    }
+    const pf = preparationFeeOf(existing.feeSnapshot)
+    if (!existing.listingDraft || !existing.feeSnapshot || !existing.feesLockedAt || Number.isNaN(pf) || pf < 0) {
+      return res.status(409).json({
+        error: 'final_acceptance_requirements_missing',
+        message: 'لا يمكن إرسال الاتفاقية للمالك قبل اكتمال بيانات الإدراج ورسوم التجهيز.',
+      })
+    }
+
+    const updated = await prisma.propertyLead.update({
+      where: { id: existing.id },
+      data: {
+        status: 'AWAITING_OWNER_FINAL_ACCEPTANCE',
+        adminStatus: 'AWAITING_OWNER_FINAL_ACCEPTANCE',
+        reviewedAt: new Date(),
+        reviewedBy: req.user!.userId,
+        // listingDraft / feeSnapshot / feesLockedAt intentionally NOT touched.
+      },
+      select: { id: true, status: true, updatedAt: true },
+    })
+
+    await logAdminAction({
+      admin:      { userId: req.user!.userId, email: req.user!.email },
+      action:     AuditAction.PROPERTY_LEAD_FINAL_ACCEPTANCE_REQUESTED,
+      targetType: 'PropertyLead',
+      targetId:   existing.id,
+      metadata:   {
+        fromStatus: 'READY_FOR_FINAL_REVIEW',
+        toStatus:   'AWAITING_OWNER_FINAL_ACCEPTANCE',
+        propertyName: existing.propertyName ?? null,
+        ownerId:    existing.ownerId ?? null,
+        preparationFee: pf,
+        feesLockedAt: existing.feesLockedAt,
+      },
+      req,
+    })
+
+    return res.json({ success: true, id: updated.id, status: updated.status, message: 'تم إرسال طلب الموافقة النهائية للمالك.' })
+  } catch (e: any) {
+    console.error('❌ PropertyLead send-final-acceptance error:', e?.message)
+    return res.status(500).json({ error: 'send_final_acceptance_failed' })
   }
 })
 
