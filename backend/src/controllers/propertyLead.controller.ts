@@ -159,9 +159,13 @@ function normalizeImageRefs(input: unknown): string[] {
   return out
 }
 
-function leadDocumentRefs(lead: { imageUrls?: unknown; deedImageUrl?: unknown }): string[] {
+function leadDocumentRefs(lead: { imageUrls?: unknown; deedImageUrl?: unknown; ownerFeeReceiptKey?: unknown }): string[] {
   const refs = normalizeImageRefs(lead.imageUrls)
   if (typeof lead.deedImageUrl === 'string' && lead.deedImageUrl.trim()) refs.push(lead.deedImageUrl.trim())
+  // Phase 7a: the owner's fee-payment receipt is a private lead document too, so
+  // signed-URL endpoints can authorize it later. Callers that must NOT include it
+  // (e.g. conversion → Property.mainImagesUrls) simply omit the field.
+  if (typeof lead.ownerFeeReceiptKey === 'string' && lead.ownerFeeReceiptKey.trim()) refs.push(lead.ownerFeeReceiptKey.trim())
   return refs
 }
 
@@ -397,7 +401,7 @@ propertyLeadRouter.get('/:id/documents/url', auth(true), async (req: Request & {
     if (!key) return res.status(400).json({ error: 'missing_key', message: 'المستند غير محدد.' })
     const lead = await prisma.propertyLead.findFirst({
       where: { id: req.params.id, ownerId: req.user!.userId, tenantId: req.user!.tenantId },
-      select: { imageUrls: true, deedImageUrl: true },
+      select: { imageUrls: true, deedImageUrl: true, ownerFeeReceiptKey: true },
     })
     if (!lead) return res.status(404).json({ error: 'property_lead_not_found' })
     if (!leadDocumentRefs(lead).includes(key)) return res.status(403).json({ error: 'document_not_on_lead' })
@@ -754,7 +758,7 @@ propertyLeadAdminRouter.get('/:id/documents/url', auth(true), async (req: Reques
     if (!key) return res.status(400).json({ error: 'missing_key', message: 'المستند غير محدد.' })
     const lead = await prisma.propertyLead.findUnique({
       where: { id: req.params.id },
-      select: { imageUrls: true, deedImageUrl: true },
+      select: { imageUrls: true, deedImageUrl: true, ownerFeeReceiptKey: true },
     })
     if (!lead) return res.status(404).json({ error: 'property_lead_not_found' })
     if (!leadDocumentRefs(lead).includes(key)) return res.status(403).json({ error: 'document_not_on_lead' })
