@@ -3,17 +3,19 @@ import { Link, NavLink, useNavigate } from 'react-router-dom'
 import { getToken, clearToken } from '../lib/api'
 import { Building2, LogIn, LogOut, User, Link2 } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
+import { usePublicPageVisibility } from '../hooks/usePublicPageVisibility'
 
 export default function Navbar() {
   const navigate = useNavigate()
   const token = getToken()
   const { t, i18n } = useTranslation('navbar')
+  const { aboutPageEnabled, opportunitiesPageEnabled } = usePublicPageVisibility()
 
   const navItems = [
     { path: '/', label: t('home'), end: true },
-    { path: '/opportunities', label: t('opportunities') },
+    ...(opportunitiesPageEnabled ? [{ path: '/opportunities', label: t('opportunities') }] : []),
     { path: '/how-it-works', label: t('howItWorks') },
-    { path: '/about', label: t('about') },
+    ...(aboutPageEnabled ? [{ path: '/about', label: t('about') }] : []),
     { path: '/faq', label: t('faq') },
   ]
 

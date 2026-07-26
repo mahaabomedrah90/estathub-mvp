@@ -4,6 +4,7 @@ import { createBrowserRouter, RouterProvider, Navigate } from 'react-router-dom'
 import RootLayout from './layouts/RootLayout.jsx'
 import DashboardLayout from './layouts/DashboardLayout.jsx'
 import ProtectedRoute from './components/ProtectedRoute.jsx'
+import PublicPageRoute from './components/PublicPageRoute.jsx'
 import { getToken } from './lib/api.js'
 import { I18nextProvider } from 'react-i18next'
 import i18n from './i18n/i18n'
@@ -82,7 +83,14 @@ const router = createBrowserRouter([
     element: <RootLayout />,
     children: [
       { index: true, element: <Home /> },
-      { path: 'opportunities', element: <Opportunities /> },
+      {
+        path: 'opportunities',
+        element: (
+          <PublicPageRoute setting="opportunitiesPageEnabled">
+            <Opportunities />
+          </PublicPageRoute>
+        ),
+      },
       { path: 'properties/:id', element: <PropertyDetail /> },
       { 
         path: 'blockchain', 
@@ -96,7 +104,14 @@ const router = createBrowserRouter([
       { path: 'login', element: <Login /> },
       { path: 'signup', element: <Signup /> },
       { path: 'role-selection', element: <RoleSelection /> },
-      { path: 'about', element: <About /> },
+      {
+        path: 'about',
+        element: (
+          <PublicPageRoute setting="aboutPageEnabled">
+            <About />
+          </PublicPageRoute>
+        ),
+      },
       { path: 'how-it-works', element: <HowItWorks /> },
       { path: 'faq', element: <FAQ /> },
       { path: 'terms', element: <Terms /> },

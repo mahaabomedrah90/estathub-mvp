@@ -2,9 +2,11 @@ import React from 'react'
 import { Link } from 'react-router-dom'
 import { Building2, Mail, Phone, MapPin, Twitter, Linkedin, Github, Instagram, Music } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
+import { usePublicPageVisibility } from '../hooks/usePublicPageVisibility'
 
 export default function Footer() {
   const { t } = useTranslation('common')
+  const { aboutPageEnabled, opportunitiesPageEnabled } = usePublicPageVisibility()
 
   return (
     <footer className="bg-brand-primary text-white/70">
@@ -68,11 +70,13 @@ export default function Footer() {
                   {t('footer.links.home')}
                 </Link>
               </li>
-              <li>
-                <Link to="/opportunities" className="hover:text-brand-accent transition-colors">
-                  {t('footer.links.opportunities')}
-                </Link>
-              </li>
+              {opportunitiesPageEnabled && (
+                <li>
+                  <Link to="/opportunities" className="hover:text-brand-accent transition-colors">
+                    {t('footer.links.opportunities')}
+                  </Link>
+                </li>
+              )}
               <li>
                 <Link to="/wallet" className="hover:text-brand-accent transition-colors">
                   {t('footer.links.wallet')}
@@ -84,11 +88,13 @@ export default function Footer() {
           <div>
             <h3 className="text-white font-semibold mb-4">{t('footer.resources')}</h3>
             <ul className="space-y-2 text-sm">
-              <li>
-                <Link to="/about" className="hover:text-brand-accent transition-colors">
-                  {t('footer.links.about')}
-                </Link>
-              </li>
+              {aboutPageEnabled && (
+                <li>
+                  <Link to="/about" className="hover:text-brand-accent transition-colors">
+                    {t('footer.links.about')}
+                  </Link>
+                </li>
+              )}
               <li>
                 <Link to="/how-it-works" className="hover:text-brand-accent transition-colors">
                   {t('footer.links.howItWorks')}

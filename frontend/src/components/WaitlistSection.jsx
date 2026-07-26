@@ -40,9 +40,9 @@ export default function WaitlistSection({ source = 'home' }) {
   }
 
   const amountOptions = [
-    { value: '500', labelAr: '500 ريال', labelEn: 'SAR 500' },
-    { value: '1000', labelAr: '1,000 ريال', labelEn: 'SAR 1,000' },
-    { value: '5000+', labelAr: '5,000+ ريال', labelEn: 'SAR 5,000+' },
+    { value: '250', labelAr: '٢٥٠ ريال', labelEn: 'SAR 250' },
+    { value: '500', labelAr: '٥٠٠ ريال', labelEn: 'SAR 500' },
+    { value: '1000+', labelAr: '+١٠٠٠ ريال', labelEn: 'SAR 1,000+' },
   ]
 
   return (
@@ -58,13 +58,13 @@ export default function WaitlistSection({ source = 'home' }) {
 
         {/* Heading */}
         <h2 className="text-3xl md:text-4xl font-bold text-white mb-3 leading-tight">
-          {isRtl ? 'لا تنتظر… امتلك' : 'Own it. Start now.'}
+          {isRtl ? 'وسّم اسمك. من اليوم.' : 'Own it. Start now.'}
         </h2>
 
         {/* Microcopy */}
         <p className="text-white/70 text-base mb-6">
           {isRtl
-            ? 'خطوة واحدة اليوم قد تصنع أثرًا لسنوات'
+            ? 'خطوة واحدة اليوم قد تصنع أثراً لسنوات.'
             : 'Reserve your place before the first opportunity closes.'}
         </p>
 
@@ -129,7 +129,7 @@ export default function WaitlistSection({ source = 'home' }) {
                   <span className="w-5 h-5 border-2 border-white/40 border-t-white rounded-full animate-spin" />
                 ) : (
                   <>
-                    <span>{isRtl ? 'ابدأ الآن' : 'Reserve My Place'}</span>
+                    <span>{isRtl ? 'سجّل وكن من الأوائل' : 'Reserve My Place'}</span>
                     <ArrowRight className={`w-4 h-4 ${isRtl ? 'rotate-180' : ''}`} />
                   </>
                 )}

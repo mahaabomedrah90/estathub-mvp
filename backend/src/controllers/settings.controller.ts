@@ -62,6 +62,8 @@ const DEFAULT_SETTINGS = {
   blockchainEnabled:   'false',
   distributionEnabled: 'true',
   notificationsEnabled:'false',
+  aboutPageEnabled:    'false',
+  opportunitiesPageEnabled: 'false',
 }
 
 // Keys treated as service feature flags (for cache clearing + audit log)
@@ -76,6 +78,8 @@ const SERVICE_FLAG_KEYS = [
   'distributionEnabled',
   'notificationsEnabled',
   'maintenanceMode',
+  'aboutPageEnabled',
+  'opportunitiesPageEnabled',
 ]
 
 // GET /api/settings - Get all settings (accessible to all authenticated users)
@@ -151,6 +155,8 @@ settingsRouter.get('/', auth(true), async (req: Request & { user?: any }, res: R
         distributionEnabled: s.distributionEnabled !== 'false',
         notificationsEnabled:s.notificationsEnabled === 'true',
         maintenanceMode:     s.maintenanceMode     === 'true',
+        aboutPageEnabled:     s.aboutPageEnabled    === 'true',
+        opportunitiesPageEnabled: s.opportunitiesPageEnabled === 'true',
       },
     }
 
@@ -337,6 +343,8 @@ const PUBLIC_SETTING_KEYS = [
   'requireEmailVerification',
   'minInvestmentAmount',
   'maxInvestmentAmount',
+  'aboutPageEnabled',
+  'opportunitiesPageEnabled',
 ]
 
 settingsRouter.get('/public', async (_req: Request, res: Response) => {
@@ -362,6 +370,8 @@ settingsRouter.get('/public', async (_req: Request, res: Response) => {
         requireEmailVerification: (map.requireEmailVerification ?? DEFAULT_SETTINGS.requireEmailVerification) === 'true',
         minInvestmentAmount: safeInt(map.minInvestmentAmount, DEFAULT_SETTINGS.minInvestmentAmount),
         maxInvestmentAmount: safeInt(map.maxInvestmentAmount, DEFAULT_SETTINGS.maxInvestmentAmount),
+        aboutPageEnabled: (map.aboutPageEnabled ?? DEFAULT_SETTINGS.aboutPageEnabled) === 'true',
+        opportunitiesPageEnabled: (map.opportunitiesPageEnabled ?? DEFAULT_SETTINGS.opportunitiesPageEnabled) === 'true',
       },
     })
   } catch (error) {

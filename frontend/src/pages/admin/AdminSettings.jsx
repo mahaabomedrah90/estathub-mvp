@@ -19,6 +19,8 @@ export default function AdminSettings() {
     distributionEnabled: true,
     notificationsEnabled: false,
     maintenanceMode: false,
+    aboutPageEnabled: false,
+    opportunitiesPageEnabled: false,
   })
   const [fees, setFees] = useState({
     propertyPreparationFee: 0,
@@ -210,6 +212,49 @@ export default function AdminSettings() {
       )}
 
       <div className="space-y-8">
+        {/* Public page visibility */}
+        <div className="bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden">
+          <div className="px-8 py-6 border-b border-gray-200">
+            <div className="flex items-center">
+              <div className="p-3 bg-[#986F9A]/10 rounded-xl mr-3">
+                <Globe className="text-[#986F9A]" size={24} />
+              </div>
+              <div>
+                <h2 className="text-2xl font-bold text-[#1E1958]">إظهار صفحات الموقع</h2>
+                <p className="text-sm text-gray-500 mt-1">تحكّم بظهور كل صفحة في القائمة وإمكانية الوصول إليها مباشرة.</p>
+              </div>
+            </div>
+          </div>
+          <div className="p-8 space-y-4">
+            {[
+              { key: 'aboutPageEnabled', label: 'من نحن', path: '/about' },
+              { key: 'opportunitiesPageEnabled', label: 'الفرص الاستثمارية', path: '/opportunities' },
+            ].map(({ key, label, path }) => (
+              <div key={key} className="flex items-center justify-between p-4 bg-gray-50 rounded-xl">
+                <div>
+                  <span className="text-sm font-semibold text-gray-700">{label}</span>
+                  <p className="text-xs text-gray-500 mt-1">{path}</p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => toggleServiceFlag(key, services[key])}
+                  aria-label={`إظهار أو إخفاء صفحة ${label}`}
+                  aria-pressed={services[key]}
+                  className={`relative inline-flex h-8 w-14 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-[#986F9A] focus:ring-offset-2 ${
+                    services[key] ? 'bg-[#986F9A]' : 'bg-gray-300'
+                  }`}
+                >
+                  <span
+                    className={`pointer-events-none inline-block h-6 w-6 transform rounded-full bg-white shadow-lg ring-0 transition duration-200 ease-in-out ${
+                      services[key] ? 'translate-x-6' : 'translate-x-0'
+                    }`}
+                  />
+                </button>
+              </div>
+            ))}
+          </div>
+        </div>
+
         {/* General Settings */}
         <div className="bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden">
           <div className="px-8 py-6 border-b border-gray-200">

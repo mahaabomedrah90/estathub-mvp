@@ -35,7 +35,12 @@ export default function Home() {
         <div className="relative z-10 text-center px-4 max-w-4xl mx-auto w-full">
           {/* Title - Investment Focused */}
           <h1 className="text-6xl md:text-7xl font-bold text-white leading-[1.1] tracking-tight mb-6">
-            {t('home.heroTitle')}
+            {t('home.heroTitle').split('\n').map((line, index) => (
+              <React.Fragment key={line}>
+                {index > 0 && <br />}
+                {line}
+              </React.Fragment>
+            ))}
           </h1>
 
           {/* Subtitle - Investment Message */}
@@ -52,7 +57,7 @@ export default function Home() {
               {t('home.waitlistCTA')}
             </a>
             <Link
-              to="/opportunities"
+              to="/how-it-works"
               className="px-8 py-4 text-base bg-white/10 border border-white/30 text-white font-semibold rounded-full hover:bg-white/20 active:scale-95 transition-all duration-200"
             >
               {t('home.exploreOpportunities')}
