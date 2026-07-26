@@ -170,6 +170,9 @@ function DetailPanel({ id, onClose, onUpdated, showToast }) {
   const [finForm, setFinForm] = useState(null) // editable inputs
   const [finSaving, setFinSaving] = useState(false)
   const [converting, setConverting] = useState(false)
+  // MVP operational confirmation (NOT persisted): admin must confirm the preparation
+  // fee was collected/verified (or not required) before FINAL_APPROVED is enabled.
+  const [feeCollectionConfirmed, setFeeCollectionConfirmed] = useState(false)
   const setFinField = (k, v) => setFinForm(f => ({ ...f, [k]: v }))
 
   const loadHistory = useCallback(async () => {
@@ -501,11 +504,34 @@ function DetailPanel({ id, onClose, onUpdated, showToast }) {
               <textarea value={notes} onChange={e => setNotes(e.target.value)} rows={3}
                 placeholder="اكتب ملاحظاتك للمالك أو للأرشيف الداخلي..."
                 className="w-full border border-border-soft rounded-xl px-3 py-2 text-sm focus:ring-2 focus:ring-brand-accent focus:border-brand-accent resize-none mb-4" />
+
+              {/* MVP: operational fee-collection confirmation — required before FINAL_APPROVED.
+                  Local UI check only; not persisted. */}
+              {lead.status === 'OWNER_FINAL_ACCEPTED' && (
+                <div className="mb-4 bg-amber-50 border border-amber-200 rounded-xl p-3 space-y-2">
+                  <p className="text-sm font-bold text-amber-800">تأكيد رسوم التجهيز قبل الاعتماد النهائي</p>
+                  <ol className="list-decimal pr-5 text-xs text-amber-800 leading-relaxed space-y-0.5">
+                    <li>راجع أدلة موافقة المالك والإيصال أو مرجع التحويل.</li>
+                    <li>تحقّق يدويًا من دخول المبلغ في الحساب البنكي (إن كانت الرسوم أكبر من صفر).</li>
+                    <li>لا تعتمد الطلب نهائيًا قبل التحقق من التحصيل؛ وإن تعذّر، تواصل مع المالك لتصحيح الإيصال أو المرجع.</li>
+                  </ol>
+                  <label className="flex items-start gap-2 text-xs font-medium text-amber-900 cursor-pointer pt-1">
+                    <input type="checkbox" checked={feeCollectionConfirmed}
+                      onChange={e => setFeeCollectionConfirmed(e.target.checked)}
+                      className="w-4 h-4 mt-0.5 accent-amber-600" />
+                    أؤكد أنه تم التحقق من تحصيل رسوم التجهيز إن وجدت، أو أن رسوم التجهيز غير مطلوبة لهذا الطلب.
+                  </label>
+                </div>
+              )}
+
               <div className="grid grid-cols-2 gap-2">
                 {(ADMIN_ACTIONS[lead.status] || []).map(a => {
                   const Icon = a.icon
+                  // Gate FINAL_APPROVED behind the operational fee-collection confirmation.
+                  const blockedByFeeConfirm = a.to === 'FINAL_APPROVED' && lead.status === 'OWNER_FINAL_ACCEPTED' && !feeCollectionConfirmed
                   return (
-                    <button key={a.to} onClick={() => updateStatus(a.to)} disabled={!!saving}
+                    <button key={a.to} onClick={() => updateStatus(a.to)} disabled={!!saving || blockedByFeeConfirm}
+                      title={blockedByFeeConfirm ? 'أكّد التحقق من تحصيل رسوم التجهيز أولًا' : undefined}
                       className={`flex items-center justify-center gap-2 px-3 py-2.5 rounded-xl text-white text-sm font-semibold transition-colors disabled:opacity-50 disabled:cursor-not-allowed ${a.cls}`}>
                       {saving === a.to ? <Loader2 size={14} className="animate-spin" /> : <Icon size={14} />}
                       {a.label}
