@@ -5,6 +5,7 @@ import { prisma } from '../lib/prisma'
 import { auth } from '../middleware/auth'
 import { scoreLead } from '../lib/propertyLeadScoring'
 import { logAdminAction, AuditAction } from '../lib/auditService'
+import { sendEmail, getAdminEmail, buildOwnerFinalAcceptanceRequestEmail, buildAdminOwnerFinalAcceptedEmail } from '../lib/emailService'
 import {
   buildPropertyLeadKey, uploadPropertyLeadDocument, getSignedPropertyLeadUrl,
   detectMimeFromMagic, getDocsBucket, isLegacyLocalUrl, isS3Key,
@@ -185,6 +186,12 @@ function preparationFeeOf(feeSnapshot: unknown): number {
   const raw = (feeSnapshot && typeof feeSnapshot === 'object') ? (feeSnapshot as any).preparationFee : undefined
   const n = Number(raw)
   return Number.isFinite(n) ? n : NaN
+}
+
+// Phase 7e: base URL for deep links in notification emails. Reuses the existing
+// FRONTEND_URL env when present, else the public site. No new required env var.
+function appBaseUrl(): string {
+  return (process.env.FRONTEND_URL || 'https://www.alwsm.sa').replace(/\/+$/, '')
 }
 
 // Owner-safe projection of the locked feeSnapshot for the acceptance package.
@@ -700,7 +707,7 @@ propertyLeadRouter.post('/:id/final-acceptance', auth(true), async (req: Request
   try {
     const existing = await prisma.propertyLead.findFirst({
       where: { id: req.params.id, ownerId: req.user!.userId, tenantId: req.user!.tenantId },
-      select: { id: true, status: true, propertyName: true, ownerId: true, feeSnapshot: true },
+      select: { id: true, status: true, propertyName: true, ownerId: true, fullName: true, feeSnapshot: true },
     })
     if (!existing) return res.status(404).json({ error: 'property_lead_not_found' })
     if (existing.status === 'OWNER_FINAL_ACCEPTED') {
@@ -807,6 +814,27 @@ propertyLeadRouter.post('/:id/final-acceptance', auth(true), async (req: Request
       },
       req,
     })
+
+    // Phase 7e: notify the admin (fire-and-forget). A mail failure must NEVER block
+    // the acceptance — the status change above is already committed. Never emails the
+    // raw receipt key; admin opens the receipt via the app's signed-URL flow.
+    try {
+      const adminEmail = await getAdminEmail(prisma)
+      if (adminEmail) {
+        const content = buildAdminOwnerFinalAcceptedEmail({
+          propertyName: existing.propertyName ?? undefined,
+          ownerName: existing.fullName ?? undefined,
+          preparationFee,
+          paymentStatus,
+          paymentReference: feePaymentReference,
+          receiptKeyPresent: !!feeReceiptKey,
+          adminLeadUrl: `${appBaseUrl()}/admin/property-leads`,
+        })
+        await sendEmail({ to: adminEmail, ...content })
+      }
+    } catch (mailErr: any) {
+      console.warn('⚠️  owner-final-acceptance admin email failed:', mailErr?.message)
+    }
 
     return res.json({
       success: true,
@@ -1196,7 +1224,7 @@ propertyLeadAdminRouter.post('/:id/send-final-acceptance', auth(true), async (re
   try {
     const existing = await prisma.propertyLead.findUnique({
       where: { id: req.params.id },
-      select: { id: true, status: true, propertyName: true, ownerId: true, listingDraft: true, feeSnapshot: true, feesLockedAt: true },
+      select: { id: true, status: true, propertyName: true, ownerId: true, email: true, fullName: true, listingDraft: true, feeSnapshot: true, feesLockedAt: true },
     })
     if (!existing) return res.status(404).json({ error: 'property_lead_not_found' })
     if (existing.status !== 'READY_FOR_FINAL_REVIEW') {
@@ -1241,6 +1269,22 @@ propertyLeadAdminRouter.post('/:id/send-final-acceptance', auth(true), async (re
       },
       req,
     })
+
+    // Phase 7e: notify the owner (fire-and-forget). A mail failure must NEVER block
+    // the transition — the status change above is already committed.
+    if (existing.email) {
+      try {
+        const content = buildOwnerFinalAcceptanceRequestEmail({
+          ownerName: existing.fullName ?? undefined,
+          propertyName: existing.propertyName ?? undefined,
+          preparationFee: Number.isFinite(pf) ? pf : 0,
+          finalAcceptanceUrl: `${appBaseUrl()}/owner/requests/${existing.id}/final-acceptance`,
+        })
+        await sendEmail({ to: existing.email, ...content })
+      } catch (mailErr: any) {
+        console.warn('⚠️  send-final-acceptance owner email failed:', mailErr?.message)
+      }
+    }
 
     return res.json({ success: true, id: updated.id, status: updated.status, message: 'تم إرسال طلب الموافقة النهائية للمالك.' })
   } catch (e: any) {

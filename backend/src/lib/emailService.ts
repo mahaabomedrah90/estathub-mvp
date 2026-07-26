@@ -684,3 +684,97 @@ export function buildNewUserAdminEmail(data: {
 
   return { subject, html, text }
 }
+
+// ── Owner Final Acceptance Gate (Phase 7e) ─────────────────────────────────────
+// preparationFee is the owner-side onboarding charge from the locked fee snapshot.
+// These emails NOTIFY only — they never confirm collection or recognize revenue.
+
+const alwsmEmailShell = (title: string, inner: string): string => `
+  <!DOCTYPE html>
+  <html dir="rtl">
+    <head>
+      <meta charset="utf-8" />
+      <style>
+        body { font-family: Arial, sans-serif; line-height: 1.8; color: #333; direction: rtl; }
+        .container { max-width: 600px; margin: 0 auto; padding: 20px; }
+        .header { background: #1E1958; color: white; padding: 20px; text-align: center; border-radius: 8px 8px 0 0; }
+        .content { background: #f9fafb; padding: 30px; border-radius: 0 0 8px 8px; }
+        .row { margin: 8px 0; }
+        .label { color: #6b7280; }
+        .button { display: inline-block; background: #1E1958; color: #fff; padding: 12px 22px; border-radius: 6px; text-decoration: none; margin: 18px 0; }
+        .note { background: #fef3c7; border: 1px solid #f59e0b; padding: 12px; border-radius: 6px; margin: 16px 0; font-size: 13px; }
+      </style>
+    </head>
+    <body>
+      <div class="container">
+        <div class="header"><h2>منصة الوسم</h2></div>
+        <div class="content">
+          <h3>${title}</h3>
+          ${inner}
+        </div>
+      </div>
+    </body>
+  </html>`
+
+// Notify the OWNER that the admin has opened the final acceptance gate.
+export function buildOwnerFinalAcceptanceRequestEmail(data: {
+  ownerName?: string
+  propertyName?: string
+  preparationFee?: number
+  finalAcceptanceUrl?: string
+}): { subject: string; html: string; text: string } {
+  const subject = 'مطلوب موافقتك النهائية على إدراج العقار'
+  const name = data.ownerName?.trim() || 'عميلنا الكريم'
+  const property = data.propertyName?.trim() || 'العقار'
+  const fee = Number(data.preparationFee) || 0
+  const feeLine = fee > 0
+    ? `رسوم تجهيز العقار المطلوبة: <strong dir="ltr">${fee.toLocaleString('en-US')} ر.س</strong>`
+    : 'لا توجد رسوم تجهيز مطلوبة لهذا الطلب.'
+  const url = data.finalAcceptanceUrl || ''
+
+  const inner = `
+    <p class="row">مرحبًا ${name}،</p>
+    <p class="row">أصبحت بيانات إدراج العقار <strong>${property}</strong> جاهزة لمراجعتك واعتمادك النهائي.</p>
+    <p class="row">${feeLine}</p>
+    ${url ? `<a href="${url}" class="button">مراجعة الاتفاقية والدفع</a>` : ''}
+    <div class="note">صياغة الاتفاقية والإقرارات مسودة أولية خاضعة لإجراءات المنصة والمراجعة القانونية. هذا الإشعار لا يؤكد استلام أي مبلغ.</div>`
+
+  const text = `مطلوب موافقتك النهائية على إدراج العقار\n\nمرحبًا ${name}،\nأصبحت بيانات إدراج العقار "${property}" جاهزة لمراجعتك واعتمادك النهائي.\n${fee > 0 ? `رسوم تجهيز العقار المطلوبة: ${fee.toLocaleString('en-US')} ر.س` : 'لا توجد رسوم تجهيز مطلوبة لهذا الطلب.'}\n${url ? `للمراجعة: ${url}` : ''}\n\nصياغة الاتفاقية مسودة خاضعة لإجراءات المنصة. هذا الإشعار لا يؤكد استلام أي مبلغ.`
+
+  return { subject, html: alwsmEmailShell(subject, inner), text }
+}
+
+// Notify the ADMIN that the owner has submitted final acceptance.
+export function buildAdminOwnerFinalAcceptedEmail(data: {
+  propertyName?: string
+  ownerName?: string
+  preparationFee?: number
+  paymentStatus?: string
+  paymentReference?: string
+  receiptKeyPresent?: boolean
+  adminLeadUrl?: string
+}): { subject: string; html: string; text: string } {
+  const subject = 'موافقة نهائية جديدة من المالك'
+  const property = data.propertyName?.trim() || 'غير محدد'
+  const owner = data.ownerName?.trim() || 'غير محدد'
+  const fee = Number(data.preparationFee) || 0
+  const payLabel = data.paymentStatus === 'SUBMITTED' ? 'تم تقديم إثبات السداد'
+    : data.paymentStatus === 'NOT_REQUIRED' ? 'غير مطلوب'
+    : (data.paymentStatus || 'غير محدد')
+  const url = data.adminLeadUrl || ''
+
+  const inner = `
+    <p class="row">قدّم المالك موافقته النهائية على إدراج العقار.</p>
+    <div class="row"><span class="label">اسم العقار:</span> <strong>${property}</strong></div>
+    <div class="row"><span class="label">المالك:</span> ${owner}</div>
+    <div class="row"><span class="label">رسوم التجهيز:</span> <span dir="ltr">${fee.toLocaleString('en-US')} ر.س</span></div>
+    <div class="row"><span class="label">حالة السداد:</span> ${payLabel}</div>
+    ${data.paymentReference ? `<div class="row"><span class="label">مرجع التحويل:</span> ${data.paymentReference}</div>` : ''}
+    <div class="row"><span class="label">إيصال السداد:</span> ${data.receiptKeyPresent ? 'مرفق' : 'غير مرفق'}</div>
+    ${url ? `<a href="${url}" class="button">فتح الطلب في لوحة التحكم</a>` : ''}
+    <div class="note">يرجى مراجعة الموافقة وإيصال السداد (إن وُجد) قبل الاعتماد النهائي. هذا الإشعار لا يؤكد تحصيل المبلغ فعليًا.</div>`
+
+  const text = `موافقة نهائية جديدة من المالك\n\nاسم العقار: ${property}\nالمالك: ${owner}\nرسوم التجهيز: ${fee.toLocaleString('en-US')} ر.س\nحالة السداد: ${payLabel}\n${data.paymentReference ? `مرجع التحويل: ${data.paymentReference}\n` : ''}إيصال السداد: ${data.receiptKeyPresent ? 'مرفق' : 'غير مرفق'}\n${url ? `الرابط: ${url}\n` : ''}\nيرجى مراجعة الموافقة والإيصال قبل الاعتماد النهائي. هذا الإشعار لا يؤكد تحصيل المبلغ فعليًا.`
+
+  return { subject, html: alwsmEmailShell(subject, inner), text }
+}
