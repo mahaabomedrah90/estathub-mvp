@@ -230,14 +230,42 @@ export default function OwnerFinalAcceptance() {
         )}
       </section>
 
-      {/* E. Agreement / acknowledgment placeholders (DRAFT — pending legal review) */}
+      {/* E. Agreement / acknowledgment — MVP text (agreementVersion: owner-final-acceptance-v1-mvp) */}
       <section className={card}>
         <h2 className={h2}><ShieldCheck size={16} className="text-brand-accent" /> الاتفاقية والإقرار</h2>
-        <div className="bg-surface-muted border border-border-soft rounded-lg p-3 space-y-1.5">
-          <p className="text-xs font-bold text-amber-700">مسودة إقرار — خاضعة للمراجعة القانونية</p>
-          <p className="text-xs text-text-body leading-relaxed">أقر بصحة البيانات والمستندات المقدمة المتعلقة بالعقار.</p>
-          <p className="text-xs text-text-body leading-relaxed">أوافق على متابعة إجراءات إدراج العقار عبر منصة الوسم وفق البيانات المعروضة.</p>
-          <p className="text-xs text-text-body leading-relaxed">أوافق على رسوم التجهيز وآلية السداد الموضحة أعلاه، إن وجدت.</p>
+        <div className="space-y-4">
+          {/* Section 1 */}
+          <div className="bg-surface-muted border border-border-soft rounded-lg p-3 space-y-1.5">
+            <p className="text-sm font-bold text-brand-primary">اتفاقية إدراج عقار — نسخة MVP</p>
+            <p className="text-xs text-text-body leading-relaxed">يقر مالك العقار أو من يمثله نظامًا بأنه يرغب في تقديم عقاره إلى منصة الوسم لدراسة إمكانية إدراجه كفرصة عقارية استثمارية عبر المنصة.</p>
+            <p className="text-xs text-text-body leading-relaxed">تقوم منصة الوسم بمراجعة بيانات العقار والمستندات المقدمة، ودراسة ملاءمته للإدراج، وتجهيز بيانات الفرصة الأولية، وذلك دون أن يُعد هذا الالتزام قبولًا نهائيًا بإدراج العقار أو طرحه للمستثمرين.</p>
+            <p className="text-xs text-text-body leading-relaxed">يدرك المالك أن قبول العقار النهائي يخضع لمراجعة منصة الوسم، واستكمال المتطلبات النظامية والتشغيلية، وموافقة المالك النهائية، وسداد رسوم التجهيز إن وجدت.</p>
+            <p className="text-xs text-text-body leading-relaxed">يلتزم المالك بتقديم بيانات صحيحة ومحدثة وكاملة، ويحق لمنصة الوسم طلب معلومات أو مستندات إضافية، أو إيقاف الطلب، أو رفضه إذا تبيّن وجود نقص أو تعارض أو مانع نظامي أو تشغيلي.</p>
+            <p className="text-xs text-text-body leading-relaxed">تتعامل منصة الوسم مع المستندات والبيانات المقدمة باعتبارها معلومات سرية، ولا يتم استخدامها إلا لغرض دراسة العقار وتجهيز فرصة الإدراج وما يرتبط بذلك من إجراءات تشغيلية ونظامية.</p>
+            <p className="text-xs text-text-body leading-relaxed">لا تمنح هذه الاتفاقية المالك حقًا مكتسبًا في إدراج العقار أو طرحه للمستثمرين، ولا تُعد وعدًا بالبيع أو التمويل أو الترميز أو تحقيق عائد معين.</p>
+          </div>
+          {/* Section 2 */}
+          <div className="bg-surface-muted border border-border-soft rounded-lg p-3 space-y-1.5">
+            <p className="text-sm font-bold text-brand-primary">إقرار صحة البيانات والملكية</p>
+            <p className="text-xs text-text-body leading-relaxed">أقر أنا مالك العقار أو المفوض نظامًا عنه بأن جميع البيانات والمستندات التي قدمتها إلى منصة الوسم صحيحة وكاملة ومحدثة حسب علمي.</p>
+            <p className="text-xs text-text-body leading-relaxed">أقر بأن لدي الصفة النظامية لتقديم العقار للمنصة، سواء بصفتي مالكًا أو ممثلًا أو مفوضًا نظامًا عن المالك.</p>
+            <p className="text-xs text-text-body leading-relaxed">أقر بعدم وجود أي نزاع أو مطالبة أو رهن أو شراكة أو قيد أو التزام مؤثر على العقار إلا ما تم الإفصاح عنه صراحة ضمن الطلب والمستندات المرفقة.</p>
+            <p className="text-xs text-text-body leading-relaxed">أتعهد بإبلاغ منصة الوسم فورًا بأي تغيير يطرأ على حالة العقار أو ملكيته أو مستنداته أو أي معلومات قد تؤثر على تقييمه أو إمكانية إدراجه.</p>
+            <p className="text-xs text-text-body leading-relaxed">أتحمل المسؤولية عن أي بيانات غير صحيحة أو ناقصة أو مضللة، ويحق لمنصة الوسم تعليق الطلب أو رفضه أو إلغاء إجراءات الإدراج إذا تبيّن خلاف ما تم الإقرار به.</p>
+          </div>
+          {/* Section 3 */}
+          <div className="bg-surface-muted border border-border-soft rounded-lg p-3 space-y-1.5">
+            <p className="text-sm font-bold text-brand-primary">سياسة رسوم التجهيز والاسترداد</p>
+            <p className="text-xs text-text-body leading-relaxed">رسوم التجهيز هي مبلغ يطلب من المالك، إن وجد، مقابل أعمال الدراسة الأولية وتجهيز بيانات العقار ومراجعة المستندات وإعداد ملف الإدراج داخل منصة الوسم.</p>
+            <p className="text-xs text-text-body leading-relaxed">تظهر رسوم التجهيز للمالك بوضوح في صفحة الموافقة النهائية تحت بند "رسوم تجهيز العقار"، ويتم تحديد رسوم التجهيز وفق الرسوم المعتمدة في النظام والمبينة للمالك قبل إرسال الموافقة النهائية.</p>
+            <p className="text-xs text-text-body leading-relaxed">لا تُعد رسوم التجهيز عربون بيع، ولا ضمانًا لقبول العقار النهائي، ولا وعدًا بإدراج العقار أو طرحه للمستثمرين أو تحقيق عائد معين.</p>
+            <p className="text-xs text-text-body leading-relaxed">إذا كانت رسوم التجهيز أكبر من صفر، يجب على المالك إرفاق إيصال السداد أو إدخال مرجع التحويل قبل إرسال الموافقة النهائية.</p>
+            <p className="text-xs text-text-body leading-relaxed">لا يعتبر رفع الإيصال أو إدخال مرجع التحويل تأكيدًا نهائيًا باستلام المبلغ، ويخضع ذلك لمراجعة فريق الوسم أو الفريق المالي والتحقق من وصول المبلغ.</p>
+            <p className="text-xs text-text-body leading-relaxed">تكون رسوم التجهيز قابلة للاسترداد إذا قررت منصة الوسم عدم الاستمرار في الطلب قبل بدء أعمال الدراسة والتجهيز الجوهرية.</p>
+            <p className="text-xs text-text-body leading-relaxed">لا تكون رسوم التجهيز قابلة للاسترداد إذا بدأت منصة الوسم أعمال الدراسة أو المراجعة أو تجهيز ملف الإدراج، أو إذا تبيّن أن سبب عدم الاستكمال يعود إلى بيانات غير صحيحة أو ناقصة أو عدم إفصاح من المالك.</p>
+            <p className="text-xs text-text-body leading-relaxed">يجوز لمنصة الوسم، وفق تقديرها، رد الرسوم كليًا أو جزئيًا أو ترحيلها لطلب آخر إذا كان عدم الاستكمال راجعًا لسبب تشغيلي من جانب المنصة.</p>
+          </div>
+          <p className="text-xs font-semibold text-amber-700">هذه النسخة مخصصة لمرحلة MVP وتخضع للمراجعة والاعتماد القانوني النهائي.</p>
         </div>
       </section>
 

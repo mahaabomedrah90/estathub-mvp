@@ -771,7 +771,7 @@ propertyLeadRouter.post('/:id/final-acceptance', auth(true), async (req: Request
       agreementAccepted: true,
       acknowledgmentAccepted: true,
       feeTermsAccepted: true,
-      agreementVersion: 'owner-final-acceptance-v1-draft',
+      agreementVersion: 'owner-final-acceptance-v1-mvp',
       paymentStatus,
       preparationFee,
       acceptedAt: acceptedAt.toISOString(),
