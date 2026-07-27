@@ -38,6 +38,13 @@ function getApiBase() {
   )
 }
 
+// Build a full API URL for raw fetch() calls (e.g. file uploads) using the same
+// base + de-duplication rules as fetchJson. Prevents /api/api/... when the
+// configured base already ends in /api.
+export function apiUrl(path) {
+  return joinApiUrl(getApiBase(), path)
+}
+
 // ===== ENHANCED API CLIENT =====
 export class ApiClient {
   constructor() {

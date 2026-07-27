@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import { AlertCircle, Loader2, ArrowRight, Upload, X, FileText, Send } from 'lucide-react'
-import { fetchJson, authHeader } from '../../lib/api'
+import { fetchJson, authHeader, apiUrl } from '../../lib/api'
 
 const API_BASE = import.meta.env.VITE_API_BASE || ''
 const MAX_IMAGES = 5
@@ -30,7 +30,7 @@ async function uploadOne(file) {
   fd.append('file', file)
   let res
   try {
-    res = await fetch(`${API_BASE}/api/property-leads/upload`, { method: 'POST', headers: authHeader(), body: fd })
+    res = await fetch(apiUrl('/api/property-leads/upload'), { method: 'POST', headers: authHeader(), body: fd })
   } catch {
     throw new Error('تعذّر الاتصال بالخادم. تحقق من اتصالك بالإنترنت وحاول مجدداً.')
   }

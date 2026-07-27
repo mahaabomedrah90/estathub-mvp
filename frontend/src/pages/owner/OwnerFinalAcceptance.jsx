@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import { AlertCircle, Loader2, ArrowRight, Upload, FileText, CheckCircle2, ShieldCheck, Building2, Coins } from 'lucide-react'
-import { fetchJson, authHeader } from '../../lib/api'
+import { fetchJson, authHeader, apiUrl } from '../../lib/api'
 
 const API_BASE = import.meta.env.VITE_API_BASE || ''
 
@@ -82,7 +82,7 @@ export default function OwnerFinalAcceptance() {
     try {
       const fd = new FormData()
       fd.append('file', file)
-      const res = await fetch(`${API_BASE}/api/property-leads/upload`, { method: 'POST', headers: authHeader(), body: fd })
+      const res = await fetch(apiUrl('/api/property-leads/upload'), { method: 'POST', headers: authHeader(), body: fd })
       if (!res.ok) throw new Error(UPLOAD_ERROR_BY_STATUS[res.status] || 'تعذّر رفع الملف. حاول مرة أخرى.')
       const json = await res.json().catch(() => ({}))
       if (!json.key) throw new Error('تعذّر رفع الملف. حاول مرة أخرى.')
