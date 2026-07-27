@@ -150,13 +150,13 @@
     "statsMarketAccess": "Market Access",
     "statsLocalCurrency": "Local Currency",
     "stats": {
-      "100": {
-        "title": "100%",
-        "desc": "Transaction Transparency"
-      },
       "14": {
         "title": "14.2%",
         "desc": "Average Annual Return"
+      },
+      "100": {
+        "title": "100%",
+        "desc": "Transaction Transparency"
       },
       "12k": {
         "title": "12k",
@@ -2038,5 +2038,64 @@
         "content": "For privacy inquiries: support@alwsm.sa"
       }
     ]
+  },
+  "accountDeletion": {
+    "title": "Request Account Deletion",
+    "subtitle": "For more information about the account deletion process and data removal, please read this page carefully.",
+    "warning": {
+      "title": "Important Notice",
+      "description": "Account deletion is a permanent process that cannot be reversed. Your request will be reviewed and your identity will be verified before data deletion."
+    },
+    "info": {
+      "whatHappens": {
+        "title": "What Happens When You Delete Your Account",
+        "items": [
+          "Your personal and contact information will be deleted",
+          "All active investments will be deactivated",
+          "Your portfolio and transaction history will be deleted",
+          "You will not be able to login again",
+          "All data associated with your account will be removed"
+        ]
+      },
+      "retention": {
+        "title": "Data We May Retain",
+        "description": "We may retain certain data for legal and regulatory reasons:",
+        "items": [
+          "Compliance and audit records (7 years per regulations)",
+          "Financial transaction records (for tax purposes)",
+          "Anti-money laundering and identity verification data"
+        ]
+      }
+    },
+    "form": {
+      "title": "Account Deletion Request Form",
+      "fullName": "Full Name",
+      "fullNamePlaceholder": "Enter your full name as registered",
+      "email": "Email Address",
+      "emailPlaceholder": "Email address associated with your account",
+      "phone": "Phone Number (Optional)",
+      "phonePlaceholder": "Phone number associated with your account",
+      "reason": "Reason (Optional)",
+      "reasonPlaceholder": "Tell us why you want to delete your account",
+      "reasonOptional": "Optional - helps us improve our service",
+      "confirmation": "I understand that account deletion is permanent and irreversible, and I agree to delete all my account data.",
+      "submit": "Submit Account Deletion Request",
+      "submitError": "Unable to process your request at this time. Please try again later or contact support@alwsm.sa",
+      "errors": {
+        "nameRequired": "Name is required",
+        "emailRequired": "Valid email is required",
+        "confirmationRequired": "You must confirm deletion"
+      }
+    },
+    "success": {
+      "title": "Request Received",
+      "message": "Thank you. Your account deletion request has been received. We will verify your identity and information within 3-5 business days. Your account will be permanently deleted after verification.",
+      "contact": "If you have any questions, please contact us at support@alwsm.sa",
+      "returnHome": "Return to Home"
+    },
+    "contact": {
+      "title": "Do You Have Questions?",
+      "description": "For more information or if you have concerns about your privacy, contact us directly."
+    }
   }
 }
