@@ -15,8 +15,10 @@ COPY package*.json ./
 RUN npm ci
 
 COPY . .
-RUN npm run build
+# Generate the Prisma client BEFORE tsc so type-checking sees the generated
+# model types (deedNumber, Prisma.DbNull, inferred callback params, etc.).
 RUN npx prisma generate
+RUN npm run build
 
 # =========================
 # Stage 2: Production
