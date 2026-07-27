@@ -4,7 +4,7 @@ import {
   ArrowLeft, ArrowRight, Send, Loader, CheckCircle2, AlertCircle,
   User, Coins, Image as ImageIcon, FileCheck, X, UploadCloud
 } from 'lucide-react'
-import { fetchJson, authHeader } from '../../lib/api'
+import { fetchJson, authHeader, apiUrl } from '../../lib/api'
 
 // ============================================================================
 // OwnerOpportunityLeadForm — طلب التقديم المبدئي للفرصة العقارية
@@ -134,7 +134,7 @@ export default function OwnerOpportunityLeadForm() {
     fd.append('documentType', documentType)
     let res
     try {
-      res = await fetch(`${API_BASE}/api/property-leads/upload`, {
+      res = await fetch(apiUrl('/api/property-leads/upload'), {
         method: 'POST', headers: authHeader(), body: fd,
       })
     } catch {
