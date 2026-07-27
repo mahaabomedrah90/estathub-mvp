@@ -76,6 +76,20 @@ const loginLimiter = rateLimit({
   legacyHeaders: false
 })
 
+// Account deletion rate limiter: 5 per hour per IP
+// Trade-off: Allows multiple legitimate users on shared networks (corporate/residential)
+// vs. prevents spam from single IP. Email-based limits should be added in future via database.
+const deletionLimiter = rateLimit({
+  windowMs: 60 * 60 * 1000, // 1 hour
+  max: 5,
+  message: {
+    error: 'rate_limit_exceeded',
+    message: 'Too many deletion requests. Please try again later.'
+  },
+  standardHeaders: true,
+  legacyHeaders: false
+})
+
 // ============================================================================
 // Helper Functions
 // ============================================================================
@@ -598,6 +612,80 @@ authRouter.post('/login', loginLimiter, async (req: Request, res: Response) => {
 // ============================================================================
 // Stub endpoints for Phase 2
 // ============================================================================
+
+// POST /api/auth/request-deletion — public account-deletion request (Google Play requirement).
+// Does NOT delete any user; validates input and emails support for manual, verified processing.
+authRouter.post('/request-deletion', deletionLimiter, async (req: Request, res: Response) => {
+  try {
+    const { name, email, phone, reason } = req.body
+
+    // Validate email
+    const emailValidation = validateEmail(email)
+    if (!emailValidation || !emailValidation.valid) {
+      return res.status(400).json({ error: 'invalid_email' })
+    }
+
+    // Validate name
+    const nameValidation = validateFullName(name)
+    if (!nameValidation || !nameValidation.valid) {
+      return res.status(400).json({ error: 'invalid_name' })
+    }
+
+    // Optional phone validation
+    if (phone) {
+      const phoneValidation = validatePhone(phone)
+      if (!phoneValidation.valid) {
+        return res.status(400).json({ error: 'invalid_phone' })
+      }
+    }
+
+    // Send email to support
+    const supportEmail = 'support@alwsm.sa'
+    const emailContent = `
+    <h2>Account Deletion Request</h2>
+    <p><strong>Name:</strong> ${sanitizeForLog(name)}</p>
+    <p><strong>Email:</strong> ${sanitizeForLog(email)}</p>
+    <p><strong>Phone:</strong> ${phone ? sanitizeForLog(phone) : 'Not provided'}</p>
+    <p><strong>Reason:</strong> ${reason ? sanitizeForLog(reason) : 'Not provided'}</p>
+    <p><strong>Requested At:</strong> ${new Date().toISOString()}</p>
+    <hr/>
+    <p>Please verify user identity and complete deletion within 3-5 business days.</p>
+    `
+
+    // Await email sending - must succeed to return success
+    try {
+      const emailSent = await sendEmail({
+        to: supportEmail,
+        subject: `Account Deletion Request: ${sanitizeForLog(name)}`,
+        html: emailContent
+      })
+
+      if (!emailSent) {
+        console.error('❌ Email service returned false for deletion request')
+        return res.status(500).json({
+          error: 'request_failed',
+          message: 'Unable to process your request at this time. Please try again later.'
+        })
+      }
+    } catch (emailError: any) {
+      console.error('❌ Exception sending deletion request email:', emailError.message)
+      return res.status(500).json({
+        error: 'request_failed',
+        message: 'Unable to process your request at this time. Please try again later.'
+      })
+    }
+
+    // Generic success response (email sent successfully)
+    return res.status(200).json({
+      success: true,
+      message: 'Your account deletion request has been received. We will process it within 3-5 business days. You will receive an email confirmation if we need any additional information.'
+    })
+
+  } catch (error) {
+    console.error('❌ Error in deletion request:', error)
+    return res.status(500).json({ error: 'request_failed', message: 'Unable to process your request at this time. Please try again later.' })
+  }
+})
 
 // GET /api/auth/verify-email?token=... — validate JWT verification token, mark email verified
 authRouter.get('/verify-email', async (req: Request, res: Response) => {

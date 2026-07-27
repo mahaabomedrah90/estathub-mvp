@@ -24,6 +24,7 @@ import HowItWorks from './pages/HowItWorks.jsx'
 import FAQ from './pages/FAQ.jsx'
 import Terms from './pages/Terms.jsx'
 import Privacy from './pages/Privacy.jsx'
+import AccountDeletion from './pages/AccountDeletion.jsx'
 import ForgotPassword from './pages/ForgotPassword.jsx'
 import ResetPassword from './pages/ResetPassword.jsx'
 import VerifyEmail from './pages/VerifyEmail.jsx'
@@ -116,6 +117,7 @@ const router = createBrowserRouter([
       { path: 'faq', element: <FAQ /> },
       { path: 'terms', element: <Terms /> },
       { path: 'privacy', element: <Privacy /> },
+      { path: 'account/delete', element: <AccountDeletion /> },
       { path: 'forgot-password', element: <ForgotPassword /> },
       { path: 'reset-password', element: <ResetPassword /> },
       { path: 'verify-email', element: <VerifyEmail /> },
