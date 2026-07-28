@@ -37,6 +37,7 @@ const adminGroups = (t, isAr) => [
       { path: '/admin/users',     label: t('admin.users'),     icon: Users },
       { path: '/admin/investors', label: t('admin.investors'), icon: Users },
       { path: '/admin/audit',     label: t('admin.auditLogs'), icon: ScrollText },
+      { path: '/admin/waiting-list', label: t('admin.waitingList'), icon: ClipboardList },
       { path: '/admin/settings',  label: t('admin.settings'),  icon: Settings },
     ],
   },
