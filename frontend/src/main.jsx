@@ -62,6 +62,7 @@ import AdminInvestorStatement from './pages/admin/AdminInvestorStatement.jsx'
 import AdminOwnerStatement from './pages/admin/AdminOwnerStatement.jsx'
 import AdminPlatformPnL from './pages/admin/AdminPlatformPnL.jsx'
 import AdminPropertyLeads from './pages/admin/AdminPropertyLeads.jsx'
+import AdminWaitingList from './pages/admin/AdminWaitingList.jsx'
 // Regulator Pages
 import RegOverview from './pages/regulator/RegOverview.jsx'
 import RegProperties from './pages/regulator/RegProperties.jsx'
@@ -202,6 +203,7 @@ const router = createBrowserRouter([
   { path: 'investor-statement', element: <AdminInvestorStatement /> },
   { path: 'owner-statement', element: <AdminOwnerStatement /> },
   { path: 'platform-pnl', element: <AdminPlatformPnL /> },
+  { path: 'waiting-list', element: <AdminWaitingList /> },
 ],
 },
 // Regulator Routes

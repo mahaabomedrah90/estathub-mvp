@@ -1,9 +1,14 @@
-import React, { useState } from 'react'
+import React, { useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { ArrowRight, CheckCircle2 } from 'lucide-react'
 import { fetchJson } from '../lib/api'
 
-export default function WaitlistSection({ source = 'home' }) {
+function safeSource(value) {
+  const normalized = String(value || '').trim().toLowerCase()
+  return /^[a-z0-9][a-z0-9_-]{0,63}$/.test(normalized) ? normalized : ''
+}
+
+export default function WaitlistSection({ source }) {
   const { i18n } = useTranslation('pages')
   const isRtl = i18n.dir() === 'rtl'
 
@@ -12,6 +17,10 @@ export default function WaitlistSection({ source = 'home' }) {
   const [submitted, setSubmitted] = useState(false)
   const [loading, setLoading] = useState(false)
   const [apiError, setApiError] = useState(false)
+  const registrationSource = useMemo(() => {
+    const querySource = safeSource(new URLSearchParams(window.location.search).get('source'))
+    return querySource || safeSource(source) || 'home'
+  }, [source])
 
   const handleSubmit = async (e) => {
     e.preventDefault()
@@ -28,7 +37,7 @@ export default function WaitlistSection({ source = 'home' }) {
           contact,
           amount,
           language: i18n.language,
-          source,
+          source: registrationSource,
         }),
       })
       setSubmitted(true)
