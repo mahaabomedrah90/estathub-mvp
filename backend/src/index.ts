@@ -18,7 +18,7 @@ import { depositRequestAdminRouter } from './controllers/depositRequest.controll
 import { withdrawalRequestRouter, withdrawalRequestAdminRouter } from './controllers/withdrawalRequest.controller'
 import { auditLogRouter } from './controllers/auditLog.controller'
 import { regulatorRouter } from './controllers/regulator.controller'
-import { waitlistRouter } from './controllers/waitlist.controller'
+import { waitlistRouter, waitingListAdminRouter } from './controllers/waitlist.controller'
 import { requestIdMiddleware } from './middleware/requestId'
 import { checkGatewayHealth } from './lib/gatewayHealth'
 import { mobileRouter } from './controllers/mobile.controller'
@@ -347,6 +347,7 @@ app.use('/api/wallet/withdrawal-request', withdrawalRequestRouter)
 app.use('/api/admin/withdrawal-requests', withdrawalRequestAdminRouter)
 app.use('/api/admin', auditLogRouter)
 app.use('/api/waitlist', waitlistRouter)
+app.use('/api/admin/waiting-list', waitingListAdminRouter)
 
 // Mobile-specific endpoints
 app.use('/api/mobile', mobileRouter)

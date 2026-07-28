@@ -227,6 +227,32 @@
     "heroSubtitleLegacy": "ALWSM gives you direct access to real estate ownership — clearly, confidently."
   },
   "admin": {
+    "waitingList": {
+      "title": "Waiting List",
+      "subtitle": "Monitor marketing registrations and acquisition sources",
+      "total": "Total registrations",
+      "today": "Today",
+      "week": "This week",
+      "month": "This month",
+      "searchPlaceholder": "Search by contact",
+      "allSources": "All sources",
+      "exportCsv": "Export CSV",
+      "loading": "Loading registrations...",
+      "loadError": "Failed to load waiting-list registrations.",
+      "exportError": "Failed to export waiting-list registrations.",
+      "retry": "Try again",
+      "empty": "No registrations found.",
+      "pageOf": "Page {{page}} of {{pages}} ({{total}} registrations)",
+      "previous": "Previous",
+      "next": "Next",
+      "columns": {
+        "contact": "Contact",
+        "amount": "Investment range",
+        "source": "Source",
+        "language": "Language",
+        "registeredAt": "Registration date and time"
+      }
+    },
     "overview": {
       "loginRequired": "Please login as admin to view this dashboard.",
       "loginCta": "Login Now",
