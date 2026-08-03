@@ -5,6 +5,10 @@ import { useTranslation } from 'react-i18next'
 import KpiCard from '../components/KpiCard'
 import WaitlistSection from '../components/WaitlistSection'
 
+// Temporarily hidden for the teaser campaign. Set to true after the teaser to
+// restore this section; do not remove the preserved feature-card content.
+const SHOW_TEASER_FEATURE_CARDS = false
+
 
 export default function Home() {
   const { t } = useTranslation('pages')
@@ -133,6 +137,7 @@ export default function Home() {
       </div>
 
       {/* Features Section */}
+      {SHOW_TEASER_FEATURE_CARDS && (
       <div className="bg-surface-muted section-tight">
         <div className="max-w-7xl mx-auto px-6 lg:px-8">
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
@@ -177,6 +182,7 @@ export default function Home() {
           </div>
         </div>
       </div>
+      )}
 
       {/* Stats Section - Temporarily Hidden */}
       {/* 
