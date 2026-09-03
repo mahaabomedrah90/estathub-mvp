@@ -117,6 +117,11 @@ model User {
   emailVerified Boolean  @default(false)
   phoneVerified Boolean  @default(false)
   kycVerified   Boolean  @default(false)  // KYC/National ID verification status
+
+  // App-store review account marker (Apple App Review / Google Play reviewer).
+  // Grants NO privileges — it only makes the account read-only for financial
+  // writes via storeReviewerGuard. Never set this on a real customer account.
+  isStoreReviewer Boolean @default(false)
   
   // Relations
   tenant        Tenant         @relation(fields: [tenantId], references: [id], onDelete: Cascade)

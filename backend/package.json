@@ -7,6 +7,7 @@
   "scripts": {
     "prestart": "npm run build",
     "build": "tsc -p .",
+    "test": "tsx --test tests/*.test.ts",
     "dev:ts": "tsx watch src/index.ts",
     "start:ts": "tsx src/index.ts",
     "start": "node dist/index.js",

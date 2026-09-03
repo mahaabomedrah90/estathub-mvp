@@ -4,6 +4,7 @@ import { isFabricEnabled, evaluateGetHoldings } from '../lib/fabric'
 import { auth } from '../middleware/auth'
 import { sendEmail, getAdminEmail, buildDepositRequestAdminEmail, maskIban } from '../lib/emailService'
 import { getFeatureFlag } from '../lib/featureFlags'
+import { storeReviewerGuard } from '../middleware/storeReviewer'
 
 export const walletRouter = Router()
 
@@ -125,7 +126,7 @@ walletRouter.post('/deposit', auth(true), async (_req: Request & { user?: any },
 })
 
 // POST /api/wallet/deposit-request — submit a manual bank transfer deposit request
-walletRouter.post('/deposit-request', auth(true), async (req: Request & { user?: any }, res: Response) => {
+walletRouter.post('/deposit-request', auth(true), storeReviewerGuard, async (req: Request & { user?: any }, res: Response) => {
   try {
     const depositEnabled = await getFeatureFlag('depositEnabled', true)
     if (!depositEnabled) {

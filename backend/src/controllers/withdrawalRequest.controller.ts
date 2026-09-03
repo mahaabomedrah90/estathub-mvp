@@ -4,12 +4,13 @@ import { auth } from '../middleware/auth'
 import { logAdminAction, AuditAction } from '../lib/auditService'
 import { sendEmail, getAdminEmail, buildAdminWithdrawalRequestEmail, buildWithdrawalApprovedEmail, buildWithdrawalRejectedEmail, maskIban } from '../lib/emailService'
 import { getFeatureFlag } from '../lib/featureFlags'
+import { storeReviewerGuard } from '../middleware/storeReviewer'
 
 // ─── Investor router ──────────────────────────────────────────────────────────
 export const withdrawalRequestRouter = Router()
 
 // POST /api/wallet/withdrawal-request
-withdrawalRequestRouter.post('/', auth(true), async (req: Request & { user?: any }, res: Response) => {
+withdrawalRequestRouter.post('/', auth(true), storeReviewerGuard, async (req: Request & { user?: any }, res: Response) => {
   try {
     const withdrawalEnabled = await getFeatureFlag('withdrawalEnabled', true)
     if (!withdrawalEnabled) {

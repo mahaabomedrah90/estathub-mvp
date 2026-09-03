@@ -9,6 +9,7 @@ import { getFeatureFlag } from '../lib/featureFlags'
 import { issueDeedAfterPayment } from '../lib/deedService'
 import { logAdminAction, AuditAction } from '../lib/auditService'
 import crypto from 'node:crypto'
+import { storeReviewerGuard } from '../middleware/storeReviewer'
 
 export const ordersRouter = Router()
 
@@ -38,7 +39,7 @@ function purchaseGate(_req: Request, res: Response, next: NextFunction): void {
 // Web flow: this endpoint reserves the intent; no money moves here.
 // Flutter flow: same endpoint, same body, same response.
 // ─────────────────────────────────────────────────────────────────────────────
-ordersRouter.post('/', purchaseGate, auth(true), async (req: Request & { user?: any }, res: Response) => {
+ordersRouter.post('/', purchaseGate, auth(true), storeReviewerGuard, async (req: Request & { user?: any }, res: Response) => {
   let userId = '', pid = '', qty = 0
 
   try {
@@ -201,7 +202,7 @@ ordersRouter.post('/', purchaseGate, auth(true), async (req: Request & { user?: 
 // This is the real money-moving step: wallet deduction, holding, certificate,
 // deed auto-issuance, and optional blockchain sync all happen here.
 // ─────────────────────────────────────────────────────────────────────────────
-ordersRouter.post('/confirm', purchaseGate, auth(true), async (req: Request & { user?: any }, res: Response) => {
+ordersRouter.post('/confirm', purchaseGate, auth(true), storeReviewerGuard, async (req: Request & { user?: any }, res: Response) => {
   try {
     const oid = req.body?.orderId
     if (!oid) return res.status(400).json({ error: 'invalid_orderId' })
