@@ -3,6 +3,7 @@ import { Outlet } from 'react-router-dom'
 import Navbar from '../components/Navbar'
 import Sidebar from '../components/Sidebar'
 import Footer from '../components/Footer'
+import PageTracking from '../components/PageTracking'
 import { useTranslation } from 'react-i18next'
 
 export default function DashboardLayout() {
@@ -33,6 +34,7 @@ export default function DashboardLayout() {
 
   return (
     <div className="min-h-screen flex flex-col bg-surface-base">
+      <PageTracking />
       <Navbar />
 
       <Sidebar

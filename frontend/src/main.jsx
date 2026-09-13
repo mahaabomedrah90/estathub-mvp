@@ -8,6 +8,7 @@ import PublicPageRoute from './components/PublicPageRoute.jsx'
 import { getToken } from './lib/api.js'
 import { I18nextProvider } from 'react-i18next'
 import i18n from './i18n/i18n'
+import { initializePixel } from './lib/analytics.js'
 import './index.css'
 
 // Public Pages
@@ -227,6 +228,11 @@ const router = createBrowserRouter([
   ],
 },
 ])
+
+// Initialize Meta Pixel (once only, before app renders)
+// Pixel ID from environment variable, safe for client-side exposure
+const pixelId = import.meta.env.VITE_META_PIXEL_ID;
+initializePixel(pixelId);
 
 ReactDOM.createRoot(document.getElementById('root')).render(
   <React.StrictMode>
