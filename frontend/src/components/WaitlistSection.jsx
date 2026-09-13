@@ -2,6 +2,7 @@ import React, { useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { ArrowRight, CheckCircle2 } from 'lucide-react'
 import { fetchJson } from '../lib/api'
+import { trackWaitlistLead } from '../lib/analytics'
 
 function safeSource(value) {
   const normalized = String(value || '').trim().toLowerCase()
@@ -30,7 +31,7 @@ export default function WaitlistSection({ source }) {
     setApiError(false)
 
     try {
-      await fetchJson('/api/waitlist', {
+      const response = await fetchJson('/api/waitlist', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -40,6 +41,18 @@ export default function WaitlistSection({ source }) {
           source: registrationSource,
         }),
       })
+
+      // Track Meta Lead event for successful registration
+      // Wrapped in try-catch to ensure analytics failure never breaks the waitlist flow
+      try {
+        if (response?.success === true && response?.id) {
+          trackWaitlistLead(response.id)
+        }
+      } catch (analyticsError) {
+        // Silently log analytics errors; waitlist registration must not fail
+        console.error('⚠️ Meta Lead tracking failed (non-blocking):', analyticsError?.message)
+      }
+
       setSubmitted(true)
     } catch {
       setApiError(true)
@@ -49,9 +62,9 @@ export default function WaitlistSection({ source }) {
   }
 
   const amountOptions = [
-    { value: '250', labelAr: '٢٥٠ ريال', labelEn: 'SAR 250' },
-    { value: '500', labelAr: '٥٠٠ ريال', labelEn: 'SAR 500' },
-    { value: '1000+', labelAr: '+١٠٠٠ ريال', labelEn: 'SAR 1,000+' },
+    { value: '250', labelAr: 'مهتم', labelEn: 'SAR 250' },
+    { value: '500', labelAr: 'مهتم جداً', labelEn: 'SAR 500' },
+    { value: '1000+', labelAr: 'أريد الأولوية', labelEn: 'SAR 1,000+' },
   ]
 
   return (
@@ -67,13 +80,13 @@ export default function WaitlistSection({ source }) {
 
         {/* Heading */}
         <h2 className="text-3xl md:text-4xl font-bold text-white mb-3 leading-tight">
-          {isRtl ? 'وسّم اسمك. من اليوم.' : 'Own it. Start now.'}
+          {isRtl ? 'وسّم اسمك من اليوم' : 'Own it. Start now.'}
         </h2>
 
         {/* Microcopy */}
         <p className="text-white/70 text-base mb-6">
           {isRtl
-            ? 'خطوة واحدة اليوم قد تصنع أثراً لسنوات.'
+            ? 'كل شيء يبدأ بخطوة واحدة.'
             : 'Reserve your place before the first opportunity closes.'}
         </p>
 
@@ -81,16 +94,21 @@ export default function WaitlistSection({ source }) {
           <div className="flex flex-col items-center gap-3 py-6">
             <CheckCircle2 className="text-brand-accent w-12 h-12" />
             <p className="text-white font-semibold text-lg">
-              {isRtl ? 'تم تسجيلك بنجاح. سنخبرك عند توفر أول فرصة.' : "You're registered. We'll notify you when the first opportunity is live."}
+              {isRtl ? 'تم حفظ مكانك.' : 'Your place is reserved. What comes next is worth the wait.'}
             </p>
             <p className="text-white/60 text-sm">
               {isRtl
-                ? 'سنتواصل معك عند الإطلاق.'
-                : "We will notify you when the first property goes live."}
+                ? <>{'البقية... في وقتها.'}<br />{'سنخبرك عندما يحين الوقت.'}</>
+                : "You're now on the list."}
             </p>
           </div>
         ) : (
-          <form onSubmit={handleSubmit} className="max-w-md mx-auto">
+          <>
+            <p className="text-white/50 text-xs mb-3">
+              {isRtl ? 'مكانك يبدأ من هنا.' : 'Priority begins with one step.'}
+            </p>
+
+            <form onSubmit={handleSubmit} className="max-w-md mx-auto">
 
             {/* GROUP 1 — Input */}
             <div className="mb-8">
@@ -107,7 +125,7 @@ export default function WaitlistSection({ source }) {
             {/* GROUP 2 — Investment selection */}
             <div className="mt-2 space-y-3">
               <span className="block text-white/60 text-sm text-center">
-                {isRtl ? 'كم تقدر تستثمر؟' : 'Approximate investment range'}
+                {isRtl ? 'ما مدى اهتمامك؟' : 'Approximate investment range'}
               </span>
               <div className="flex gap-3 justify-center flex-wrap">
                 {amountOptions.map((opt) => (
@@ -143,6 +161,9 @@ export default function WaitlistSection({ source }) {
                   </>
                 )}
               </button>
+              <p className="mt-2 text-white/40 text-xs text-center">
+                {isRtl ? 'أقل من 10 ثوانٍ... ومكانك محفوظ.' : 'A few seconds, and your place is reserved.'}
+              </p>
             </div>
 
             {/* API error */}
@@ -161,7 +182,8 @@ export default function WaitlistSection({ source }) {
                 : 'Asset-backed. Verified ownership. Saudi-regulated.'}
             </p>
 
-          </form>
+            </form>
+          </>
         )}
       </div>
     </section>
