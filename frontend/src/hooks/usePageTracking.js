@@ -33,10 +33,7 @@ export function usePageTracking() {
         fbq('track', 'PageView');
       }
 
-      // X Web Pixel: Defensive check: twq must exist and be a function
-      if (window.twq && typeof window.twq === 'function') {
-        window.twq('track', 'PageView');
-      }
+      // X Web Pixel automatically measures site visits; no manual PageView tracking needed
 
       // Update module-level state only after successful tracks
       lastTrackedLocation = currentLocationId;

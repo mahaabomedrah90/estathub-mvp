@@ -17,9 +17,9 @@
       s.parentNode.insertBefore(t,s)}(window, document,'script',
       'https://connect.facebook.net/en_US/fbevents.js');
     </script>
-    <!-- X Web Pixel Library Loader (no init/pageview here; initialized by React) -->
+    <!-- X Web Pixel Library Loader (official implementation; pixel ID configured by React) -->
     <script>
-      !function(e){var t={};t.__version__='1.0',t.queue=[],t.bind=function(e,n){return function(){t.queue.push([n].concat(Array.prototype.slice.call(arguments,0)))}};var n=['pageview','track','identify','updateUserProperties','identifyAccount','clearUserID','setUserID'];n.forEach(function(e){t[e]=t.bind(t,e)});var i=document.createElement('script');i.src='https://static.ads-twitter.com/universal_web.js',i.async=!0,i.onload=function(){window.twq=t};var o=document.getElementsByTagName('script')[0];o.parentNode.insertBefore(i,o)}();
+      !function(e,t,n,s,u,a){e.twq||(s=e.twq=function(){s.exe?s.exe.apply(s,arguments):s.queue.push(arguments)},s.version='1.1',s.queue=[],u=t.createElement(n),u.async=!0,u.src='https://static.ads-twitter.com/uwt.js',a=t.getElementsByTagName(n)[0],a.parentNode.insertBefore(u,a))}(window,document,'script');
     </script>
   </head>
   <body>
