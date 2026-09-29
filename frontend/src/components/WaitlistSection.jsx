@@ -3,7 +3,7 @@ import { useTranslation } from 'react-i18next'
 import { ArrowRight, CheckCircle2 } from 'lucide-react'
 import { getAttributionPayload } from '../lib/attribution'
 import { fetchJson } from '../lib/api'
-import { trackWaitlistLead } from '../lib/analytics'
+import { trackWaitlistLead, trackXWaitlistLead } from '../lib/analytics'
 
 function safeSource(value) {
   const normalized = String(value || '').trim().toLowerCase()
@@ -44,15 +44,27 @@ export default function WaitlistSection({ source }) {
         }),
       })
 
-      // Track Meta Lead event for successful registration
+      // Track analytics events for successful registration
       // Wrapped in try-catch to ensure analytics failure never breaks the waitlist flow
       try {
         if (response?.success === true && response?.id) {
-          trackWaitlistLead(response.id)
+          // Meta Lead tracking (isolated from X)
+          try {
+            trackWaitlistLead(response.id)
+          } catch (metaError) {
+            console.error('⚠️ Meta Lead tracking failed (non-blocking):', metaError?.message)
+          }
+
+          // X Lead tracking (isolated from Meta)
+          try {
+            trackXWaitlistLead(response.id)
+          } catch (xError) {
+            console.error('⚠️ X Lead tracking failed (non-blocking):', xError?.message)
+          }
         }
       } catch (analyticsError) {
-        // Silently log analytics errors; waitlist registration must not fail
-        console.error('⚠️ Meta Lead tracking failed (non-blocking):', analyticsError?.message)
+        // Fallback error handler
+        console.error('⚠️ Analytics tracking failed (non-blocking):', analyticsError?.message)
       }
 
       setSubmitted(true)

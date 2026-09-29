@@ -1,5 +1,5 @@
 /**
- * React Hook for Meta Pixel PageView Tracking
+ * React Hook for Meta Pixel and X Web Pixel PageView Tracking
  * Tracks page views on initial route mount and on every real SPA navigation
  * Uses module-level state to prevent duplicate PageView events across
  * component mounts, unmounts, and React StrictMode re-initializations
@@ -13,8 +13,8 @@ import { useLocation } from 'react-router-dom';
 let lastTrackedLocation = null;
 
 /**
- * Track PageView events on route changes
- * - Initial route: fires PageView once
+ * Track PageView events on route changes for Meta and X
+ * - Initial route: fires PageView once for each pixel
  * - Subsequent navigations: fires PageView only if pathname or search changed
  * - Same route navigated again: no fire (prevents duplicates)
  * - React StrictMode re-mounts: no fire (same location, no change)
@@ -28,12 +28,17 @@ export function usePageTracking() {
 
     // Only fire if we haven't tracked this location yet
     if (lastTrackedLocation !== currentLocationId) {
-      // Defensive check: fbq must exist and be a function
+      // Meta Pixel: Defensive check: fbq must exist and be a function
       if (window.fbq && typeof window.fbq === 'function') {
         fbq('track', 'PageView');
       }
 
-      // Update module-level state only after successful track
+      // X Web Pixel: Defensive check: twq must exist and be a function
+      if (window.twq && typeof window.twq === 'function') {
+        window.twq('track', 'PageView');
+      }
+
+      // Update module-level state only after successful tracks
       lastTrackedLocation = currentLocationId;
     }
     // If same location: no action (no duplicate PageView)
