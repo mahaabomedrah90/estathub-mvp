@@ -35,13 +35,12 @@ const resources = {
 }
 
 function detectInitialLanguage() {
-  if (typeof window === 'undefined') return 'en'
+  if (typeof window === 'undefined') return 'ar'
 
   const stored = localStorage.getItem('estathub_lang') || localStorage.getItem('i18nextLng')
   if (stored === 'en' || stored === 'ar') return stored
 
-  const browser = navigator.language || (navigator.languages && navigator.languages[0]) || 'en'
-  return browser.toLowerCase().startsWith('ar') ? 'ar' : 'en'
+  return 'ar'
 }
 
 function updateHtmlDirection(lang) {
