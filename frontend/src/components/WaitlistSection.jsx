@@ -3,7 +3,7 @@ import { useTranslation } from 'react-i18next'
 import { ArrowRight, CheckCircle2 } from 'lucide-react'
 import { getAttributionPayload } from '../lib/attribution'
 import { fetchJson } from '../lib/api'
-import { trackWaitlistLead, trackXWaitlistLead } from '../lib/analytics'
+import { trackWaitlistLead, trackXWaitlistLead, trackTikTokWaitlistRegistration } from '../lib/analytics'
 
 function safeSource(value) {
   const normalized = String(value || '').trim().toLowerCase()
@@ -60,6 +60,13 @@ export default function WaitlistSection({ source }) {
             trackXWaitlistLead(response.id)
           } catch (xError) {
             console.error('⚠️ X Lead tracking failed (non-blocking):', xError?.message)
+          }
+
+          // TikTok CompleteRegistration tracking (isolated from Meta and X)
+          try {
+            trackTikTokWaitlistRegistration(response.id)
+          } catch (tiktokError) {
+            console.error('⚠️ TikTok CompleteRegistration tracking failed (non-blocking):', tiktokError?.message)
           }
         }
       } catch (analyticsError) {

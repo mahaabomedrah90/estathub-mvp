@@ -1,7 +1,8 @@
 /**
  * Analytics Utility
  * Handles single, guarded initialization of Meta Pixel and X Web Pixel
- * Both pixels track the same conversion events without sending PII
+ * Meta, X and TikTok track the waitlist conversion without sending PII
+ * (TikTok Pixel itself is loaded and initialized once in index.html)
  */
 
 // Module-level state: ensures fbq('init') is called only once, ever
@@ -47,6 +48,10 @@ let lastTrackedMetaWaitlistLeadId = null;
 // Module-level state: track last successfully recorded waitlist lead for X
 // Prevents duplicate Lead events for same registration ID
 let lastTrackedXWaitlistLeadId = null;
+
+// Module-level state: track last successfully recorded waitlist lead for TikTok
+// Prevents duplicate CompleteRegistration events for same registration ID
+let lastTrackedTikTokWaitlistLeadId = null;
 
 /**
  * Track Meta Lead event for successful waitlist registration
@@ -95,4 +100,37 @@ export function trackXWaitlistLead(leadId) {
 
   // Mark this registration as tracked
   lastTrackedXWaitlistLeadId = leadId;
+}
+
+/**
+ * Track TikTok CompleteRegistration event for successful waitlist registration
+ * Fires exactly once per unique waitlist registration
+ * NO personal data is sent to TikTok - only a fixed waitlist content descriptor
+ *
+ * Safe to call multiple times; leadId guard ensures single firing per registration
+ * If ttq is unavailable, silently returns without error
+ *
+ * @param {string} leadId - Unique waitlist registration ID from server response (used only for internal duplicate prevention, never sent)
+ */
+export function trackTikTokWaitlistRegistration(leadId) {
+  // Guard: already tracked this exact registration ID
+  if (lastTrackedTikTokWaitlistLeadId === leadId) return;
+
+  // Guard: ttq not available (graceful degradation)
+  if (!window.ttq || typeof window.ttq.track !== 'function') return;
+
+  window.ttq.track('CompleteRegistration', {
+    contents: [
+      {
+        content_id: 'alwsm_waitlist',
+        content_type: 'product',
+        content_name: 'ALWSM Waitlist',
+      },
+    ],
+    value: 0,
+    currency: 'SAR',
+  });
+
+  // Mark this registration as tracked
+  lastTrackedTikTokWaitlistLeadId = leadId;
 }
