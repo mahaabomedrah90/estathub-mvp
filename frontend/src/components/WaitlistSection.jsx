@@ -3,6 +3,9 @@ import { useTranslation } from 'react-i18next'
 import { ArrowRight, CheckCircle2 } from 'lucide-react'
 import { fetchJson } from '../lib/api'
 
+// Track last TikTok conversion to prevent duplicate firing
+let lastTrackedTikTokWaitlistId = null
+
 export default function WaitlistSection({ source = 'home' }) {
   const { i18n } = useTranslation('pages')
   const isRtl = i18n.dir() === 'rtl'
@@ -21,7 +24,7 @@ export default function WaitlistSection({ source = 'home' }) {
     setApiError(false)
 
     try {
-      await fetchJson('/api/waitlist', {
+      const response = await fetchJson('/api/waitlist', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -31,7 +34,36 @@ export default function WaitlistSection({ source = 'home' }) {
           source,
         }),
       })
-      setSubmitted(true)
+
+      // Verify successful registration
+      if (response && response.id) {
+        // Fire TikTok CompleteRegistration event
+        if (typeof window !== 'undefined' &&
+            window.ttq &&
+            typeof window.ttq.track === 'function' &&
+            lastTrackedTikTokWaitlistId !== response.id) {
+          try {
+            window.ttq.track('CompleteRegistration', {
+              contents: [
+                {
+                  content_id: 'alwsm_waitlist',
+                  content_type: 'product',
+                  content_name: 'ALWSM Waitlist'
+                }
+              ],
+              value: 0,
+              currency: 'SAR'
+            })
+            lastTrackedTikTokWaitlistId = response.id
+          } catch (tiktokError) {
+            console.error('TikTok conversion tracking failed (non-blocking):', tiktokError?.message)
+          }
+        }
+
+        setSubmitted(true)
+      } else {
+        setApiError(true)
+      }
     } catch {
       setApiError(true)
     } finally {
