@@ -7,6 +7,17 @@ import { useTranslation } from 'react-i18next'
 import { apiUrl, authHeader, fetchJson } from '../../lib/api'
 
 const PAGE_SIZE = 20
+const CHANNEL_FILTERS = ['x', 'instagram', 'tiktok', 'direct', 'unknown']
+
+function channelLabel(utmSource, t) {
+  const value = String(utmSource || '').trim().toLowerCase()
+  if (!value) return t('admin.waitingList.channels.unknown')
+  if (value === 'x' || value === 'twitter') return 'X'
+  if (value === 'instagram') return 'Instagram'
+  if (value === 'tiktok') return 'TikTok'
+  if (value === 'direct') return t('admin.waitingList.channels.direct')
+  return String(utmSource)
+}
 
 function StatCard({ icon: Icon, label, value }) {
   return (
@@ -33,6 +44,7 @@ export default function AdminWaitingList() {
   const [searchInput, setSearchInput] = useState('')
   const [search, setSearch] = useState('')
   const [source, setSource] = useState('')
+  const [channel, setChannel] = useState('')
   const [loading, setLoading] = useState(true)
   const [exporting, setExporting] = useState(false)
   const [error, setError] = useState('')
@@ -52,6 +64,7 @@ export default function AdminWaitingList() {
       const params = new URLSearchParams({ page: String(page), limit: String(PAGE_SIZE) })
       if (search) params.set('q', search)
       if (source) params.set('source', source)
+      if (channel) params.set('channel', channel)
       const result = await fetchJson(`/api/admin/waiting-list?${params}`, { headers: authHeader() })
       setRegistrations(Array.isArray(result.data) ? result.data : [])
       setSummary(result.summary || { total: 0, today: 0, week: 0, month: 0 })
@@ -63,7 +76,7 @@ export default function AdminWaitingList() {
     } finally {
       setLoading(false)
     }
-  }, [page, search, source, t])
+  }, [page, search, source, channel, t])
 
   useEffect(() => { loadRegistrations() }, [loadRegistrations])
 
@@ -74,6 +87,7 @@ export default function AdminWaitingList() {
       const params = new URLSearchParams()
       if (search) params.set('q', search)
       if (source) params.set('source', source)
+      if (channel) params.set('channel', channel)
       const response = await fetch(apiUrl(`/api/admin/waiting-list/export?${params}`), {
         headers: authHeader(),
       })
@@ -152,6 +166,16 @@ export default function AdminWaitingList() {
           <option value="">{t('admin.waitingList.allSources')}</option>
           {sources.map(item => <option key={item} value={item}>{item}</option>)}
         </select>
+        <select
+          value={channel}
+          onChange={event => { setChannel(event.target.value); setPage(1) }}
+          className="bg-white border border-gray-200 rounded-xl px-4 py-2.5 text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-brand-primary/30"
+        >
+          <option value="">{t('admin.waitingList.allChannels')}</option>
+          {CHANNEL_FILTERS.map(item => (
+            <option key={item} value={item}>{channelLabel(item === 'unknown' ? '' : item, t)}</option>
+          ))}
+        </select>
       </div>
 
       <div className="bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden">
@@ -180,7 +204,7 @@ export default function AdminWaitingList() {
             <table className="w-full text-sm">
               <thead>
                 <tr className="bg-gray-50 border-b border-gray-200">
-                  {['contact', 'amount', 'source', 'language', 'registeredAt'].map(column => (
+                  {['contact', 'amount', 'source', 'channel', 'language', 'registeredAt'].map(column => (
                     <th key={column} className="px-5 py-3 text-start text-xs font-semibold text-gray-500 uppercase tracking-wide whitespace-nowrap">
                       {t(`admin.waitingList.columns.${column}`)}
                     </th>
@@ -196,6 +220,12 @@ export default function AdminWaitingList() {
                       <span className="inline-flex px-2.5 py-1 rounded-full bg-brand-primary/10 text-brand-primary text-xs font-semibold">
                         {registration.source}
                       </span>
+                    </td>
+                    <td
+                      className="px-5 py-3 text-gray-600 whitespace-nowrap"
+                      title={[registration.utmCampaign, registration.utmContent].filter(Boolean).join(' · ') || undefined}
+                    >
+                      {channelLabel(registration.utmSource, t)}
                     </td>
                     <td className="px-5 py-3 text-gray-600">{registration.language}</td>
                     <td className="px-5 py-3 text-gray-600 whitespace-nowrap">{formatDate(registration.createdAt)}</td>

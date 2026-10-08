@@ -12,6 +12,8 @@ const MAX_AMOUNT_LENGTH = 32
 const MAX_LANGUAGE_LENGTH = 10
 const MAX_SOURCE_LENGTH = 64
 const MAX_EXPORT_ROWS = 5000
+const MAX_UTM_LENGTH = 150
+const MAX_URL_LENGTH = 2048
 
 const waitlistRegistrationLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
@@ -31,6 +33,49 @@ function resemblesEmailOrPhone(value: string): boolean {
   const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/
   const phonePattern = /^\+?\d{7,15}$/
   return emailPattern.test(value) || phonePattern.test(value)
+}
+
+function optionalText(value: unknown, maxLength: number): string | null {
+  if (typeof value !== 'string') return null
+  const text = value.replace(/[\u0000-\u001f\u007f]/g, '').trim()
+  return text ? text.slice(0, maxLength) : null
+}
+
+function optionalUrl(value: unknown): string | null {
+  const text = optionalText(value, MAX_URL_LENGTH * 2)
+  if (!text) return null
+  try {
+    const url = new URL(text)
+    if (url.protocol !== 'http:' && url.protocol !== 'https:') return null
+    url.hash = ''
+    return url.toString().slice(0, MAX_URL_LENGTH)
+  } catch {
+    return null
+  }
+}
+
+// Marketing attribution is best-effort: malformed values are dropped, never
+// rejected, so attribution can never block a waitlist registration.
+export function normalizeAttribution(body: any) {
+  const input = body && typeof body === 'object' ? body : {}
+  return {
+    utmSource: optionalText(input.utmSource, MAX_UTM_LENGTH)?.toLowerCase() ?? null,
+    utmMedium: optionalText(input.utmMedium, MAX_UTM_LENGTH),
+    utmCampaign: optionalText(input.utmCampaign, MAX_UTM_LENGTH),
+    utmContent: optionalText(input.utmContent, MAX_UTM_LENGTH),
+    utmTerm: optionalText(input.utmTerm, MAX_UTM_LENGTH),
+    landingUrl: optionalUrl(input.landingUrl),
+    referrer: optionalUrl(input.referrer),
+  }
+}
+
+// Acquisition-channel filter values used by the admin waiting list.
+const CHANNEL_FILTERS: Record<string, any> = {
+  x: { utmSource: { in: ['x', 'twitter'] } },
+  instagram: { utmSource: 'instagram' },
+  tiktok: { utmSource: 'tiktok' },
+  direct: { utmSource: 'direct' },
+  unknown: { utmSource: null },
 }
 
 function escapeHtml(value: string): string {
@@ -77,6 +122,8 @@ function buildWhere(query: Request['query']) {
   const where: any = {}
   if (q) where.contact = { contains: q, mode: 'insensitive' }
   if (source) where.source = source
+  const channel = typeof query.channel === 'string' ? query.channel.trim().toLowerCase() : ''
+  if (Object.prototype.hasOwnProperty.call(CHANNEL_FILTERS, channel)) Object.assign(where, CHANNEL_FILTERS[channel])
   return where
 }
 
@@ -116,12 +163,15 @@ waitlistRouter.post('/', waitlistRegistrationLimiter, async (req: Request, res: 
       return res.status(400).json({ error: 'invalid_source' })
     }
 
+    const attribution = normalizeAttribution(req.body)
+
     const lead = await prisma.waitlistLead.create({
       data: {
         contact: normalizedContact,
         amount: normalizedAmount,
         language: normalizedLanguage,
         source: normalizedSource,
+        ...attribution,
       },
     })
 
@@ -163,9 +213,19 @@ waitingListAdminRouter.get('/export', auth(true), async (req: Request & { user?:
         language: true,
         source: true,
         createdAt: true,
+        utmSource: true,
+        utmMedium: true,
+        utmCampaign: true,
+        utmContent: true,
+        utmTerm: true,
+        landingUrl: true,
+        referrer: true,
       },
     })
-    const header = ['ID', 'Contact', 'Investment Range', 'Language', 'Source', 'Registered At']
+    const header = [
+      'ID', 'Contact', 'Investment Range', 'Language', 'Source', 'Registered At',
+      'UTM Source', 'UTM Medium', 'UTM Campaign', 'UTM Content', 'UTM Term', 'Landing URL', 'Referrer',
+    ]
     const csv = [
       header.map(csvCell).join(','),
       ...rows.map(row => [
@@ -175,6 +235,13 @@ waitingListAdminRouter.get('/export', auth(true), async (req: Request & { user?:
         row.language,
         row.source,
         row.createdAt.toISOString(),
+        row.utmSource,
+        row.utmMedium,
+        row.utmCampaign,
+        row.utmContent,
+        row.utmTerm,
+        row.landingUrl,
+        row.referrer,
       ].map(csvCell).join(',')),
     ].join('\r\n')
 
@@ -216,6 +283,10 @@ waitingListAdminRouter.get('/', auth(true), async (req: Request & { user?: any }
           language: true,
           source: true,
           createdAt: true,
+          utmSource: true,
+          utmMedium: true,
+          utmCampaign: true,
+          utmContent: true,
         },
       }),
       prisma.waitlistLead.findMany({

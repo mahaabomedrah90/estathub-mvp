@@ -600,6 +600,15 @@ model WaitlistLead {
   language  String   @default("en")
   source    String   @default("home")
   createdAt DateTime @default(now())
+
+  // Marketing attribution (UTM), separate from `source`. NULL = legacy/unknown.
+  utmSource   String?
+  utmMedium   String?
+  utmCampaign String?
+  utmContent  String?
+  utmTerm     String?
+  landingUrl  String?
+  referrer    String?
 }
 
 model AdminAuditLog {

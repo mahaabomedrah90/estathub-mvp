@@ -1,6 +1,7 @@
 import React, { useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { ArrowRight, CheckCircle2 } from 'lucide-react'
+import { getAttributionPayload } from '../lib/attribution'
 import { fetchJson } from '../lib/api'
 import { trackWaitlistLead } from '../lib/analytics'
 
@@ -35,6 +36,7 @@ export default function WaitlistSection({ source }) {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
+          ...getAttributionPayload(),
           contact,
           amount,
           language: i18n.language,

@@ -236,6 +236,7 @@
       "month": "This month",
       "searchPlaceholder": "Search by contact",
       "allSources": "All sources",
+      "allChannels": "All channels",
       "exportCsv": "Export CSV",
       "loading": "Loading registrations...",
       "loadError": "Failed to load waiting-list registrations.",
@@ -250,7 +251,12 @@
         "amount": "Investment range",
         "source": "Source",
         "language": "Language",
+        "channel": "Acquisition channel",
         "registeredAt": "Registration date and time"
+      },
+      "channels": {
+        "direct": "Direct",
+        "unknown": "Unknown"
       }
     },
     "overview": {

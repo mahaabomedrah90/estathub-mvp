@@ -312,6 +312,7 @@
       "month": "هذا الشهر",
       "searchPlaceholder": "البحث ببيانات التواصل",
       "allSources": "جميع المصادر",
+      "allChannels": "جميع القنوات",
       "exportCsv": "تصدير CSV",
       "loading": "جاري تحميل التسجيلات...",
       "loadError": "تعذر تحميل تسجيلات قائمة الانتظار.",
@@ -326,7 +327,12 @@
         "amount": "نطاق الاستثمار",
         "source": "المصدر",
         "language": "اللغة",
+        "channel": "قناة الاستحواذ",
         "registeredAt": "تاريخ ووقت التسجيل"
+      },
+      "channels": {
+        "direct": "مباشر",
+        "unknown": "غير معروف"
       }
     },
     "overview": {

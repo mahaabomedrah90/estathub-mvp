@@ -73,6 +73,10 @@ import RegAMLAlerts from './pages/regulator/RegAMLAlerts.jsx'
 import RegulatorDashboard from './pages/regulator/RegulatorDashboard.jsx'
 import RegInvestors from './pages/regulator/RegInvestors.jsx'
 import RegEvents from './pages/regulator/RegEvents.jsx'   
+import { captureAttribution } from './lib/attribution.js'
+
+// Capture marketing attribution (UTM) on landing, before any SPA navigation
+captureAttribution()
 
 
 console.log('� Full React app loading...')
